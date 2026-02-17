@@ -1,11 +1,14 @@
-<ion-header [translucent]="true">
+<ion-header [translucent]="true" class="app-header">
   <ion-toolbar>
     <ion-title>Spending Analytics</ion-title>
+    <ion-buttons slot="end">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="ion-padding" [fullscreen]="true">
-  <div class="stats-container">
+<ion-content class="app-content" [fullscreen]="false">
+  <div class="stats-container page-shell">
     <!-- Loading spinner -->
     <ion-spinner *ngIf="isLoading" name="crescent" class="spinner"></ion-spinner>
 

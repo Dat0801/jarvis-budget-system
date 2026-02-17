@@ -1,14 +1,17 @@
-<ion-header class="transaction-header">
+<ion-header class="app-header transaction-header" [translucent]="true">
   <ion-toolbar>
     <ion-buttons slot="start">
       <ion-back-button defaultHref="/" icon="close"></ion-back-button>
     </ion-buttons>
     <ion-title>Add Transaction</ion-title>
+    <ion-buttons slot="end">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="transaction-page">
-  <form (ngSubmit)="submit()">
+<ion-content class="transaction-page app-content" [fullscreen]="false">
+  <form class="page-shell" (ngSubmit)="submit()">
     <div class="segment-wrap">
       <ion-segment [value]="segmentValue" (ionChange)="onSegmentChange($event)">
         <ion-segment-button value="income">

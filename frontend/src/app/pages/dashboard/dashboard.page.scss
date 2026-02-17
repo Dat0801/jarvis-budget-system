@@ -20,7 +20,7 @@ ion-content.dashboard::part(background) {
 }
 
 .page {
-	padding: 24px 20px 140px;
+	padding: 16px 18px 120px;
 }
 
 .header-row {
@@ -339,11 +339,4 @@ ion-content.dashboard::part(background) {
 
 .tx-amount.credit {
 	color: #16a34a;
-}
-
-@media (min-width: 768px) {
-	.page {
-		max-width: 640px;
-		margin: 0 auto;
-	}
 }

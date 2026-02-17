@@ -1,10 +1,102 @@
-<ion-header [translucent]="true">
+<ion-header [translucent]="true" class="profile-header">
   <ion-toolbar>
-    <ion-title>Settings</ion-title>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tabs/dashboard"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Profile & Settings</ion-title>
+    <ion-buttons slot="end">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="ion-padding">
-  <h2>Settings</h2>
-  <p>Profile and app preferences will appear here.</p>
+<ion-content [fullscreen]="false" class="profile-content">
+  <!-- Profile Card -->
+  <div class="profile-card">
+    <div class="profile-avatar-section">
+      <img src="https://i.pravatar.cc/150?u=minh@jarvis.finance" alt="Profile" class="profile-avatar">
+      <ion-badge color="success" class="premium-badge">PREMIUM</ion-badge>
+    </div>
+    <h1 class="profile-name">{{ userName }}</h1>
+    <p class="profile-email">{{ userEmail }}</p>
+  </div>
+
+  <!-- Account Settings Section -->
+  <div class="settings-section">
+    <h2 class="section-title">ACCOUNT SETTINGS</h2>
+    
+    <ion-list class="settings-list">
+      <ion-item button detail routerLink="/edit-profile" class="setting-item">
+        <ion-icon name="person-circle" slot="start" color="primary"></ion-icon>
+        <ion-label>Edit Profile</ion-label>
+      </ion-item>
+      
+      <ion-item button detail routerLink="/security" class="setting-item">
+        <ion-icon name="shield-checkmark" slot="start" color="primary"></ion-icon>
+        <ion-label>Security</ion-label>
+      </ion-item>
+    </ion-list>
+  </div>
+
+  <!-- App Preferences Section -->
+  <div class="settings-section">
+    <h2 class="section-title">APP PREFERENCES</h2>
+    
+    <ion-item class="setting-item" lines="none">
+      <ion-icon name="moon" slot="start" color="primary"></ion-icon>
+      <ion-label>Dark Mode</ion-label>
+      <ion-toggle slot="end" [(ngModel)]="darkMode" (ionChange)="toggleDarkMode()"></ion-toggle>
+    </ion-item>
+    
+    <ion-item button detail (click)="changeLanguage()" class="setting-item">
+      <ion-icon name="globe" slot="start" color="primary"></ion-icon>
+      <ion-label>Language</ion-label>
+      <ion-note slot="end">{{ selectedLanguage }}</ion-note>
+    </ion-item>
+  </div>
+
+  <!-- Financial Section -->
+  <div class="settings-section">
+    <h2 class="section-title">FINANCIAL</h2>
+    
+    <ion-item button detail (click)="changeCurrency()" class="setting-item">
+      <ion-icon name="cash" slot="start" color="primary"></ion-icon>
+      <ion-label>Currency</ion-label>
+      <ion-note slot="end">{{ selectedCurrency }}</ion-note>
+    </ion-item>
+    
+    <ion-item button class="setting-item reset-item" (click)="resetJarsData()">
+      <ion-icon name="alert-circle" slot="start" color="danger"></ion-icon>
+      <ion-label color="danger">Reset Jars Data</ion-label>
+      <ion-icon name="warning" slot="end" color="danger"></ion-icon>
+    </ion-item>
+  </div>
+
+  <!-- Support Section -->
+  <div class="settings-section">
+    <h2 class="section-title">SUPPORT</h2>
+    
+    <ion-list class="settings-list">
+      <ion-item button detail routerLink="/help" class="setting-item">
+        <ion-icon name="help-circle" slot="start" color="primary"></ion-icon>
+        <ion-label>Help Center</ion-label>
+      </ion-item>
+      
+      <ion-item button detail routerLink="/about" class="setting-item">
+        <ion-icon name="information-circle" slot="start" color="primary"></ion-icon>
+        <ion-label>About Jarvis</ion-label>
+      </ion-item>
+    </ion-list>
+  </div>
+
+  <!-- Logout Button -->
+  <ion-button expand="block" color="danger" fill="outline" (click)="logout()" class="logout-btn">
+    <ion-icon name="log-out" slot="start"></ion-icon>
+    Log Out
+  </ion-button>
+
+  <!-- Version Info -->
+  <div class="version-info">
+    <p>Jarvis Budget System v2.4.0</p>
+  </div>
 </ion-content>

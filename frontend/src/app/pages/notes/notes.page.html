@@ -1,20 +1,14 @@
-<ion-header class="notes-header" translucent>
+<ion-header [translucent]="true" class="app-header">
   <ion-toolbar>
-    <ion-buttons slot="start">
-      <ion-button fill="clear" class="icon-button">
-        <ion-icon name="chevron-back" aria-hidden="true"></ion-icon>
-      </ion-button>
-    </ion-buttons>
     <ion-title>Financial Notes</ion-title>
     <ion-buttons slot="end">
-      <ion-button fill="clear" class="icon-button">
-        <ion-icon name="search" aria-hidden="true"></ion-icon>
-      </ion-button>
+      <ion-menu-button></ion-menu-button>
     </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="notes-content">
+<ion-content class="notes-content app-content" [fullscreen]="false">
+  <div class="notes-shell page-shell">
   <!-- Tab Navigation -->
   <div class="tabs-container">
     <button
@@ -74,5 +68,6 @@
       <div class="empty-subtitle">{{ selectedTab === 'all' ? 'Add your first financial note to get started.' : 'No notes in this category.' }}</div>
     </div>
   </div>
+</div>
 </ion-content>
 

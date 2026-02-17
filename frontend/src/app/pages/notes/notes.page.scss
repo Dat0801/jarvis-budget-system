@@ -1,32 +1,10 @@
-.notes-header {
-	--background: #ffffff;
-	--border-color: transparent;
-	--color: #1d2433;
-
-	ion-toolbar {
-		padding-top: 8px;
-		padding-bottom: 8px;
-	}
-
-	ion-title {
-		font-weight: 700;
-		font-size: 18px;
-	}
-}
-
 .notes-content {
 	--background: #f7f9fb;
 	padding: 0;
 }
 
-.icon-button {
-	width: 40px;
-	height: 40px;
-	border-radius: 50%;
-	background: #ffffff;
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-	color: #1d2433;
-	margin: 0 8px;
+.notes-shell {
+	padding-bottom: 100px;
 }
 
 /* Tabs Container */

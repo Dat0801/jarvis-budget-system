@@ -32,6 +32,12 @@ export class AuthService {
     );
   }
 
+  logout() {
+    return this.api.post<{ message: string }>('auth/logout', {}).pipe(
+      tap(() => this.clearToken())
+    );
+  }
+
   async setToken(token: string): Promise<void> {
     await this.storageReady;
     await this.storage.set(this.tokenKey, token);
@@ -42,7 +48,7 @@ export class AuthService {
     return this.storage.get(this.tokenKey);
   }
 
-  async logout(): Promise<void> {
+  async clearToken(): Promise<void> {
     await this.storageReady;
     await this.storage.remove(this.tokenKey);
   }
