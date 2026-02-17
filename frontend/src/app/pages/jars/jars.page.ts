@@ -1,8 +1,10 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
+import { Router } from '@angular/router';
 import { Jar, JarService } from '../../services/jar.service';
+import { FabService } from '../../services/fab.service';
 
 @Component({
   selector: 'app-jars',
@@ -11,7 +13,7 @@ import { Jar, JarService } from '../../services/jar.service';
   templateUrl: './jars.page.html',
   styleUrls: ['./jars.page.scss'],
 })
-export class JarsPage implements OnInit {
+export class JarsPage implements OnInit, OnDestroy {
   jars: Jar[] = [];
   totalSaved = 0;
   totalSavedMain = '0';
@@ -27,10 +29,17 @@ export class JarsPage implements OnInit {
   ];
   private readonly targetPattern = /\[target=(\d+(?:\.\d+)?)\]/;
 
-  constructor(private jarService: JarService) {}
+  constructor(private jarService: JarService, private fabService: FabService, private router: Router) {}
 
   ngOnInit(): void {
     this.loadJars();
+    // Show the global FAB with the openCreateJar action
+    this.fabService.showFab(() => this.openCreateJar(), 'add');
+  }
+
+  ngOnDestroy(): void {
+    // Hide the global FAB when leaving this page
+    this.fabService.hideFab();
   }
 
   loadJars(): void {
@@ -124,6 +133,10 @@ export class JarsPage implements OnInit {
       maximumFractionDigits: withCents ? 2 : 0,
     });
     return formatter.format(amount);
+  }
+
+  navigateToJar(jarId: number): void {
+    this.router.navigate(['/tabs/jars', jarId]);
   }
 
   private createJar(name: string, description?: string): void {

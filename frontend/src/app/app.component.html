@@ -1,3 +1,18 @@
 <ion-app>
   <ion-router-outlet></ion-router-outlet>
+
+  <!-- Global FAB Button -->
+  <ng-container *ngIf="fabConfig$ | async as config">
+    <ion-fab
+      *ngIf="config.show"
+      vertical="bottom"
+      horizontal="end"
+      slot="fixed"
+      class="global-fab"
+    >
+      <ion-fab-button (click)="onFabClick(config)">
+        <ion-icon [name]="config.icon || 'add'"></ion-icon>
+      </ion-fab-button>
+    </ion-fab>
+  </ng-container>
 </ion-app>

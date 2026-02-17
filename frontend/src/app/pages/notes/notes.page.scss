@@ -1,12 +1,22 @@
 .notes-header {
-	--background: #f7f9fb;
+	--background: #ffffff;
 	--border-color: transparent;
 	--color: #1d2433;
+
+	ion-toolbar {
+		padding-top: 8px;
+		padding-bottom: 8px;
+	}
+
+	ion-title {
+		font-weight: 700;
+		font-size: 18px;
+	}
 }
 
 .notes-content {
 	--background: #f7f9fb;
-	padding: 12px 18px 32px;
+	padding: 0;
 }
 
 .icon-button {
@@ -14,153 +24,177 @@
 	height: 40px;
 	border-radius: 50%;
 	background: #ffffff;
-	box-shadow: 0 6px 14px rgba(16, 24, 40, 0.08);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 	color: #1d2433;
+	margin: 0 8px;
 }
 
-.notes-hero {
-	margin: 10px 2px 18px;
-	padding: 18px 18px 20px;
-	border-radius: 20px;
-	background: linear-gradient(135deg, #f6fbff 0%, #eef3ff 100%);
-	box-shadow: inset 0 0 0 1px rgba(48, 70, 115, 0.06);
-}
-
-.hero-title {
-	font-size: 20px;
-	font-weight: 700;
-	color: #1f2a44;
-	letter-spacing: -0.2px;
-}
-
-.hero-subtitle {
-	margin-top: 6px;
-	font-size: 14px;
-	color: #6b7280;
-}
-
-.notes-form {
+/* Tabs Container */
+.tabs-container {
 	display: flex;
-	flex-direction: column;
-	gap: 16px;
-}
-
-.section-card {
+	padding: 16px 18px 0;
+	gap: 8px;
 	background: #ffffff;
-	border-radius: 22px;
-	padding: 16px 16px 8px;
-	box-shadow: 0 14px 24px rgba(22, 28, 45, 0.08);
+	border-bottom: 1px solid #e5e7eb;
 }
 
-.section-title {
+.tab-button {
+	padding: 10px 16px;
+	border: none;
+	background: transparent;
+	color: #6b7280;
+	font-weight: 600;
 	font-size: 14px;
-	font-weight: 700;
-	color: #8b95a7;
-	text-transform: uppercase;
-	letter-spacing: 1.4px;
-	margin-bottom: 10px;
+	cursor: pointer;
+	position: relative;
+	transition: color 0.3s ease;
+	white-space: nowrap;
+
+	&.active {
+		color: #2f6fed;
+
+		&::after {
+			content: '';
+			position: absolute;
+			bottom: -16px;
+			left: 0;
+			right: 0;
+			height: 3px;
+			background: #2f6fed;
+			border-radius: 2px 2px 0 0;
+		}
+	}
 }
 
-.input-item {
-	--background: #f7f9fb;
-	--border-radius: 16px;
-	--padding-start: 14px;
-	--inner-padding-end: 12px;
-	margin-bottom: 12px;
-	border-radius: 16px;
+/* Search Container */
+.search-container {
+	background: #ffffff;
+	padding: 12px 12px;
+	border-bottom: 1px solid #e5e7eb;
+
+	.search-bar {
+		--background: #f3f4f6;
+		--border-radius: 12px;
+		--icon-color: #9ca3af;
+
+		ion-input {
+			color: #1f2a44;
+		}
+
+		::placeholder {
+			color: #9ca3af;
+		}
+	}
 }
 
-.input-item ion-label {
-	color: #8b95a7;
-	font-weight: 600;
-	font-size: 12px;
-	text-transform: uppercase;
-	letter-spacing: 1.2px;
-}
-
-.input-item ion-input,
-.input-item ion-textarea,
-.input-item ion-datetime {
-	color: #1f2a44;
-	font-size: 15px;
-	font-weight: 600;
-}
-
-.date-item {
-	--background: #f3f6ff;
-}
-
-.primary-button {
-	--background: #2f6fed;
-	--border-radius: 18px;
-	--box-shadow: 0 18px 28px rgba(47, 111, 237, 0.35);
-	font-weight: 700;
-	letter-spacing: 0.2px;
-	height: 54px;
-}
-
-.list-header {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	margin: 24px 6px 12px;
-}
-
-.count-chip {
-	background: #e9efff;
-	color: #2f6fed;
-	font-weight: 700;
-	border-radius: 14px;
-}
-
+/* Notes List */
 .note-list {
 	display: grid;
-	gap: 14px;
+	gap: 12px;
+	padding: 16px 12px;
 }
 
 .note-card {
 	background: #ffffff;
-	border-radius: 20px;
-	padding: 16px 18px;
-	box-shadow: 0 12px 20px rgba(17, 24, 39, 0.08);
+	border-radius: 16px;
+	padding: 16px;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+	position: relative;
+
+	.note-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 12px;
+	}
+
+	.note-badge {
+		display: inline-block;
+		padding: 4px 12px;
+		border-radius: 6px;
+		font-size: 11px;
+		font-weight: 700;
+		letter-spacing: 0.5px;
+		text-transform: uppercase;
+
+		&.badge-upcoming {
+			background: #dbeafe;
+			color: #1e40af;
+		}
+
+		&.badge-done {
+			background: #d1fae5;
+			color: #065f46;
+		}
+	}
+
+	.note-date {
+		font-size: 12px;
+		color: #9ca3af;
+		font-weight: 500;
+	}
+
+	.note-title {
+		font-size: 16px;
+		font-weight: 700;
+		color: #1f2a44;
+		margin-bottom: 8px;
+	}
+
+	.note-body {
+		font-size: 14px;
+		color: #6b7280;
+		line-height: 1.5;
+		margin-bottom: 12px;
+	}
+
+	.note-actions {
+		display: flex;
+		justify-content: flex-end;
+
+		ion-button {
+			--color: #9ca3af;
+		}
+	}
 }
 
-.note-title {
-	font-size: 16px;
-	font-weight: 700;
-	color: #1f2a44;
-	margin-bottom: 6px;
-}
-
-.note-body {
-	font-size: 14px;
-	color: #5f6c86;
-	margin-bottom: 10px;
-}
-
-.note-meta {
-	font-size: 12px;
-	color: #9aa3b2;
-	text-transform: uppercase;
-	letter-spacing: 1px;
-}
-
+/* Empty State */
 .empty-state {
 	text-align: center;
-	padding: 30px 20px;
+	padding: 48px 24px;
 	background: #ffffff;
-	border-radius: 20px;
-	box-shadow: inset 0 0 0 1px rgba(16, 24, 40, 0.05);
+	border-radius: 16px;
+	margin: 16px 12px;
+	box-shadow: inset 0 0 0 1px #f0f0f0;
+
+	.empty-title {
+		font-size: 16px;
+		font-weight: 700;
+		color: #1f2a44;
+		margin-bottom: 8px;
+	}
+
+	.empty-subtitle {
+		font-size: 13px;
+		color: #9ca3af;
+		line-height: 1.5;
+	}
 }
 
-.empty-title {
-	font-size: 16px;
-	font-weight: 700;
-	color: #1f2a44;
-}
+/* Floating Action Button */
+ion-fab {
+	ion-fab-button {
+		--background: #2f6fed;
+		--background-hover: #1e40af;
+		--color: #ffffff;
+		--box-shadow: 0 8px 16px rgba(47, 111, 237, 0.3);
+		width: 56px;
+		height: 56px;
+		margin-right: 16px;
+		margin-bottom: 24px;
 
-.empty-subtitle {
-	margin-top: 6px;
-	font-size: 13px;
-	color: #7b8796;
+		ion-icon {
+			font-size: 24px;
+		}
+	}
 }

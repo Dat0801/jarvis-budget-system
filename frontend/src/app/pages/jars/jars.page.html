@@ -30,7 +30,7 @@
     <div class="section-title">ACTIVE JARS</div>
 
     <section class="jars-list">
-      <article class="jar-card" *ngFor="let jar of jars">
+      <article class="jar-card" *ngFor="let jar of jars" (click)="navigateToJar(jar.id)">
         <div class="jar-icon" [ngClass]="getJarIconClass(jar)">
           <ion-icon [name]="getJarIcon(jar)"></ion-icon>
         </div>
@@ -61,12 +61,6 @@
       </article>
     </section>
   </div>
-
-  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
-    <ion-fab-button class="add-fab" (click)="openCreateJar()">
-      <ion-icon name="add"></ion-icon>
-    </ion-fab-button>
-  </ion-fab>
 </ion-content>
 
 <ion-modal

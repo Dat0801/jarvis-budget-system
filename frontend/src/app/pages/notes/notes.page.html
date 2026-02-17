@@ -2,75 +2,77 @@
   <ion-toolbar>
     <ion-buttons slot="start">
       <ion-button fill="clear" class="icon-button">
-        <ion-icon name="close" aria-hidden="true"></ion-icon>
+        <ion-icon name="chevron-back" aria-hidden="true"></ion-icon>
       </ion-button>
     </ion-buttons>
     <ion-title>Financial Notes</ion-title>
+    <ion-buttons slot="end">
+      <ion-button fill="clear" class="icon-button">
+        <ion-icon name="search" aria-hidden="true"></ion-icon>
+      </ion-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
 <ion-content class="notes-content">
-  <div class="notes-hero">
-    <div class="hero-title">Capture insights</div>
-    <div class="hero-subtitle">Keep quick reminders tied to your money moves.</div>
+  <!-- Tab Navigation -->
+  <div class="tabs-container">
+    <button
+      class="tab-button"
+      [class.active]="selectedTab === 'all'"
+      (click)="selectTab('all')"
+    >
+      All Notes
+    </button>
+    <button
+      class="tab-button"
+      [class.active]="selectedTab === 'reminders'"
+      (click)="selectTab('reminders')"
+    >
+      Reminders
+    </button>
+    <button
+      class="tab-button"
+      [class.active]="selectedTab === 'archived'"
+      (click)="selectTab('archived')"
+    >
+      Archived
+    </button>
   </div>
 
-  <form class="notes-form" (ngSubmit)="createNote()">
-    <div class="section-card">
-      <div class="section-title">Add Note</div>
-
-      <ion-item lines="none" class="input-item">
-        <ion-label position="stacked">Title</ion-label>
-        <ion-input
-          [(ngModel)]="title"
-          name="title"
-          placeholder="e.g. Rent follow-up"
-          required
-        ></ion-input>
-      </ion-item>
-
-      <ion-item lines="none" class="input-item">
-        <ion-label position="stacked">Details</ion-label>
-        <ion-textarea
-          [(ngModel)]="body"
-          name="body"
-          autoGrow="true"
-          placeholder="What do you need to remember?"
-        ></ion-textarea>
-      </ion-item>
-
-      <ion-item lines="none" class="input-item date-item">
-        <ion-label position="stacked">Reminder Date</ion-label>
-        <ion-datetime
-          presentation="date"
-          [(ngModel)]="reminderDate"
-          name="reminderDate"
-        ></ion-datetime>
-      </ion-item>
-    </div>
-
-    <ion-button expand="block" type="submit" class="primary-button">
-      Save Note
-    </ion-button>
-  </form>
-
-  <div class="list-header">
-    <div class="section-title">Your Notes</div>
-    <ion-chip class="count-chip">{{ notes.length }}</ion-chip>
+  <!-- Search Bar -->
+  <div class="search-container">
+    <ion-searchbar
+      [(ngModel)]="searchTerm"
+      (ionInput)="onSearch($event)"
+      placeholder="Search notes..."
+      mode="ios"
+      class="search-bar"
+    ></ion-searchbar>
   </div>
 
+  <!-- Notes List -->
   <div class="note-list">
     <div class="note-card" *ngFor="let note of notes">
+      <div class="note-header">
+        <span class="note-badge" [class]="getStatusBadge(note).class">
+          {{ getStatusBadge(note).text }}
+        </span>
+        <span class="note-date">{{ formatDate(note.reminder_date) }}</span>
+      </div>
       <div class="note-title">{{ note.title }}</div>
       <div class="note-body">{{ note.body || 'No details added yet.' }}</div>
-      <div class="note-meta">
-        Reminder: {{ note.reminder_date || 'None' }}
+      <div class="note-actions">
+        <ion-button fill="clear" size="small">
+          <ion-icon name="ellipsis-vertical" aria-hidden="true"></ion-icon>
+        </ion-button>
       </div>
     </div>
 
     <div class="empty-state" *ngIf="notes.length === 0">
       <div class="empty-title">No notes yet</div>
-      <div class="empty-subtitle">Add your first financial note to get started.</div>
+      <div class="empty-subtitle">{{ selectedTab === 'all' ? 'Add your first financial note to get started.' : 'No notes in this category.' }}</div>
     </div>
   </div>
 </ion-content>
+

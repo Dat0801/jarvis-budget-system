@@ -1,4 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
+import { FabService, FabConfig } from './services/fab.service';
+import { Observable } from 'rxjs';
 
 @Component({
   selector: 'app-root',
@@ -6,6 +8,20 @@ import { Component } from '@angular/core';
   styleUrls: ['app.component.scss'],
   standalone: false,
 })
-export class AppComponent {
-  constructor() {}
+export class AppComponent implements OnInit {
+  fabConfig$: Observable<FabConfig>;
+
+  constructor(private fabService: FabService) {
+    this.fabConfig$ = this.fabService.fabConfig$;
+  }
+
+  ngOnInit() {
+    // FAB will be controlled by individual pages
+  }
+
+  onFabClick(config: FabConfig) {
+    if (config.action) {
+      config.action();
+    }
+  }
 }

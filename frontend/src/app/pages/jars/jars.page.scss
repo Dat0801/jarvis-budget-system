@@ -101,6 +101,13 @@ ion-content.jars-page {
 	border-radius: 22px;
 	padding: 16px 18px;
 	box-shadow: 0 10px 20px rgba(16, 24, 40, 0.08);
+	cursor: pointer;
+	transition: box-shadow 0.2s ease, transform 0.2s ease;
+
+	&:active {
+		transform: scale(0.98);
+		box-shadow: 0 4px 12px rgba(16, 24, 40, 0.12);
+	}
 }
 
 .jar-icon {

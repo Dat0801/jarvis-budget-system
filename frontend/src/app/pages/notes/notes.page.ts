@@ -1,8 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 import { Note, NoteService } from '../../services/note.service';
+import { FabService } from '../../services/fab.service';
 
 @Component({
   selector: 'app-notes',
@@ -11,30 +12,80 @@ import { Note, NoteService } from '../../services/note.service';
   templateUrl: './notes.page.html',
   styleUrls: ['./notes.page.scss'],
 })
-export class NotesPage implements OnInit {
+export class NotesPage implements OnInit, OnDestroy {
   notes: Note[] = [];
-  title = '';
-  body = '';
-  reminderDate = '';
+  allNotes: Note[] = [];
+  selectedTab: 'all' | 'reminders' | 'archived' = 'all';
+  searchTerm: string = '';
 
-  constructor(private noteService: NoteService) {}
+  constructor(private noteService: NoteService, private fabService: FabService) {}
 
   ngOnInit(): void {
     this.loadNotes();
+    // Show the global FAB with the openNewNoteModal action
+    this.fabService.showFab(() => this.openNewNoteModal(), 'add');
+  }
+
+  ngOnDestroy(): void {
+    // Hide the global FAB when leaving this page
+    this.fabService.hideFab();
   }
 
   loadNotes(): void {
-    this.noteService.list().subscribe((notes) => (this.notes = notes));
+    this.noteService.list().subscribe((data) => {
+      this.allNotes = data;
+      this.filterNotes();
+    });
   }
 
-  createNote(): void {
-    this.noteService
-      .create({ title: this.title, body: this.body, reminder_date: this.reminderDate })
-      .subscribe(() => {
-        this.title = '';
-        this.body = '';
-        this.reminderDate = '';
-        this.loadNotes();
-      });
+  filterNotes(): void {
+    let filtered = this.allNotes;
+
+    if (this.selectedTab === 'reminders') {
+      filtered = filtered.filter(note => note.reminder_date && !note.is_completed);
+    } else if (this.selectedTab === 'archived') {
+      filtered = filtered.filter(note => note.is_completed);
+    }
+
+    if (this.searchTerm.trim()) {
+      filtered = filtered.filter(note =>
+        note.title.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
+        (note.body && note.body.toLowerCase().includes(this.searchTerm.toLowerCase()))
+      );
+    }
+
+    this.notes = filtered;
+  }
+
+  selectTab(tab: 'all' | 'reminders' | 'archived'): void {
+    this.selectedTab = tab;
+    this.filterNotes();
+  }
+
+  onSearch(event: any): void {
+    this.searchTerm = event.detail.value;
+    this.filterNotes();
+  }
+
+  getStatusBadge(note: Note): { text: string; class: string } {
+    if (note.is_completed) {
+      return { text: 'DONE', class: 'badge-done' };
+    }
+    return { text: 'UPCOMING', class: 'badge-upcoming' };
+  }
+
+  formatDate(dateString: string | null | undefined): string {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    }).format(date);
+  }
+
+  openNewNoteModal(): void {
+    // TODO: Implement modal for creating new note
+    console.log('Open new note modal');
   }
 }
