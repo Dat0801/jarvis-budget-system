@@ -1,0 +1,37 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Notes</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <form (ngSubmit)="createNote()">
+    <ion-item>
+      <ion-label position="stacked">Title</ion-label>
+      <ion-input [(ngModel)]="title" name="title" required></ion-input>
+    </ion-item>
+
+    <ion-item>
+      <ion-label position="stacked">Body</ion-label>
+      <ion-textarea [(ngModel)]="body" name="body"></ion-textarea>
+    </ion-item>
+
+    <ion-item>
+      <ion-label position="stacked">Reminder Date</ion-label>
+      <ion-datetime presentation="date" [(ngModel)]="reminderDate" name="reminderDate"></ion-datetime>
+    </ion-item>
+
+    <ion-button expand="block" type="submit">Save Note</ion-button>
+  </form>
+
+  <ion-list>
+    <ion-list-header>Your Notes</ion-list-header>
+    <ion-item *ngFor="let note of notes">
+      <ion-label>
+        <h2>{{ note.title }}</h2>
+        <p>{{ note.body }}</p>
+        <p>Reminder: {{ note.reminder_date || 'None' }}</p>
+      </ion-label>
+    </ion-item>
+  </ion-list>
+</ion-content>

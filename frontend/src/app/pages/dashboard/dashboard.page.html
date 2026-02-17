@@ -1,0 +1,29 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Dashboard</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Total Balance</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      {{ totalBalance | number : '1.2-2' }}
+    </ion-card-content>
+  </ion-card>
+
+  <ion-list>
+    <ion-list-header>Jars</ion-list-header>
+    <ion-item *ngFor="let jar of jars">
+      <ion-label>
+        <h2>{{ jar.name }}</h2>
+        <p>{{ jar.balance }}</p>
+      </ion-label>
+    </ion-item>
+  </ion-list>
+
+  <ion-button expand="block" routerLink="/income">Add Income</ion-button>
+  <ion-button expand="block" routerLink="/expense">Add Expense</ion-button>
+</ion-content>

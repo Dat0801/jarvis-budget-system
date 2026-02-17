@@ -1,0 +1,37 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Register</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <form (ngSubmit)="submit()">
+    <ion-item>
+      <ion-label position="stacked">Name</ion-label>
+      <ion-input [(ngModel)]="name" name="name" required></ion-input>
+    </ion-item>
+
+    <ion-item>
+      <ion-label position="stacked">Email</ion-label>
+      <ion-input type="email" [(ngModel)]="email" name="email" required></ion-input>
+    </ion-item>
+
+    <ion-item>
+      <ion-label position="stacked">Password</ion-label>
+      <ion-input type="password" [(ngModel)]="password" name="password" required></ion-input>
+    </ion-item>
+
+    <ion-item>
+      <ion-label position="stacked">Confirm Password</ion-label>
+      <ion-input type="password" [(ngModel)]="passwordConfirmation" name="passwordConfirmation" required></ion-input>
+    </ion-item>
+
+    <ion-button expand="block" type="submit" [disabled]="isLoading">
+      {{ isLoading ? 'Creating...' : 'Create account' }}
+    </ion-button>
+
+    <ion-button expand="block" fill="clear" routerLink="/auth/login">
+      Back to login
+    </ion-button>
+  </form>
+</ion-content>

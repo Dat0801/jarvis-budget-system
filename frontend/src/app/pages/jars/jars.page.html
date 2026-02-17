@@ -1,0 +1,31 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Jars</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <form (ngSubmit)="createJar()">
+    <ion-item>
+      <ion-label position="stacked">Jar Name</ion-label>
+      <ion-input [(ngModel)]="name" name="name" required></ion-input>
+    </ion-item>
+
+    <ion-item>
+      <ion-label position="stacked">Description</ion-label>
+      <ion-input [(ngModel)]="description" name="description"></ion-input>
+    </ion-item>
+
+    <ion-button expand="block" type="submit">Create Jar</ion-button>
+  </form>
+
+  <ion-list>
+    <ion-list-header>Your Jars</ion-list-header>
+    <ion-item *ngFor="let jar of jars">
+      <ion-label>
+        <h2>{{ jar.name }}</h2>
+        <p>{{ jar.balance }}</p>
+      </ion-label>
+    </ion-item>
+  </ion-list>
+</ion-content>

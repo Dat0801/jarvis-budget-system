@@ -1,0 +1,35 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Add Income</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <form (ngSubmit)="submit()">
+    <ion-item>
+      <ion-label position="stacked">Jar</ion-label>
+      <ion-select [(ngModel)]="jarId" name="jarId" required>
+        <ion-select-option *ngFor="let jar of jars" [value]="jar.id">
+          {{ jar.name }} ({{ jar.balance }})
+        </ion-select-option>
+      </ion-select>
+    </ion-item>
+
+    <ion-item>
+      <ion-label position="stacked">Amount</ion-label>
+      <ion-input type="number" [(ngModel)]="amount" name="amount" required></ion-input>
+    </ion-item>
+
+    <ion-item>
+      <ion-label position="stacked">Source</ion-label>
+      <ion-input [(ngModel)]="source" name="source"></ion-input>
+    </ion-item>
+
+    <ion-item>
+      <ion-label position="stacked">Received At</ion-label>
+      <ion-datetime presentation="date" [(ngModel)]="receivedAt" name="receivedAt"></ion-datetime>
+    </ion-item>
+
+    <ion-button expand="block" type="submit" [disabled]="!jars.length">Save Income</ion-button>
+  </form>
+</ion-content>
