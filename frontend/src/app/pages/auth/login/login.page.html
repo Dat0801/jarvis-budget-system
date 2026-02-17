@@ -1,27 +1,73 @@
-<ion-header>
-  <ion-toolbar>
-    <ion-title>Login</ion-title>
-  </ion-toolbar>
-</ion-header>
+<ion-content class="login-page">
+  <div class="page-shell">
+    <div class="brand">
+      <div class="brand-icon">
+        <ion-icon name="wallet-outline"></ion-icon>
+      </div>
+      <h1>Jarvis Budget</h1>
+      <p>Manage your jars with ease.</p>
+    </div>
 
-<ion-content class="ion-padding">
-  <form (ngSubmit)="submit()">
-    <ion-item>
-      <ion-label position="stacked">Email</ion-label>
-      <ion-input type="email" [(ngModel)]="email" name="email" required></ion-input>
-    </ion-item>
+    <form class="login-card" (ngSubmit)="submit()">
+      <div class="field-group">
+        <label>Email Address</label>
+        <ion-item lines="none" class="input-item">
+          <ion-input
+            type="email"
+            placeholder="name@company.com"
+            [(ngModel)]="email"
+            name="email"
+            required
+          ></ion-input>
+        </ion-item>
+      </div>
 
-    <ion-item>
-      <ion-label position="stacked">Password</ion-label>
-      <ion-input type="password" [(ngModel)]="password" name="password" required></ion-input>
-    </ion-item>
+      <div class="field-group">
+        <div class="field-row">
+          <label>Password</label>
+          <ion-button class="forgot-link" fill="clear" size="small" type="button">
+            Forgot?
+          </ion-button>
+        </div>
+        <ion-item lines="none" class="input-item">
+          <ion-input
+            type="password"
+            placeholder="........"
+            [(ngModel)]="password"
+            name="password"
+            required
+          ></ion-input>
+        </ion-item>
+      </div>
 
-    <ion-button expand="block" type="submit" [disabled]="isLoading">
-      {{ isLoading ? 'Signing in...' : 'Login' }}
-    </ion-button>
+      <ion-button
+        expand="block"
+        type="submit"
+        class="primary-btn"
+        [disabled]="isLoading"
+      >
+        {{ isLoading ? 'Signing in...' : 'Log In' }}
+      </ion-button>
 
-    <ion-button expand="block" fill="clear" routerLink="/auth/register">
-      Create account
-    </ion-button>
-  </form>
+      <div class="divider">
+        <span>OR CONTINUE WITH</span>
+      </div>
+
+      <div class="social-row">
+        <ion-button class="social-btn" fill="outline" type="button">
+          <ion-icon name="logo-google"></ion-icon>
+          Google
+        </ion-button>
+        <ion-button class="social-btn" fill="outline" type="button">
+          <ion-icon name="logo-apple"></ion-icon>
+          Apple
+        </ion-button>
+      </div>
+
+      <div class="footer-link">
+        <span>Don't have an account?</span>
+        <a routerLink="/auth/register">Create account</a>
+      </div>
+    </form>
+  </div>
 </ion-content>

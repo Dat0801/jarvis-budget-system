@@ -1,40 +1,88 @@
-<ion-header>
+<ion-header class="transaction-header">
   <ion-toolbar>
-    <ion-title>Add Expense</ion-title>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/" icon="close"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Add Transaction</ion-title>
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="ion-padding">
+<ion-content class="transaction-page">
   <form (ngSubmit)="submit()">
-    <ion-item>
-      <ion-label position="stacked">Jar</ion-label>
-      <ion-select [(ngModel)]="jarId" name="jarId" required>
-        <ion-select-option *ngFor="let jar of jars" [value]="jar.id">
-          {{ jar.name }} ({{ jar.balance }})
-        </ion-select-option>
-      </ion-select>
-    </ion-item>
+    <div class="segment-wrap">
+      <ion-segment [value]="segmentValue" (ionChange)="onSegmentChange($event)">
+        <ion-segment-button value="income">
+          <ion-label>Income</ion-label>
+        </ion-segment-button>
+        <ion-segment-button value="expense">
+          <ion-label>Expense</ion-label>
+        </ion-segment-button>
+      </ion-segment>
+    </div>
 
-    <ion-item>
-      <ion-label position="stacked">Amount</ion-label>
-      <ion-input type="number" [(ngModel)]="amount" name="amount" required></ion-input>
-    </ion-item>
+    <div class="amount-block">
+      <div class="amount-label">AMOUNT</div>
+      <div class="amount-input-row">
+        <div class="currency">$</div>
+        <ion-input
+          type="number"
+          inputmode="decimal"
+          placeholder="0.00"
+          [(ngModel)]="amount"
+          name="amount"
+          required
+        ></ion-input>
+      </div>
+    </div>
 
-    <ion-item>
-      <ion-label position="stacked">Category</ion-label>
-      <ion-input [(ngModel)]="category" name="category"></ion-input>
-    </ion-item>
+    <ion-card class="section-card">
+      <div class="section-title">Select Jar</div>
+      <ion-item lines="none" class="select-item">
+        <ion-select [(ngModel)]="jarId" name="jarId" interface="popover" required>
+          <ion-select-option *ngFor="let jar of jars" [value]="jar.id">
+            {{ jar.name }}
+          </ion-select-option>
+        </ion-select>
+      </ion-item>
 
-    <ion-item>
-      <ion-label position="stacked">Note</ion-label>
-      <ion-textarea [(ngModel)]="note" name="note"></ion-textarea>
-    </ion-item>
+      <div class="warning" *ngIf="showInsufficientBalance">
+        <ion-icon name="alert-circle"></ion-icon>
+        <div class="warning-text">
+          <div class="warning-title">Insufficient Balance</div>
+          <div>This expense exceeds the current jar balance ({{ remainingBalanceText }} left).</div>
+        </div>
+      </div>
 
-    <ion-item>
-      <ion-label position="stacked">Spent At</ion-label>
-      <ion-datetime presentation="date" [(ngModel)]="spentAt" name="spentAt"></ion-datetime>
-    </ion-item>
+      <div class="field">
+        <div class="field-label">DATE</div>
+        <ion-item lines="none" class="date-item">
+          <ion-icon slot="start" name="calendar-outline"></ion-icon>
+          <ion-datetime presentation="date" [(ngModel)]="spentAt" name="spentAt"></ion-datetime>
+        </ion-item>
+      </div>
 
-    <ion-button expand="block" type="submit" [disabled]="!jars.length">Save Expense</ion-button>
+      <div class="field">
+        <div class="field-label">NOTES</div>
+        <ion-item lines="none" class="notes-item">
+          <ion-textarea
+            auto-grow="true"
+            placeholder="What was this for?"
+            [(ngModel)]="note"
+            name="note"
+          ></ion-textarea>
+        </ion-item>
+      </div>
+    </ion-card>
+
+    <ion-card class="receipt-card">
+      <ion-item lines="none" button detail="true">
+        <ion-icon slot="start" name="receipt-outline"></ion-icon>
+        <ion-label>Attach Receipt</ion-label>
+      </ion-item>
+    </ion-card>
+
+    <ion-button expand="block" class="save-button" type="submit" [disabled]="!jars.length">
+      Save Transaction
+    </ion-button>
   </form>
 </ion-content>

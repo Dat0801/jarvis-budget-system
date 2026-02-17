@@ -1,17 +1,155 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
-    <ion-title>
-      Tab 2
-    </ion-title>
+    <ion-title>Spending Analytics</ion-title>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">Tab 2</ion-title>
-    </ion-toolbar>
-  </ion-header>
+<ion-content class="ion-padding" [fullscreen]="true">
+  <div class="stats-container">
+    <!-- Loading spinner -->
+    <ion-spinner *ngIf="isLoading" name="crescent" class="spinner"></ion-spinner>
 
-  <app-explore-container name="Tab 2 page"></app-explore-container>
+    <!-- Error message -->
+    <ion-card *ngIf="error" color="danger">
+      <ion-card-content>
+        {{ error }}
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Month selector -->
+    <ion-card class="month-selector-card">
+      <ion-item>
+        <ion-label position="floating">Select Month</ion-label>
+        <ion-input 
+          type="month" 
+          [value]="selectedMonth" 
+          (ionChange)="onMonthChange($event)">
+        </ion-input>
+      </ion-item>
+    </ion-card>
+
+    <!-- Total spent section -->
+    <ion-card class="total-spent-card" *ngIf="spendingData">
+      <ion-card-content>
+        <div class="donut-chart-container">
+          <svg class="donut-chart" viewBox="0 0 120 120">
+            <!-- Donut chart will be rendered here -->
+            <ng-container *ngFor="let item of getJarChartData(); let i = index">
+              <circle 
+                *ngIf="item.value > 0"
+                [attr.cx]="60" 
+                [attr.cy]="60" 
+                [attr.r]="40"
+                [attr.fill]="'none'"
+                [attr.stroke]="item.color"
+                [attr.stroke-width]="15"
+                [attr.stroke-dasharray]="(item.percentage * 2.51) + ' 251'"
+                [attr.stroke-dashoffset]="getDonutSegmentOffset(i)"
+                [attr.stroke-linecap]="'round'"
+                class="donut-segment"
+              />
+            </ng-container>
+          </svg>
+          <div class="donut-center">
+            <div class="label">TOTAL SPENT</div>
+            <div class="amount">{{ formatCurrency(spendingData.total_spent) }}</div>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Jar breakdown section -->
+    <div class="jar-breakdown">
+      <div class="section-header">
+        <h3>Jar Breakdown</h3>
+        <a href="#view-all" class="view-all">VIEW ALL</a>
+      </div>
+
+      <ion-card *ngFor="let jar of spendingData?.expenses_by_jar">
+        <ion-card-content class="jar-item">
+          <div class="jar-info">
+            <div class="color-dot" [style.backgroundColor]="jar.jar_color"></div>
+            <div class="jar-details">
+              <h4>{{ jar.jar_name }}</h4>
+              <p class="jar-description">
+                <!-- Categories example - can be customized -->
+                {{ jar.jar_name === 'Essential Jars' ? 'Rent, Utilities, Food' :
+                   jar.jar_name === 'Wants Jar' ? 'Entertainment, Dining' :
+                   jar.jar_name === 'Education Jar' ? 'Books, Courses' : 'Miscellaneous' }}
+              </p>
+            </div>
+          </div>
+          <div class="jar-right">
+            <div class="amount">{{ formatCurrency(jar.amount) }}</div>
+            <div class="percentage" [style.color]="jar.jar_color">{{ jar.percentage }}%</div>
+          </div>
+        </ion-card-content>
+      </ion-card>
+    </div>
+
+    <!-- Income vs Expenses chart -->
+    <div class="income-vs-expenses" *ngIf="incomeVsExpensesData">
+      <div class="section-header">
+        <h3>Income vs Expenses</h3>
+        <span class="period">Last 6 Months</span>
+      </div>
+
+      <ion-card>
+        <ion-card-content class="chart-container">
+          <div class="bar-chart">
+            <div class="bars-wrapper">
+              <ng-container *ngFor="let month of chartLabels; let i = index">
+                <div class="bar-group">
+                  <div class="bar-wrapper">
+                    <div class="bar income-bar" 
+                         [style.height]="(incomeData[i] / 3000 * 100) + '%'"
+                         [title]="formatCurrency(incomeData[i])">
+                    </div>
+                    <div class="bar expense-bar" 
+                         [style.height]="(expenseData[i] / 3000 * 100) + '%'"
+                         [title]="formatCurrency(expenseData[i])">
+                    </div>
+                  </div>
+                  <label>{{ month }}</label>
+                </div>
+              </ng-container>
+            </div>
+          </div>
+
+          <div class="chart-legend">
+            <div class="legend-item">
+              <div class="legend-color income"></div>
+              <span>INCOME</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color expense"></div>
+              <span>EXPENSES</span>
+            </div>
+          </div>
+        </ion-card-content>
+      </ion-card>
+    </div>
+
+    <!-- Summary section -->
+    <ion-card *ngIf="summary" class="summary-card">
+      <ion-card-content>
+        <div class="summary-grid">
+          <div class="summary-item">
+            <label>Total Income</label>
+            <div class="value income">{{ formatCurrency(summary.total_income) }}</div>
+          </div>
+          <div class="summary-item">
+            <label>Total Expenses</label>
+            <div class="value expense">{{ formatCurrency(summary.total_expenses) }}</div>
+          </div>
+          <div class="summary-item">
+            <label>Balance</label>
+            <div class="value" [ngClass]="{ 'positive': summary.balance >= 0, 'negative': summary.balance < 0 }">
+              {{ formatCurrency(summary.balance) }}
+            </div>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+  </div>
 </ion-content>

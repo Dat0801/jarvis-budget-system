@@ -1,0 +1,163 @@
+.transaction-header ion-toolbar {
+	--background: #ffffff;
+	--border-width: 0;
+}
+
+.transaction-page {
+	--background: #f6f7f9;
+	--padding-top: 12px;
+	--padding-start: 16px;
+	--padding-end: 16px;
+	--padding-bottom: 24px;
+}
+
+.segment-wrap {
+	background: #eef0f3;
+	border-radius: 18px;
+	padding: 4px;
+	margin: 8px 0 20px;
+}
+
+.segment-wrap ion-segment {
+	--background: transparent;
+}
+
+.segment-wrap ion-segment-button {
+	--background: transparent;
+	--background-checked: #ffffff;
+	--color: #8a93a0;
+	--color-checked: #20242c;
+	--indicator-color: transparent;
+	--border-radius: 14px;
+	min-height: 42px;
+}
+
+.amount-block {
+	text-align: center;
+	margin-bottom: 16px;
+}
+
+.amount-label {
+	font-size: 12px;
+	letter-spacing: 2px;
+	font-weight: 600;
+	color: #9aa2ad;
+	margin-bottom: 8px;
+}
+
+.amount-input-row {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 12px;
+}
+
+.currency {
+	font-size: 40px;
+	font-weight: 700;
+	color: #2f6fed;
+}
+
+.amount-input-row ion-input {
+	--padding-start: 0;
+	--padding-end: 0;
+	--background: transparent;
+	color: #6f7681;
+	font-weight: 700;
+}
+
+.amount-input-row ion-input::part(native) {
+	text-align: center;
+	font-size: 56px;
+}
+
+.section-card {
+	margin: 0 0 16px;
+	border-radius: 20px;
+	box-shadow: none;
+	background: #ffffff;
+	padding: 16px;
+}
+
+.section-title {
+	font-size: 16px;
+	font-weight: 600;
+	color: #6f7681;
+	margin-bottom: 10px;
+}
+
+.select-item,
+.date-item,
+.notes-item {
+	--background: #f5f6f8;
+	--border-radius: 14px;
+	--padding-start: 12px;
+	--inner-padding-end: 12px;
+	margin-bottom: 12px;
+}
+
+.select-item ion-select::part(text) {
+	font-weight: 600;
+	color: #2a2f38;
+}
+
+.field {
+	margin-top: 8px;
+}
+
+.field-label {
+	font-size: 12px;
+	letter-spacing: 1.5px;
+	font-weight: 600;
+	color: #a0a8b4;
+	margin: 6px 0 8px;
+}
+
+.notes-item ion-textarea::part(native) {
+	min-height: 96px;
+}
+
+.warning {
+	display: flex;
+	gap: 10px;
+	align-items: flex-start;
+	background: #fdecec;
+	color: #d93025;
+	border-radius: 14px;
+	padding: 12px;
+	margin: 4px 0 14px;
+}
+
+.warning ion-icon {
+	font-size: 22px;
+	margin-top: 2px;
+}
+
+.warning-title {
+	font-weight: 700;
+	margin-bottom: 2px;
+}
+
+.receipt-card {
+	margin: 0 0 18px;
+	border-radius: 18px;
+	box-shadow: none;
+	background: #ffffff;
+}
+
+.receipt-card ion-item {
+	--background: #ffffff;
+	--padding-start: 16px;
+	--inner-padding-end: 16px;
+	--border-radius: 18px;
+	font-weight: 600;
+	color: #2a2f38;
+}
+
+.save-button {
+	--background: #2f6fed;
+	--border-radius: 18px;
+	height: 54px;
+	font-weight: 700;
+	text-transform: none;
+}

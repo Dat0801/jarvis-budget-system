@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 import { IncomeService } from '../../services/income.service';
@@ -13,13 +14,18 @@ import { Jar, JarService } from '../../services/jar.service';
   styleUrls: ['./income.page.scss'],
 })
 export class IncomePage implements OnInit {
+  segmentValue: 'income' | 'expense' = 'income';
   jarId: number | null = null;
   amount: number | null = null;
   source = '';
   receivedAt = '';
   jars: Jar[] = [];
 
-  constructor(private incomeService: IncomeService, private jarService: JarService) {}
+  constructor(
+    private incomeService: IncomeService,
+    private jarService: JarService,
+    private router: Router
+  ) {}
 
   ngOnInit(): void {
     this.loadJars();
@@ -32,6 +38,13 @@ export class IncomePage implements OnInit {
         this.jarId = jars[0].id;
       }
     });
+  }
+
+  onSegmentChange(event: CustomEvent): void {
+    const value = event.detail?.value as 'income' | 'expense' | undefined;
+    if (value === 'expense') {
+      this.router.navigateByUrl('/expense');
+    }
   }
 
   submit(): void {

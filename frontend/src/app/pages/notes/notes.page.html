@@ -1,37 +1,76 @@
-<ion-header>
+<ion-header class="notes-header" translucent>
   <ion-toolbar>
-    <ion-title>Notes</ion-title>
+    <ion-buttons slot="start">
+      <ion-button fill="clear" class="icon-button">
+        <ion-icon name="close" aria-hidden="true"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Financial Notes</ion-title>
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="ion-padding">
-  <form (ngSubmit)="createNote()">
-    <ion-item>
-      <ion-label position="stacked">Title</ion-label>
-      <ion-input [(ngModel)]="title" name="title" required></ion-input>
-    </ion-item>
+<ion-content class="notes-content">
+  <div class="notes-hero">
+    <div class="hero-title">Capture insights</div>
+    <div class="hero-subtitle">Keep quick reminders tied to your money moves.</div>
+  </div>
 
-    <ion-item>
-      <ion-label position="stacked">Body</ion-label>
-      <ion-textarea [(ngModel)]="body" name="body"></ion-textarea>
-    </ion-item>
+  <form class="notes-form" (ngSubmit)="createNote()">
+    <div class="section-card">
+      <div class="section-title">Add Note</div>
 
-    <ion-item>
-      <ion-label position="stacked">Reminder Date</ion-label>
-      <ion-datetime presentation="date" [(ngModel)]="reminderDate" name="reminderDate"></ion-datetime>
-    </ion-item>
+      <ion-item lines="none" class="input-item">
+        <ion-label position="stacked">Title</ion-label>
+        <ion-input
+          [(ngModel)]="title"
+          name="title"
+          placeholder="e.g. Rent follow-up"
+          required
+        ></ion-input>
+      </ion-item>
 
-    <ion-button expand="block" type="submit">Save Note</ion-button>
+      <ion-item lines="none" class="input-item">
+        <ion-label position="stacked">Details</ion-label>
+        <ion-textarea
+          [(ngModel)]="body"
+          name="body"
+          autoGrow="true"
+          placeholder="What do you need to remember?"
+        ></ion-textarea>
+      </ion-item>
+
+      <ion-item lines="none" class="input-item date-item">
+        <ion-label position="stacked">Reminder Date</ion-label>
+        <ion-datetime
+          presentation="date"
+          [(ngModel)]="reminderDate"
+          name="reminderDate"
+        ></ion-datetime>
+      </ion-item>
+    </div>
+
+    <ion-button expand="block" type="submit" class="primary-button">
+      Save Note
+    </ion-button>
   </form>
 
-  <ion-list>
-    <ion-list-header>Your Notes</ion-list-header>
-    <ion-item *ngFor="let note of notes">
-      <ion-label>
-        <h2>{{ note.title }}</h2>
-        <p>{{ note.body }}</p>
-        <p>Reminder: {{ note.reminder_date || 'None' }}</p>
-      </ion-label>
-    </ion-item>
-  </ion-list>
+  <div class="list-header">
+    <div class="section-title">Your Notes</div>
+    <ion-chip class="count-chip">{{ notes.length }}</ion-chip>
+  </div>
+
+  <div class="note-list">
+    <div class="note-card" *ngFor="let note of notes">
+      <div class="note-title">{{ note.title }}</div>
+      <div class="note-body">{{ note.body || 'No details added yet.' }}</div>
+      <div class="note-meta">
+        Reminder: {{ note.reminder_date || 'None' }}
+      </div>
+    </div>
+
+    <div class="empty-state" *ngIf="notes.length === 0">
+      <div class="empty-title">No notes yet</div>
+      <div class="empty-subtitle">Add your first financial note to get started.</div>
+    </div>
+  </div>
 </ion-content>

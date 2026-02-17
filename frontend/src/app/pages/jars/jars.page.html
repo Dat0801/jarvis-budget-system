@@ -1,31 +1,151 @@
-<ion-header>
+<ion-header class="jars-header" translucent="true">
   <ion-toolbar>
-    <ion-title>Jars</ion-title>
+    <ion-title>My Jars</ion-title>
+    <ion-buttons slot="end">
+      <ion-button fill="clear" class="icon-button">
+        <ion-icon name="search-outline"></ion-icon>
+      </ion-button>
+      <ion-button fill="clear" class="icon-button avatar-button">
+        <ion-icon name="person-circle-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="ion-padding">
-  <form (ngSubmit)="createJar()">
-    <ion-item>
-      <ion-label position="stacked">Jar Name</ion-label>
-      <ion-input [(ngModel)]="name" name="name" required></ion-input>
-    </ion-item>
+<ion-content class="jars-page" fullscreen="true">
+  <div class="page-inner">
+    <section class="total-card">
+      <div class="total-label">TOTAL SAVED</div>
+      <div class="total-amount">
+        <span class="currency">$</span>
+        <span class="value">{{ totalSavedMain }}</span>
+        <span class="cents">.{{ totalSavedCents }}</span>
+      </div>
+      <div class="total-trend">
+        <ion-icon name="trending-up-outline"></ion-icon>
+        <span>+12.5% from last month</span>
+      </div>
+    </section>
 
-    <ion-item>
-      <ion-label position="stacked">Description</ion-label>
-      <ion-input [(ngModel)]="description" name="description"></ion-input>
-    </ion-item>
+    <div class="section-title">ACTIVE JARS</div>
 
-    <ion-button expand="block" type="submit">Create Jar</ion-button>
-  </form>
+    <section class="jars-list">
+      <article class="jar-card" *ngFor="let jar of jars">
+        <div class="jar-icon" [ngClass]="getJarIconClass(jar)">
+          <ion-icon [name]="getJarIcon(jar)"></ion-icon>
+        </div>
+        <div class="jar-info">
+          <div class="jar-title-row">
+            <div class="jar-title">{{ jar.name }}</div>
+            <ion-button fill="clear" class="more-button">
+              <ion-icon name="ellipsis-vertical"></ion-icon>
+            </ion-button>
+          </div>
+          <div class="jar-subtitle">
+            {{ getJarDescription(jar) }}
+          </div>
+          <div class="jar-amount-row">
+            <div class="jar-amount">
+              ${{ formatCurrency(jar.balance) }}
+              <span class="jar-target">/ ${{ formatCurrency(getJarTarget(jar)) }}</span>
+            </div>
+            <div class="jar-percent">{{ getJarProgress(jar) }}%</div>
+          </div>
+          <div class="progress-track">
+            <div
+              class="progress-fill"
+              [style.width.%]="getJarProgress(jar)"
+            ></div>
+          </div>
+        </div>
+      </article>
+    </section>
+  </div>
 
-  <ion-list>
-    <ion-list-header>Your Jars</ion-list-header>
-    <ion-item *ngFor="let jar of jars">
-      <ion-label>
-        <h2>{{ jar.name }}</h2>
-        <p>{{ jar.balance }}</p>
-      </ion-label>
-    </ion-item>
-  </ion-list>
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+    <ion-fab-button class="add-fab" (click)="openCreateJar()">
+      <ion-icon name="add"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
 </ion-content>
+
+<ion-modal
+  [isOpen]="isCreateJarOpen"
+  (didDismiss)="closeCreateJar()"
+  class="transaction-modal"
+>
+  <ng-template>
+    <ion-header class="transaction-header">
+      <ion-toolbar>
+        <ion-buttons slot="start">
+          <ion-button fill="clear" (click)="closeCreateJar()">
+            <ion-icon name="close"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+        <ion-title>Add Jar</ion-title>
+      </ion-toolbar>
+    </ion-header>
+
+    <ion-content class="transaction-page">
+      <form (ngSubmit)="submitCreateJar()">
+        <div class="amount-block">
+          <div class="amount-label">TARGET</div>
+          <div class="amount-input-row">
+            <div class="currency">$</div>
+            <ion-input
+              type="number"
+              inputmode="decimal"
+              placeholder="0.00"
+              [(ngModel)]="jarTarget"
+              name="jarTarget"
+            ></ion-input>
+          </div>
+        </div>
+
+        <ion-card class="section-card">
+          <div class="section-title">Jar Details</div>
+
+          <div class="field">
+            <div class="field-label">JAR NAME</div>
+            <ion-item lines="none" class="text-item">
+              <ion-input
+                placeholder="e.g. Groceries"
+                [(ngModel)]="jarName"
+                name="jarName"
+                required
+              ></ion-input>
+            </ion-item>
+          </div>
+
+          <div class="field">
+            <div class="field-label">DESCRIPTION</div>
+            <ion-item lines="none" class="notes-item">
+              <ion-textarea
+                auto-grow="true"
+                placeholder="What is this jar for?"
+                [(ngModel)]="jarDescription"
+                name="jarDescription"
+              ></ion-textarea>
+            </ion-item>
+          </div>
+        </ion-card>
+
+        <ion-card class="receipt-card">
+          <ion-item lines="none" button detail="true">
+            <ion-icon slot="start" name="color-palette-outline"></ion-icon>
+            <ion-label>Choose Icon</ion-label>
+          </ion-item>
+        </ion-card>
+
+        <ion-button
+          expand="block"
+          class="save-button"
+          type="submit"
+          [disabled]="!canSaveJar"
+        >
+          Save Jar
+        </ion-button>
+      </form>
+    </ion-content>
+  </ng-template>
+</ion-modal>
