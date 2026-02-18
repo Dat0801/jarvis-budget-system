@@ -3,17 +3,26 @@
   <ion-tab-bar slot="bottom">
     <ion-tab-button tab="dashboard" href="/tabs/dashboard">
       <ion-icon aria-hidden="true" name="home"></ion-icon>
-      <ion-label>Dashboard</ion-label>
+      <ion-label>Home</ion-label>
     </ion-tab-button>
 
-    <ion-tab-button tab="jars" href="/tabs/jars">
+    <ion-tab-button tab="stats" href="/tabs/stats">
+      <ion-icon aria-hidden="true" name="bar-chart"></ion-icon>
+      <ion-label>Transaction</ion-label>
+    </ion-tab-button>
+
+    <ion-tab-button class="add-tab" href="/income">
+      <ion-icon aria-hidden="true" name="add"></ion-icon>
+    </ion-tab-button>
+
+    <ion-tab-button tab="budgets" href="/tabs/budgets">
       <ion-icon aria-hidden="true" name="wallet"></ion-icon>
-      <ion-label>Jars</ion-label>
+      <ion-label>Budgets</ion-label>
     </ion-tab-button>
 
-    <ion-tab-button tab="notes" href="/tabs/notes">
-      <ion-icon aria-hidden="true" name="document-text"></ion-icon>
-      <ion-label>Notes</ion-label>
+    <ion-tab-button tab="settings" href="/tabs/settings">
+      <ion-icon aria-hidden="true" name="person-circle"></ion-icon>
+      <ion-label>Account</ion-label>
     </ion-tab-button>
   </ion-tab-bar>
 

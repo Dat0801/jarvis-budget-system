@@ -1,0 +1,41 @@
+<ion-header class="activity-header" translucent="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button fill="clear" (click)="goBack()">
+        <ion-icon name="chevron-back-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>All Activity</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="activity-page" fullscreen="true">
+  <div class="page-inner">
+    <div class="activity-list" *ngIf="transactions.length > 0">
+      <article class="activity-item" *ngFor="let transaction of transactions">
+        <div class="activity-icon" [ngClass]="'icon-' + getTransactionColor(transaction)">
+          <ion-icon [name]="getTransactionIcon(transaction)"></ion-icon>
+        </div>
+        <div class="activity-info">
+          <div class="activity-title">
+            {{ transaction.note || transaction.source || transaction.category || 'Transaction' }}
+          </div>
+          <div class="activity-date">{{ getFormattedDate(transaction.created_at) }}</div>
+        </div>
+        <div class="activity-amount" [ngClass]="'amount-' + getTransactionColor(transaction)">
+          <span *ngIf="transaction.type === 'expense'" class="sign">-</span><span
+            *ngIf="transaction.type === 'income'"
+            class="sign"
+            >+</span
+          >
+          ₫{{ formatCurrency(transaction.amount) }}
+        </div>
+      </article>
+    </div>
+    <div class="empty-state" *ngIf="transactions.length === 0">
+      <ion-icon name="inbox-outline"></ion-icon>
+      <h3>No Activity Yet</h3>
+      <p>This budget doesn't have any transactions yet</p>
+    </div>
+  </div>
+</ion-content>

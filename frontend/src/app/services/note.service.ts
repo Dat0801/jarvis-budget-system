@@ -7,6 +7,7 @@ export interface Note {
   body?: string | null;
   reminder_date?: string | null;
   is_notified?: boolean;
+  is_completed?: boolean;
 }
 
 @Injectable({ providedIn: 'root' })

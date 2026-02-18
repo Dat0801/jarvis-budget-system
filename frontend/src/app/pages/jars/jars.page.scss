@@ -1,0 +1,344 @@
+ion-content.jars-page {
+	--background: #f5f7fb;
+}
+
+.jars-header {
+	--background: #ffffff;
+	border-bottom: 1px solid #eef1f6;
+}
+
+.jars-header ion-title {
+	font-size: 24px;
+	font-weight: 700;
+	color: #101828;
+}
+
+.icon-button {
+	--padding-start: 8px;
+	--padding-end: 8px;
+	--color: #667085;
+	font-size: 20px;
+}
+
+.avatar-button ion-icon {
+	font-size: 28px;
+	color: #ffb58a;
+}
+
+.page-inner {
+	padding: 20px 18px 100px;
+}
+
+.total-card {
+	background: linear-gradient(135deg, #2f6fe4, #2e7ff2);
+	border-radius: 24px;
+	padding: 20px 22px;
+	color: #ffffff;
+	box-shadow: 0 14px 28px rgba(46, 103, 216, 0.25);
+}
+
+.total-label {
+	font-size: 13px;
+	letter-spacing: 1.6px;
+	opacity: 0.85;
+}
+
+.total-amount {
+	display: flex;
+	align-items: flex-end;
+	gap: 6px;
+	margin: 12px 0 10px;
+}
+
+.total-amount .currency {
+	font-size: 28px;
+	font-weight: 600;
+}
+
+.total-amount .value {
+	font-size: 40px;
+	font-weight: 700;
+	letter-spacing: 0.5px;
+}
+
+.total-amount .cents {
+	font-size: 18px;
+	opacity: 0.85;
+	padding-bottom: 6px;
+}
+
+.total-trend {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 14px;
+	opacity: 0.9;
+}
+
+.total-trend ion-icon {
+	font-size: 18px;
+}
+
+.section-title {
+	margin: 24px 4px 12px;
+	font-size: 13px;
+	font-weight: 700;
+	letter-spacing: 1.4px;
+	color: #98a2b3;
+}
+
+.jars-list {
+	display: grid;
+	gap: 16px;
+}
+
+.jar-card {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	gap: 16px;
+	align-items: center;
+	background: #ffffff;
+	border-radius: 22px;
+	padding: 16px 18px;
+	box-shadow: 0 10px 20px rgba(16, 24, 40, 0.08);
+	cursor: pointer;
+	transition: box-shadow 0.2s ease, transform 0.2s ease;
+
+	&:active {
+		transform: scale(0.98);
+		box-shadow: 0 4px 12px rgba(16, 24, 40, 0.12);
+	}
+}
+
+.jar-icon {
+	width: 50px;
+	height: 50px;
+	border-radius: 18px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 24px;
+}
+
+.jar-icon ion-icon {
+	font-size: 26px;
+}
+
+.jar-icon--orange {
+	background: #ffe9d6;
+	color: #f97316;
+}
+
+.jar-icon--blue {
+	background: #e0ecff;
+	color: #2563eb;
+}
+
+.jar-icon--pink {
+	background: #ffe2f0;
+	color: #db2777;
+}
+
+.jar-icon--gray {
+	background: #eef2f6;
+	color: #475467;
+}
+
+.jar-info {
+	display: grid;
+	gap: 6px;
+}
+
+.jar-title-row {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.jar-title {
+	font-size: 18px;
+	font-weight: 700;
+	color: #101828;
+}
+
+.more-button {
+	--padding-start: 0;
+	--padding-end: 0;
+	--color: #98a2b3;
+	height: 28px;
+	width: 28px;
+}
+
+.jar-subtitle {
+	font-size: 14px;
+	color: #667085;
+}
+
+.jar-amount-row {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	font-weight: 700;
+	color: #101828;
+}
+
+.jar-amount {
+	font-size: 22px;
+}
+
+.jar-target {
+	font-size: 16px;
+	color: #98a2b3;
+	font-weight: 600;
+	margin-left: 6px;
+}
+
+.jar-percent {
+	font-size: 16px;
+	color: #2563eb;
+}
+
+.progress-track {
+	height: 8px;
+	background: #edf1f7;
+	border-radius: 999px;
+	overflow: hidden;
+}
+
+.progress-fill {
+	height: 100%;
+	background: #2e7ff2;
+	border-radius: 999px;
+}
+
+.add-fab {
+	--background: #12b981;
+	--box-shadow: 0 16px 26px rgba(16, 185, 129, 0.35);
+}
+
+.transaction-modal {
+	--height: 100%;
+	--width: 100%;
+}
+
+.transaction-header ion-toolbar {
+	--background: #ffffff;
+	--border-width: 0;
+}
+
+.transaction-page {
+	--background: #f6f7f9;
+	--padding-top: 12px;
+	--padding-start: 16px;
+	--padding-end: 16px;
+	--padding-bottom: 24px;
+}
+
+.transaction-page .amount-block {
+	text-align: center;
+	margin: 12px 0 16px;
+}
+
+.transaction-page .amount-label {
+	font-size: 12px;
+	letter-spacing: 2px;
+	font-weight: 600;
+	color: #9aa2ad;
+	margin-bottom: 8px;
+}
+
+.transaction-page .amount-input-row {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 12px;
+}
+
+.transaction-page .currency {
+	font-size: 40px;
+	font-weight: 700;
+	color: #2f6fed;
+}
+
+.transaction-page .amount-input-row ion-input {
+	--padding-start: 0;
+	--padding-end: 0;
+	--background: transparent;
+	color: #6f7681;
+	font-weight: 700;
+}
+
+.transaction-page .amount-input-row ion-input::part(native) {
+	text-align: center;
+	font-size: 56px;
+}
+
+.transaction-page .section-card {
+	margin: 0 0 16px;
+	border-radius: 20px;
+	box-shadow: none;
+	background: #ffffff;
+	padding: 16px;
+}
+
+.transaction-page .section-title {
+	font-size: 16px;
+	font-weight: 600;
+	color: #6f7681;
+	margin-bottom: 10px;
+}
+
+.transaction-page .text-item,
+.transaction-page .notes-item {
+	--background: #f5f6f8;
+	--border-radius: 14px;
+	--padding-start: 12px;
+	--inner-padding-end: 12px;
+	margin-bottom: 12px;
+}
+
+.transaction-page .field {
+	margin-top: 8px;
+}
+
+.transaction-page .field-label {
+	font-size: 12px;
+	letter-spacing: 1.5px;
+	font-weight: 600;
+	color: #a0a8b4;
+	margin: 6px 0 8px;
+}
+
+.transaction-page .notes-item ion-textarea::part(native) {
+	min-height: 96px;
+}
+
+.transaction-page .receipt-card {
+	margin: 0 0 18px;
+	border-radius: 18px;
+	box-shadow: none;
+	background: #ffffff;
+}
+
+.transaction-page .receipt-card ion-item {
+	--background: #ffffff;
+	--padding-start: 16px;
+	--inner-padding-end: 16px;
+	--border-radius: 18px;
+	font-weight: 600;
+	color: #2a2f38;
+}
+
+.transaction-page .save-button {
+	--background: #2f6fed;
+	--border-radius: 18px;
+	height: 54px;
+	font-weight: 700;
+	text-transform: none;
+}
+
+@media (min-width: 768px) {
+	.page-inner {
+		margin: 0;
+	}
+}

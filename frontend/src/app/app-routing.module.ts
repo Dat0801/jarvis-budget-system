@@ -22,6 +22,11 @@ const routes: Routes = [
     loadChildren: () => import('./pages/expense/expense.module').then(m => m.ExpensePageModule)
   },
   {
+    path: 'notes',
+    redirectTo: '/tabs/notes',
+    pathMatch: 'full'
+  },
+  {
     path: '',
     canActivate: [AuthGuard],
     loadChildren: () => import('./tabs/tabs.module').then(m => m.TabsPageModule)

@@ -1,37 +1,115 @@
-<ion-header>
+<ion-header [translucent]="true" class="app-header">
   <ion-toolbar>
-    <ion-title>Notes</ion-title>
+    <ion-title>Financial Notes</ion-title>
+    <ion-buttons slot="end">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="ion-padding">
-  <form (ngSubmit)="createNote()">
-    <ion-item>
-      <ion-label position="stacked">Title</ion-label>
-      <ion-input [(ngModel)]="title" name="title" required></ion-input>
-    </ion-item>
+<ion-content class="notes-content app-content" [fullscreen]="false">
+  <div class="notes-shell page-shell">
+  <!-- Tab Navigation -->
+  <div class="tabs-container">
+    <button
+      class="tab-button"
+      [class.active]="selectedTab === 'all'"
+      (click)="selectTab('all')"
+    >
+      All Notes
+    </button>
+    <button
+      class="tab-button"
+      [class.active]="selectedTab === 'reminders'"
+      (click)="selectTab('reminders')"
+    >
+      Reminders
+    </button>
+    <button
+      class="tab-button"
+      [class.active]="selectedTab === 'archived'"
+      (click)="selectTab('archived')"
+    >
+      Archived
+    </button>
+  </div>
 
-    <ion-item>
-      <ion-label position="stacked">Body</ion-label>
-      <ion-textarea [(ngModel)]="body" name="body"></ion-textarea>
-    </ion-item>
+  <!-- Search Bar -->
+  <div class="search-container">
+    <ion-searchbar
+      [(ngModel)]="searchTerm"
+      (ionInput)="onSearch($event)"
+      placeholder="Search notes..."
+      mode="ios"
+      class="search-bar"
+    ></ion-searchbar>
+  </div>
 
-    <ion-item>
-      <ion-label position="stacked">Reminder Date</ion-label>
-      <ion-datetime presentation="date" [(ngModel)]="reminderDate" name="reminderDate"></ion-datetime>
-    </ion-item>
+  <!-- Notes List -->
+  <div class="note-list">
+    <div class="note-card" *ngFor="let note of notes">
+      <div class="note-header">
+        <span class="note-badge" [class]="getStatusBadge(note).class">
+          {{ getStatusBadge(note).text }}
+        </span>
+        <span class="note-date">{{ formatDate(note.reminder_date) }}</span>
+      </div>
+      <div class="note-title">{{ note.title }}</div>
+      <div class="note-body">{{ note.body || 'No details added yet.' }}</div>
+      <div class="note-actions">
+        <ion-button fill="clear" size="small" (click)="toggleCompleted(note)">
+          <ion-icon [name]="note.is_completed ? 'refresh-outline' : 'checkmark-done-outline'" aria-hidden="true"></ion-icon>
+        </ion-button>
+        <ion-button fill="clear" color="danger" size="small" (click)="deleteNote(note)">
+          <ion-icon name="trash-outline" aria-hidden="true"></ion-icon>
+        </ion-button>
+      </div>
+    </div>
 
-    <ion-button expand="block" type="submit">Save Note</ion-button>
-  </form>
-
-  <ion-list>
-    <ion-list-header>Your Notes</ion-list-header>
-    <ion-item *ngFor="let note of notes">
-      <ion-label>
-        <h2>{{ note.title }}</h2>
-        <p>{{ note.body }}</p>
-        <p>Reminder: {{ note.reminder_date || 'None' }}</p>
-      </ion-label>
-    </ion-item>
-  </ion-list>
+    <div class="empty-state" *ngIf="notes.length === 0">
+      <div class="empty-title">No notes yet</div>
+      <div class="empty-subtitle">{{ selectedTab === 'all' ? 'Add your first financial note to get started.' : 'No notes in this category.' }}</div>
+    </div>
+  </div>
+</div>
 </ion-content>
+
+<ion-modal [isOpen]="isCreateNoteOpen" (didDismiss)="closeNewNoteModal()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>New Note</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closeNewNoteModal()">Close</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+
+    <ion-content class="ion-padding">
+      <ion-item>
+        <ion-label position="stacked">Title</ion-label>
+        <ion-input [(ngModel)]="newTitle"></ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="stacked">Details</ion-label>
+        <ion-textarea rows="4" [(ngModel)]="newBody"></ion-textarea>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="stacked">Reminder Date</ion-label>
+        <ion-input type="date" [(ngModel)]="newReminderDate"></ion-input>
+      </ion-item>
+
+      <ion-button
+        expand="block"
+        class="ion-margin-top"
+        [disabled]="!newTitle.trim() || isSubmitting"
+        (click)="submitNewNote()"
+      >
+        Create Note
+      </ion-button>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+

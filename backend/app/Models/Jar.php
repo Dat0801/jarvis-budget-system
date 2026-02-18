@@ -11,6 +11,7 @@ class Jar extends Model
         'name',
         'balance',
         'description',
+        'color',
     ];
 
     protected $casts = [

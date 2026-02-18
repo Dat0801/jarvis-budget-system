@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Tymon\JWTAuth\Facades\JWTAuth;
 
 class AuthController extends Controller
 {
@@ -24,12 +25,12 @@ class AuthController extends Controller
             'role' => 'user',
         ]);
 
-        $token = auth('api')->login($user);
+        $token = JWTAuth::fromUser($user);
 
         return response()->json([
             'access_token' => $token,
             'token_type' => 'bearer',
-            'expires_in' => auth('api')->factory()->getTTL() * 60,
+            'expires_in' => JWTAuth::factory()->getTTL() * 60,
             'user' => $user,
         ]);
     }
@@ -41,15 +42,27 @@ class AuthController extends Controller
             'password' => 'required|string',
         ]);
 
-        if (! $token = auth('api')->attempt($credentials)) {
+        if (! $token = JWTAuth::attempt($credentials)) {
             return response()->json(['message' => 'Invalid credentials'], 401);
         }
 
         return response()->json([
             'access_token' => $token,
             'token_type' => 'bearer',
-            'expires_in' => auth('api')->factory()->getTTL() * 60,
+            'expires_in' => JWTAuth::factory()->getTTL() * 60,
             'user' => auth('api')->user(),
         ]);
+    }
+
+    public function logout(Request $request)
+    {
+        auth('api')->logout();
+
+        return response()->json(['message' => 'Successfully logged out']);
+    }
+
+    public function me(Request $request)
+    {
+        return response()->json($request->user());
     }
 }
