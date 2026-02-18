@@ -20,7 +20,7 @@ const routes: Routes = [
         loadChildren: () => import('../pages/notes/notes.module').then(m => m.NotesPageModule)
       },
       {
-        path: 'jars',
+        path: 'budgets',
         loadChildren: () => import('../pages/jars/jars.module').then(m => m.JarsPageModule)
       },
       {

@@ -26,12 +26,13 @@
     <div class="amount-block">
       <div class="amount-label">AMOUNT</div>
       <div class="amount-input-row">
-        <div class="currency">$</div>
+        <div class="currency">₫</div>
         <ion-input
-          type="number"
-          inputmode="decimal"
-          placeholder="0.00"
+          type="text"
+          inputmode="numeric"
+          placeholder="0"
           [(ngModel)]="amount"
+          (ionInput)="onAmountInput($event)"
           name="amount"
           required
         ></ion-input>
@@ -39,7 +40,7 @@
     </div>
 
     <ion-card class="section-card">
-      <div class="section-title">Select Jar</div>
+      <div class="section-title">Select Budget</div>
       <ion-item lines="none" class="select-item">
         <ion-select [(ngModel)]="jarId" name="jarId" interface="popover" required>
           <ion-select-option *ngFor="let jar of jars" [value]="jar.id">
@@ -79,5 +80,52 @@
     <ion-button expand="block" class="save-button" type="submit" [disabled]="!jars.length">
       Save Transaction
     </ion-button>
+
+    <ion-card class="history-card" *ngIf="recentIncomes.length > 0">
+      <ion-card-header>
+        <ion-card-title>Recent Incomes</ion-card-title>
+      </ion-card-header>
+      <ion-list lines="full">
+        <ion-item-sliding *ngFor="let income of recentIncomes">
+          <ion-item>
+            <ion-label>
+              <h3>{{ income.source || 'Income' }}</h3>
+              <p>{{ income.jar?.name || 'Unknown Budget' }} • {{ income.received_at || 'No date' }}</p>
+            </ion-label>
+            <ion-note slot="end" color="success">{{ formatCurrency(income.amount) }}</ion-note>
+          </ion-item>
+          <ion-item-options side="end">
+            <ion-item-option color="primary" (click)="openEditIncome(income)">Edit</ion-item-option>
+            <ion-item-option color="danger" (click)="deleteIncome(income.id)">Delete</ion-item-option>
+          </ion-item-options>
+        </ion-item-sliding>
+      </ion-list>
+    </ion-card>
   </form>
 </ion-content>
+
+<ion-modal [isOpen]="isEditOpen" (didDismiss)="closeEditIncome()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>Edit Income</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closeEditIncome()">Close</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content>
+      <form class="modal-form" (ngSubmit)="submitEditIncome()">
+        <ion-item>
+          <ion-label position="stacked">Source</ion-label>
+          <ion-input [(ngModel)]="editSource" name="editSource"></ion-input>
+        </ion-item>
+        <ion-item>
+          <ion-label position="stacked">Received Date</ion-label>
+          <ion-input [(ngModel)]="editReceivedAt" name="editReceivedAt" type="date"></ion-input>
+        </ion-item>
+        <ion-button expand="block" type="submit">Save</ion-button>
+      </form>
+    </ion-content>
+  </ng-template>
+</ion-modal>

@@ -3,8 +3,11 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Models\Expense;
+use App\Models\Income;
 use App\Models\Jar;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class JarController extends Controller
 {
@@ -56,41 +59,43 @@ class JarController extends Controller
         $this->authorizeJar($request, $jar);
         $jar->delete();
 
-        return response()->json(['message' => 'Jar deleted']);
+        return response()->json(['message' => 'Budget deleted']);
     }
 
     public function getTransactions(Request $request, Jar $jar)
     {
         $this->authorizeJar($request, $jar);
 
-        $expenses = $jar->expenses()->get()->map(function ($expense) {
-            return [
-                'id' => $expense->id,
-                'type' => 'expense',
-                'amount' => $expense->amount,
-                'category' => $expense->category,
-                'note' => $expense->note,
-                'date' => $expense->spent_at,
-                'created_at' => $expense->created_at,
-            ];
-        });
+        $page = max((int) $request->query('page', 1), 1);
+        $perPage = min(max((int) $request->query('per_page', 20), 1), 100);
 
-        $incomes = $jar->incomes()->get()->map(function ($income) {
-            return [
-                'id' => $income->id,
-                'type' => 'income',
-                'amount' => $income->amount,
-                'source' => $income->source,
-                'date' => $income->received_at,
-                'created_at' => $income->created_at,
-            ];
-        });
+        $expenseQuery = Expense::query()
+            ->where('jar_id', $jar->id)
+            ->selectRaw("id, 'expense' as type, amount, category, note, null as source, spent_at as date, created_at");
 
-        $transactions = $expenses->concat($incomes)
-            ->sortByDesc('date')
-            ->values();
+        $incomeQuery = Income::query()
+            ->where('jar_id', $jar->id)
+            ->selectRaw("id, 'income' as type, amount, null as category, null as note, source, received_at as date, created_at");
 
-        return response()->json($transactions->paginate(20));
+        $combinedQuery = $expenseQuery->unionAll($incomeQuery);
+
+        $transactionsQuery = DB::query()->fromSub($combinedQuery, 'transactions');
+
+        $total = (clone $transactionsQuery)->count();
+
+        $items = (clone $transactionsQuery)
+            ->orderByRaw('COALESCE(date, created_at) DESC')
+            ->orderByDesc('id')
+            ->forPage($page, $perPage)
+            ->get();
+
+        return response()->json([
+            'data' => $items,
+            'current_page' => $page,
+            'per_page' => $perPage,
+            'total' => $total,
+            'last_page' => (int) ceil($total / $perPage),
+        ]);
     }
 
     public function addMoney(Request $request, Jar $jar)

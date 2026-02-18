@@ -1,10 +1,11 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 import { Router } from '@angular/router';
-import { Jar, JarService } from '../../services/jar.service';
+import { Budget, BudgetService } from '../../services/budget.service';
 import { FabService } from '../../services/fab.service';
+import { formatVndAmountInput, parseVndAmount } from '../../utils/vnd-amount.util';
 
 @Component({
   selector: 'app-jars',
@@ -13,8 +14,8 @@ import { FabService } from '../../services/fab.service';
   templateUrl: './jars.page.html',
   styleUrls: ['./jars.page.scss'],
 })
-export class JarsPage implements OnInit, OnDestroy {
-  jars: Jar[] = [];
+export class JarsPage implements OnInit {
+  jars: Budget[] = [];
   totalSaved = 0;
   totalSavedMain = '0';
   totalSavedCents = '00';
@@ -29,21 +30,24 @@ export class JarsPage implements OnInit, OnDestroy {
   ];
   private readonly targetPattern = /\[target=(\d+(?:\.\d+)?)\]/;
 
-  constructor(private jarService: JarService, private fabService: FabService, private router: Router) {}
+  constructor(private budgetService: BudgetService, private fabService: FabService, private router: Router) {}
 
   ngOnInit(): void {
     this.loadJars();
+  }
+
+  ionViewWillEnter(): void {
     // Show the global FAB with the openCreateJar action
     this.fabService.showFab(() => this.openCreateJar(), 'add');
   }
 
-  ngOnDestroy(): void {
+  ionViewDidLeave(): void {
     // Hide the global FAB when leaving this page
     this.fabService.hideFab();
   }
 
   loadJars(): void {
-    this.jarService.list().subscribe((jars) => {
+    this.budgetService.list().subscribe((jars) => {
       this.jars = jars;
       this.updateTotals();
     });
@@ -71,11 +75,15 @@ export class JarsPage implements OnInit, OnDestroy {
     this.closeCreateJar();
   }
 
+  onJarTargetInput(event: CustomEvent): void {
+    this.jarTarget = formatVndAmountInput(event.detail?.value);
+  }
+
   get canSaveJar(): boolean {
     return this.jarName.trim().length > 0;
   }
 
-  getJarTarget(jar: Jar): number {
+  getJarTarget(jar: Budget): number {
     const name = jar.name.toLowerCase();
     const embeddedTarget = this.parseTargetFromDescription(jar.description);
     if (embeddedTarget) {
@@ -85,11 +93,11 @@ export class JarsPage implements OnInit, OnDestroy {
     return override?.target ?? 10000;
   }
 
-  getJarDescription(jar: Jar): string {
+  getJarDescription(jar: Budget): string {
     return this.stripTargetTag(jar.description) || 'No description yet';
   }
 
-  getJarProgress(jar: Jar): number {
+  getJarProgress(jar: Budget): number {
     const balance = this.parseBalance(jar.balance);
     const target = this.getJarTarget(jar);
     if (!target) {
@@ -98,7 +106,7 @@ export class JarsPage implements OnInit, OnDestroy {
     return Math.min(100, Math.round((balance / target) * 100));
   }
 
-  getJarIcon(jar: Jar): string {
+  getJarIcon(jar: Budget): string {
     const name = jar.name.toLowerCase();
     if (name.includes('emergency')) {
       return 'shield-checkmark';
@@ -112,7 +120,7 @@ export class JarsPage implements OnInit, OnDestroy {
     return 'wallet';
   }
 
-  getJarIconClass(jar: Jar): string {
+  getJarIconClass(jar: Budget): string {
     const name = jar.name.toLowerCase();
     if (name.includes('emergency')) {
       return 'jar-icon--orange';
@@ -128,19 +136,21 @@ export class JarsPage implements OnInit, OnDestroy {
 
   formatCurrency(value: number | string, withCents = false): string {
     const amount = typeof value === 'string' ? this.parseBalance(value) : value;
-    const formatter = new Intl.NumberFormat('en-US', {
-      minimumFractionDigits: withCents ? 2 : 0,
-      maximumFractionDigits: withCents ? 2 : 0,
+    const formatter = new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
     });
     return formatter.format(amount);
   }
 
   navigateToJar(jarId: number): void {
-    this.router.navigate(['/tabs/jars', jarId]);
+    this.router.navigate(['/tabs/budgets', jarId]);
   }
 
   private createJar(name: string, description?: string): void {
-    this.jarService.create({ name, description }).subscribe(() => this.loadJars());
+    this.budgetService.create({ name, description }).subscribe(() => this.loadJars());
   }
 
   private resetCreateForm(): void {
@@ -151,8 +161,7 @@ export class JarsPage implements OnInit, OnDestroy {
 
   private buildDescriptionWithTarget(description: string, target: string): string {
     const cleanDescription = description.trim();
-    const parsedTarget = Number.parseFloat(target);
-    const normalizedTarget = Number.isFinite(parsedTarget) && parsedTarget > 0 ? parsedTarget : null;
+    const normalizedTarget = parseVndAmount(target);
     const parts = [] as string[];
     if (normalizedTarget !== null) {
       parts.push(`[target=${normalizedTarget}]`);

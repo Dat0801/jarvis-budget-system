@@ -26,14 +26,14 @@
     <h2 class="section-title">ACCOUNT SETTINGS</h2>
     
     <ion-list class="settings-list">
-      <ion-item button detail (click)="openUnavailableFeature('Edit Profile')" class="setting-item">
+      <ion-item button detail (click)="openEditProfile()" class="setting-item">
         <ion-icon name="person-circle" slot="start" color="primary"></ion-icon>
         <ion-label>Edit Profile</ion-label>
       </ion-item>
       
-      <ion-item button detail (click)="openUnavailableFeature('Security')" class="setting-item">
+      <ion-item button detail (click)="openChangePassword()" class="setting-item">
         <ion-icon name="shield-checkmark" slot="start" color="primary"></ion-icon>
-        <ion-label>Security</ion-label>
+        <ion-label>Change Password</ion-label>
       </ion-item>
     </ion-list>
   </div>
@@ -67,7 +67,7 @@
     
     <ion-item button class="setting-item reset-item" (click)="resetJarsData()">
       <ion-icon name="alert-circle" slot="start" color="danger"></ion-icon>
-      <ion-label color="danger">Reset Jars Data</ion-label>
+      <ion-label color="danger">Reset Budgets Data</ion-label>
       <ion-icon name="warning" slot="end" color="danger"></ion-icon>
     </ion-item>
   </div>
@@ -77,12 +77,12 @@
     <h2 class="section-title">SUPPORT</h2>
     
     <ion-list class="settings-list">
-      <ion-item button detail (click)="openUnavailableFeature('Help Center')" class="setting-item">
+      <ion-item button detail (click)="openHelpCenter()" class="setting-item">
         <ion-icon name="help-circle" slot="start" color="primary"></ion-icon>
         <ion-label>Help Center</ion-label>
       </ion-item>
       
-      <ion-item button detail (click)="openUnavailableFeature('About Jarvis')" class="setting-item">
+      <ion-item button detail (click)="openAbout()" class="setting-item">
         <ion-icon name="information-circle" slot="start" color="primary"></ion-icon>
         <ion-label>About Jarvis</ion-label>
       </ion-item>
@@ -100,3 +100,59 @@
     <p>Jarvis Budget System v2.4.0</p>
   </div>
 </ion-content>
+
+<ion-modal [isOpen]="isEditProfileOpen" (didDismiss)="closeEditProfile()" class="settings-modal">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>Edit Profile</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closeEditProfile()">Close</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content>
+      <form class="modal-form" (ngSubmit)="submitEditProfile()">
+        <ion-item>
+          <ion-label position="stacked">Name</ion-label>
+          <ion-input [(ngModel)]="editName" name="editName" required></ion-input>
+        </ion-item>
+        <ion-item>
+          <ion-label position="stacked">Email</ion-label>
+          <ion-input [(ngModel)]="editEmail" name="editEmail" type="email" required></ion-input>
+        </ion-item>
+        <ion-button expand="block" type="submit">Save Profile</ion-button>
+      </form>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<ion-modal [isOpen]="isChangePasswordOpen" (didDismiss)="closeChangePassword()" class="settings-modal">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>Change Password</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closeChangePassword()">Close</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content>
+      <form class="modal-form" (ngSubmit)="submitChangePassword()">
+        <ion-item>
+          <ion-label position="stacked">Current Password</ion-label>
+          <ion-input [(ngModel)]="currentPassword" name="currentPassword" type="password" required></ion-input>
+        </ion-item>
+        <ion-item>
+          <ion-label position="stacked">New Password</ion-label>
+          <ion-input [(ngModel)]="newPassword" name="newPassword" type="password" required></ion-input>
+        </ion-item>
+        <ion-item>
+          <ion-label position="stacked">Confirm New Password</ion-label>
+          <ion-input [(ngModel)]="confirmPassword" name="confirmPassword" type="password" required></ion-input>
+        </ion-item>
+        <ion-button expand="block" type="submit">Update Password</ion-button>
+      </form>
+    </ion-content>
+  </ng-template>
+</ion-modal>

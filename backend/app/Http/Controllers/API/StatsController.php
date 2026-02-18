@@ -32,8 +32,8 @@ class StatsController extends Controller
             ->whereBetween('spent_at', [$startDate, $endDate])
             ->sum('amount');
 
-        // Get expenses grouped by jar
-        $expensesByJar = Expense::where('user_id', $user->id)
+        // Get expenses grouped by budget
+        $expensesByBudget = Expense::where('user_id', $user->id)
             ->whereBetween('spent_at', [$startDate, $endDate])
             ->with('jar')
             ->get()
@@ -41,9 +41,9 @@ class StatsController extends Controller
             ->map(function ($expenses, $jarId) {
                 $jar = $expenses->first()->jar;
                 return [
-                    'jar_id' => $jarId,
-                    'jar_name' => $jar?->name ?? 'Unknown',
-                    'jar_color' => $jar?->color ?? '#667eea',
+                    'budget_id' => $jarId,
+                    'budget_name' => $jar?->name ?? 'Unknown',
+                    'budget_color' => $jar?->color ?? '#667eea',
                     'amount' => $expenses->sum('amount'),
                     'percentage' => 0, // Will be calculated below
                 ];
@@ -52,7 +52,7 @@ class StatsController extends Controller
 
         // Calculate percentages
         if ($totalExpenses > 0) {
-            $expensesByJar->each(function ($item) use ($totalExpenses) {
+            $expensesByBudget->each(function ($item) use ($totalExpenses) {
                 $item['percentage'] = round(($item['amount'] / $totalExpenses) * 100, 2);
             });
         }
@@ -60,7 +60,7 @@ class StatsController extends Controller
         return response()->json([
             'month' => $month->format('Y-m'),
             'total_spent' => round($totalExpenses, 2),
-            'expenses_by_jar' => $expensesByJar,
+            'expenses_by_budget' => $expensesByBudget,
         ]);
     }
 

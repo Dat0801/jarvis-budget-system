@@ -17,7 +17,7 @@ export class ExpenseService {
     return this.api.post('expenses', payload);
   }
 
-  update(id: number, payload: { category?: string; note?: string; spent_at?: string }) {
+  update(id: number, payload: { jar_id?: number; amount?: number; category?: string; note?: string; spent_at?: string }) {
     return this.api.patch(`expenses/${id}`, payload);
   }
 

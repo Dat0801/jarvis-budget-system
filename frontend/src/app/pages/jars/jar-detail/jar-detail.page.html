@@ -16,7 +16,7 @@
 
 <ion-content class="jar-detail-page" fullscreen="true">
   <div class="page-inner">
-    <!-- Jar Balance Card -->
+    <!-- Budget Balance Card -->
     <section class="balance-card">
       <div class="jar-icon-large">
         <ion-icon name="basket-outline"></ion-icon>
@@ -25,10 +25,10 @@
       <div class="balance-section">
         <div class="balance-label">AVAILABLE BALANCE</div>
         <div class="balance-amount">
-          <span class="currency">$</span>
+          <span class="currency">₫</span>
           <span class="value">{{ formatCurrency(jar?.balance || 0) }}</span>
         </div>
-        <div class="target-label">Target: ${{ jar?.target | number: '1.2-2' }}</div>
+        <div class="target-label">Target: ₫{{ jar?.target | number: '1.0-0' }}</div>
       </div>
 
       <div class="progress-section">
@@ -37,7 +37,7 @@
         </div>
         <div class="progress-info">
           <span class="progress-percent">{{ getProgress() | number: '1.0-0' }}% Saved</span>
-          <span class="remaining">${{ formatCurrency(getRemaining()) }} left</span>
+          <span class="remaining">₫{{ formatCurrency(getRemaining()) }} left</span>
         </div>
       </div>
     </section>
@@ -50,7 +50,7 @@
       </ion-button>
       <ion-button expand="block" fill="outline" class="edit-jar-btn" (click)="openEditJar()">
         <ion-icon name="pencil" slot="start"></ion-icon>
-        Edit Jar
+        Edit Budget
       </ion-button>
     </section>
 
@@ -78,7 +78,7 @@
               class="sign"
               >+</span
             >
-            ${{ formatCurrency(transaction.amount) }}
+            ₫{{ formatCurrency(transaction.amount) }}
           </div>
         </article>
       </div>
@@ -95,7 +95,7 @@
         <div class="insights-grid">
           <div class="insight-item">
             <div class="insight-label">AVG. DAILY SPEND</div>
-            <div class="insight-value">${{ formatCurrency(jar?.avgDailySpend || 0) }}</div>
+            <div class="insight-value">₫{{ formatCurrency(jar?.avgDailySpend || 0) }}</div>
           </div>
           <div class="insight-item">
             <div class="insight-label">CYCLE REMAINING</div>
@@ -130,12 +130,13 @@
         <div class="amount-block">
           <div class="amount-label">AMOUNT</div>
           <div class="amount-input-row">
-            <div class="currency">$</div>
+            <div class="currency">₫</div>
             <ion-input
-              type="number"
-              inputmode="decimal"
-              placeholder="0.00"
+              type="text"
+              inputmode="numeric"
+              placeholder="0"
               [(ngModel)]="addAmount"
+              (ionInput)="onAddAmountInput($event)"
               name="addAmount"
             ></ion-input>
           </div>
@@ -143,7 +144,7 @@
 
         <div class="form-actions">
           <ion-button fill="clear" (click)="closeAddMoney()" expand="block">Cancel</ion-button>
-          <ion-button type="submit" expand="block" [disabled]="!addAmount || parseFloat(addAmount) <= 0">
+          <ion-button type="submit" expand="block" [disabled]="!canSubmitAddMoney">
             Add Money
           </ion-button>
         </div>
@@ -152,7 +153,7 @@
   </ng-template>
 </ion-modal>
 
-<!-- Edit Jar Modal -->
+<!-- Edit Budget Modal -->
 <ion-modal [isOpen]="isEditJarOpen" (didDismiss)="closeEditJar()" class="transaction-modal">
   <ng-template>
     <ion-header class="transaction-header">
@@ -162,17 +163,17 @@
             <ion-icon name="close"></ion-icon>
           </ion-button>
         </ion-buttons>
-        <ion-title>Edit Jar</ion-title>
+        <ion-title>Edit Budget</ion-title>
       </ion-toolbar>
     </ion-header>
 
     <ion-content class="transaction-page">
       <form (ngSubmit)="submitEditJar()">
         <div class="form-group">
-          <label>Jar Name</label>
+          <label>Budget Name</label>
           <ion-input
             type="text"
-            placeholder="Enter jar name"
+            placeholder="Enter budget name"
             [(ngModel)]="editName"
             name="editName"
           ></ion-input>
@@ -190,7 +191,7 @@
 
         <div class="form-actions">
           <ion-button fill="clear" (click)="closeEditJar()" expand="block">Cancel</ion-button>
-          <ion-button type="submit" expand="block" [disabled]="!editName">Update Jar</ion-button>
+          <ion-button type="submit" expand="block" [disabled]="!editName">Update Budget</ion-button>
         </div>
       </form>
     </ion-content>

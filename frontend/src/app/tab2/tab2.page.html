@@ -61,30 +61,30 @@
       </ion-card-content>
     </ion-card>
 
-    <!-- Jar breakdown section -->
+    <!-- Budget breakdown section -->
     <div class="jar-breakdown">
       <div class="section-header">
-        <h3>Jar Breakdown</h3>
-        <a href="#view-all" class="view-all">VIEW ALL</a>
+        <h3>Budget Breakdown</h3>
+        <a href="#view-all" class="view-all" (click)="openReportsModal(); $event.preventDefault()">VIEW ALL</a>
       </div>
 
-      <ion-card *ngFor="let jar of spendingData?.expenses_by_jar">
+      <ion-card *ngFor="let jar of spendingData?.expenses_by_budget">
         <ion-card-content class="jar-item">
           <div class="jar-info">
-            <div class="color-dot" [style.backgroundColor]="jar.jar_color"></div>
+            <div class="color-dot" [style.backgroundColor]="jar.budget_color"></div>
             <div class="jar-details">
-              <h4>{{ jar.jar_name }}</h4>
+              <h4>{{ jar.budget_name }}</h4>
               <p class="jar-description">
                 <!-- Categories example - can be customized -->
-                {{ jar.jar_name === 'Essential Jars' ? 'Rent, Utilities, Food' :
-                   jar.jar_name === 'Wants Jar' ? 'Entertainment, Dining' :
-                   jar.jar_name === 'Education Jar' ? 'Books, Courses' : 'Miscellaneous' }}
+                {{ jar.budget_name === 'Essential Budget' ? 'Rent, Utilities, Food' :
+                   jar.budget_name === 'Wants Budget' ? 'Entertainment, Dining' :
+                   jar.budget_name === 'Education Budget' ? 'Books, Courses' : 'Miscellaneous' }}
               </p>
             </div>
           </div>
           <div class="jar-right">
             <div class="amount">{{ formatCurrency(jar.amount) }}</div>
-            <div class="percentage" [style.color]="jar.jar_color">{{ jar.percentage }}%</div>
+            <div class="percentage" [style.color]="jar.budget_color">{{ jar.percentage }}%</div>
           </div>
         </ion-card-content>
       </ion-card>
@@ -172,3 +172,27 @@
     </ion-card>
   </div>
 </ion-content>
+
+<ion-modal [isOpen]="isReportsModalOpen" (didDismiss)="closeReportsModal()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>Monthly Reports</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closeReportsModal()">Close</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content>
+      <ion-list lines="full">
+        <ion-item *ngFor="let report of monthlyReports">
+          <ion-label>
+            <h3>{{ formatMonth(report.month) }}</h3>
+            <p>Income: {{ formatCurrency(+report.total_income) }}</p>
+            <p>Expenses: {{ formatCurrency(+report.total_expenses) }}</p>
+          </ion-label>
+        </ion-item>
+      </ion-list>
+    </ion-content>
+  </ng-template>
+</ion-modal>

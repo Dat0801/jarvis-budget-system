@@ -15,7 +15,14 @@ export class Tab3Page implements OnInit {
   userEmail: string = 'minh@jarvis.finance';
   darkMode: boolean = false;
   selectedLanguage: string = 'English';
-  selectedCurrency: string = 'USD ($)';
+  selectedCurrency: string = 'VND (₫)';
+  isEditProfileOpen = false;
+  isChangePasswordOpen = false;
+  editName = '';
+  editEmail = '';
+  currentPassword = '';
+  newPassword = '';
+  confirmPassword = '';
 
   constructor(
     private router: Router,
@@ -35,10 +42,14 @@ export class Tab3Page implements OnInit {
       next: (user) => {
         this.userName = user.name;
         this.userEmail = user.email;
+        this.editName = user.name;
+        this.editEmail = user.email;
       },
       error: () => {
         this.userName = 'User';
         this.userEmail = 'unknown@jarvis.finance';
+        this.editName = this.userName;
+        this.editEmail = this.userEmail;
       }
     });
   }
@@ -51,17 +62,85 @@ export class Tab3Page implements OnInit {
 
     this.darkMode = savedDarkMode ? JSON.parse(savedDarkMode) : false;
     this.selectedLanguage = savedLanguage || 'English';
-    this.selectedCurrency = savedCurrency || 'USD ($)';
+    this.selectedCurrency = savedCurrency || 'VND (₫)';
+    this.applyDarkMode(this.darkMode);
   }
 
   toggleDarkMode() {
     localStorage.setItem('darkMode', JSON.stringify(this.darkMode));
-    // Apply dark mode to app
-    if (this.darkMode) {
+    this.applyDarkMode(this.darkMode);
+  }
+
+  private applyDarkMode(enabled: boolean) {
+    if (enabled) {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
+  }
+
+  openEditProfile() {
+    this.editName = this.userName;
+    this.editEmail = this.userEmail;
+    this.isEditProfileOpen = true;
+  }
+
+  closeEditProfile() {
+    this.isEditProfileOpen = false;
+  }
+
+  submitEditProfile() {
+    const name = this.editName.trim();
+    const email = this.editEmail.trim();
+    if (!name || !email) {
+      this.showToast('Please enter name and email');
+      return;
+    }
+
+    this.accountService.updateProfile({ name, email }).subscribe({
+      next: (profile) => {
+        this.userName = profile.name;
+        this.userEmail = profile.email;
+        this.closeEditProfile();
+        this.showToast('Profile updated successfully');
+      },
+      error: () => this.showToast('Failed to update profile'),
+    });
+  }
+
+  openChangePassword() {
+    this.currentPassword = '';
+    this.newPassword = '';
+    this.confirmPassword = '';
+    this.isChangePasswordOpen = true;
+  }
+
+  closeChangePassword() {
+    this.isChangePasswordOpen = false;
+  }
+
+  submitChangePassword() {
+    if (!this.currentPassword || !this.newPassword || !this.confirmPassword) {
+      this.showToast('Please fill in all password fields');
+      return;
+    }
+
+    if (this.newPassword !== this.confirmPassword) {
+      this.showToast('Password confirmation does not match');
+      return;
+    }
+
+    this.accountService.updatePassword({
+      current_password: this.currentPassword,
+      password: this.newPassword,
+      password_confirmation: this.confirmPassword,
+    }).subscribe({
+      next: () => {
+        this.closeChangePassword();
+        this.showToast('Password updated successfully');
+      },
+      error: () => this.showToast('Failed to update password'),
+    });
   }
 
   async changeLanguage() {
@@ -168,8 +247,8 @@ export class Tab3Page implements OnInit {
 
   async resetJarsData() {
     const alert = await this.alertController.create({
-      header: 'Reset Jars Data',
-      message: 'Are you sure you want to reset all your jars data? This action cannot be undone.',
+      header: 'Reset Budgets Data',
+      message: 'Are you sure you want to reset all your budgets data? This action cannot be undone.',
       buttons: [
         {
           text: 'Cancel',
@@ -180,8 +259,8 @@ export class Tab3Page implements OnInit {
           role: 'destructive',
           handler: () => {
             this.accountService.resetData().subscribe({
-              next: () => this.showToast('Jars data reset successfully'),
-              error: () => this.showToast('Failed to reset jars data'),
+              next: () => this.showToast('Budgets data reset successfully'),
+              error: () => this.showToast('Failed to reset budgets data'),
             });
           }
         }
@@ -190,8 +269,22 @@ export class Tab3Page implements OnInit {
     await alert.present();
   }
 
-  openUnavailableFeature(name: string) {
-    this.showToast(`${name} will be available soon`);
+  async openHelpCenter() {
+    const alert = await this.alertController.create({
+      header: 'Help Center',
+      message: 'For support, email support@jarvis.finance. Include your account email and issue details for faster assistance.',
+      buttons: ['OK'],
+    });
+    await alert.present();
+  }
+
+  async openAbout() {
+    const alert = await this.alertController.create({
+      header: 'About Jarvis',
+      message: 'Jarvis Budget System helps you manage budgets, track income/expense, and review monthly analytics.',
+      buttons: ['OK'],
+    });
+    await alert.present();
   }
 
   async logout() {

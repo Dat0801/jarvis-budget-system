@@ -12,6 +12,7 @@ export class Tab2Page implements OnInit {
   incomeVsExpensesData: IncomeVsExpenses | null = null;
   summary: Summary | null = null;
   monthlyReports: MonthlyReport[] = [];
+  isReportsModalOpen = false;
   
   selectedMonth: string = '';
   isLoading = true;
@@ -86,11 +87,11 @@ export class Tab2Page implements OnInit {
 
   getJarChartData() {
     if (!this.spendingData) return [];
-    return this.spendingData.expenses_by_jar.map(jar => ({
-      name: jar.jar_name,
+    return this.spendingData.expenses_by_budget.map(jar => ({
+      name: jar.budget_name,
       value: jar.amount,
       percentage: jar.percentage,
-      color: jar.jar_color
+      color: jar.budget_color
     }));
   }
 
@@ -98,15 +99,15 @@ export class Tab2Page implements OnInit {
     if (!this.spendingData) return 0;
     let offset = 0;
     for (let i = 0; i < index; i++) {
-      offset += (this.spendingData.expenses_by_jar[i].percentage * 2.51);
+      offset += (this.spendingData.expenses_by_budget[i].percentage * 2.51);
     }
     return -offset;
   }
 
   formatCurrency(value: number): string {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
-      currency: 'USD'
+      currency: 'VND'
     }).format(value);
   }
 
@@ -116,5 +117,13 @@ export class Tab2Page implements OnInit {
       return value;
     }
     return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  }
+
+  openReportsModal(): void {
+    this.isReportsModalOpen = true;
+  }
+
+  closeReportsModal(): void {
+    this.isReportsModalOpen = false;
   }
 }

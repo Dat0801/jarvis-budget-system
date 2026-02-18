@@ -3,22 +3,10 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
-import { Jar, JarService } from '../../../services/jar.service';
+import { Budget, BudgetService, Transaction } from '../../../services/budget.service';
+import { formatVndAmountInput, parseVndAmount } from '../../../utils/vnd-amount.util';
 
-export interface Transaction {
-  id: number;
-  jar_id: number;
-  amount: string;
-  type: 'income' | 'expense';
-  category?: string;
-  source?: string;
-  note?: string;
-  created_at: string;
-  spent_at?: string;
-  received_at?: string;
-}
-
-export interface JarDetail extends Jar {
+export interface JarDetail extends Budget {
   target?: number;
   transactions?: Transaction[];
   avgDailySpend?: number;
@@ -44,7 +32,7 @@ export class JarDetailPage implements OnInit {
   parseFloat = parseFloat;
 
   constructor(
-    private jarService: JarService,
+    private budgetService: BudgetService,
     private route: ActivatedRoute,
     private router: Router
   ) {}
@@ -58,7 +46,7 @@ export class JarDetailPage implements OnInit {
 
   loadJarDetail(): void {
     if (!this.jarId) return;
-    this.jarService.detail(this.jarId).subscribe((jar: JarDetail) => {
+    this.budgetService.detail(this.jarId).subscribe((jar: JarDetail) => {
       this.jar = jar;
       this.editName = jar.name;
       this.editDescription = jar.description || '';
@@ -68,7 +56,8 @@ export class JarDetailPage implements OnInit {
 
   loadTransactions(): void {
     if (!this.jarId) return;
-    this.jarService.getTransactions(this.jarId).subscribe((transactions: Transaction[]) => {
+    this.budgetService.getTransactions(this.jarId).subscribe((response) => {
+      const transactions = response.data || [];
       this.transactions = transactions.sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
@@ -134,13 +123,22 @@ export class JarDetailPage implements OnInit {
 
   submitAddMoney(): void {
     if (!this.jarId || !this.addAmount) return;
-    const amount = parseFloat(this.addAmount);
-    if (amount > 0) {
-      this.jarService.addMoney(this.jarId, amount).subscribe(() => {
+    const amount = parseVndAmount(this.addAmount);
+    if (amount && amount > 0) {
+      this.budgetService.addMoney(this.jarId, amount).subscribe(() => {
         this.closeAddMoney();
         this.loadJarDetail();
       });
     }
+  }
+
+  onAddAmountInput(event: CustomEvent): void {
+    this.addAmount = formatVndAmountInput(event.detail?.value);
+  }
+
+  get canSubmitAddMoney(): boolean {
+    const amount = parseVndAmount(this.addAmount);
+    return amount !== null && amount > 0;
   }
 
   openEditJar(): void {
@@ -153,7 +151,7 @@ export class JarDetailPage implements OnInit {
 
   submitEditJar(): void {
     if (!this.jarId || !this.editName) return;
-    this.jarService.update(this.jarId, {
+    this.budgetService.update(this.jarId, {
       name: this.editName,
       description: this.editDescription || null,
     }).subscribe(() => {
@@ -163,10 +161,10 @@ export class JarDetailPage implements OnInit {
   }
 
   goBack(): void {
-    this.router.navigate(['/tabs/jars']);
+    this.router.navigate(['/tabs/budgets']);
   }
 
   seeAllTransactions(): void {
-    this.router.navigate(['/tabs/jars', this.jarId, 'activity']);
+    this.router.navigate(['/tabs/budgets', this.jarId, 'activity']);
   }
 }

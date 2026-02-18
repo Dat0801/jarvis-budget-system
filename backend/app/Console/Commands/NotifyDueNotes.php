@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Note;
+use App\Notifications\DueNoteReminderNotification;
 use Illuminate\Console\Command;
 
 class NotifyDueNotes extends Command
@@ -29,12 +30,18 @@ class NotifyDueNotes extends Command
         $today = now()->startOfDay();
 
         $notes = Note::query()
+            ->with('user')
             ->whereDate('reminder_date', '<=', $today)
             ->where('is_notified', false)
             ->get();
 
+        /** @var Note $note */
         foreach ($notes as $note) {
-            // TODO: dispatch notification (push/email) here.
+            $user = $note->user;
+
+            if ($user && !empty($user->email)) {
+                $user->notify(new DueNoteReminderNotification($note));
+            }
             $note->update(['is_notified' => true]);
         }
 

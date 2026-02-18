@@ -20,6 +20,20 @@ ion-tab-button ion-icon {
 	font-size: 20px;
 }
 
+ion-tab-button.add-tab {
+	--color: var(--ion-color-primary);
+	--color-selected: var(--ion-color-primary);
+}
+
+ion-tab-button.add-tab ion-icon {
+	font-size: 34px;
+	background: var(--ion-color-primary);
+	color: var(--ion-color-primary-contrast);
+	border-radius: 50%;
+	padding: 8px;
+	margin-top: -18px;
+}
+
 
 
 ion-tab-bar::after {

@@ -2,10 +2,10 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
 
-export interface JarExpense {
-  jar_id: string;
-  jar_name: string;
-  jar_color: string;
+export interface BudgetExpense {
+  budget_id: string;
+  budget_name: string;
+  budget_color: string;
   amount: number;
   percentage: number;
 }
@@ -13,7 +13,7 @@ export interface JarExpense {
 export interface SpendingAnalytics {
   month: string;
   total_spent: number;
-  expenses_by_jar: JarExpense[];
+  expenses_by_budget: BudgetExpense[];
 }
 
 export interface IncomeVsExpenses {

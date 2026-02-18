@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { IonicModule } from '@ionic/angular';
-import { JarService, Jar } from '../../services/jar.service';
+import { BudgetService, Budget } from '../../services/budget.service';
 import { StatsService } from '../../services/stats.service';
 import { ExpenseService } from '../../services/expense.service';
 import { IncomeService } from '../../services/income.service';
@@ -23,30 +23,36 @@ interface Transaction {
   styleUrls: ['./dashboard.page.scss'],
 })
 export class DashboardPage implements OnInit {
-  jars: Jar[] = [];
+  jars: Budget[] = [];
   totalBalance = 0;
   userName = 'User';
   timeOfDay = 'evening';
   incomeTotal = 0;
   expenseTotal = 0;
+  selectedCurrencyCode = 'VND';
   recentTransactions: Transaction[] = [];
 
   constructor(
-    private jarService: JarService,
+    private budgetService: BudgetService,
     private statsService: StatsService,
     private expenseService: ExpenseService,
     private incomeService: IncomeService
   ) {}
 
   ngOnInit(): void {
+    this.loadCurrencyPreference();
     this.updateTimeOfDay();
     this.loadSummary();
     this.loadStats();
     this.loadRecentTransactions();
   }
 
+  ionViewWillEnter(): void {
+    this.loadCurrencyPreference();
+  }
+
   loadSummary(): void {
-    this.jarService.list().subscribe((jars) => {
+    this.budgetService.list().subscribe((jars) => {
       this.jars = jars;
       this.totalBalance = jars.reduce((sum, jar) => sum + Number(jar.balance), 0);
     });
@@ -99,12 +105,24 @@ export class DashboardPage implements OnInit {
     this.timeOfDay = 'evening';
   }
 
-  getJarProgress(jar: Jar): number {
+  getJarProgress(jar: Budget): number {
     const balance = Number(jar.balance);
     if (!this.totalBalance || Number.isNaN(balance)) {
       return 0;
     }
     return Math.min(100, Math.max(0, (balance / this.totalBalance) * 100));
+  }
+
+  private loadCurrencyPreference(): void {
+    const savedCurrency = localStorage.getItem('currency');
+
+    if (!savedCurrency) {
+      this.selectedCurrencyCode = 'VND';
+      return;
+    }
+
+    const [currencyCode] = savedCurrency.split(' ');
+    this.selectedCurrencyCode = currencyCode || 'VND';
   }
 
   private formatDate(date: string | null | undefined): string {

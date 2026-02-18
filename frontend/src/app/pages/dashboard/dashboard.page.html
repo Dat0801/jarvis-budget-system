@@ -28,7 +28,7 @@
 
     <div class="balance-card">
       <div class="balance-label">Total Balance</div>
-      <div class="balance-value">{{ totalBalance | currency:'USD':'symbol':'1.2-2' }}</div>
+      <div class="balance-value">{{ totalBalance | currency:selectedCurrencyCode:'symbol':'1.2-2' }}</div>
       <div class="balance-divider"></div>
       <div class="balance-foot">
         <div class="trend">
@@ -48,7 +48,7 @@
         </div>
         <div>
           <div class="summary-label">Income</div>
-          <div class="summary-value">{{ incomeTotal | currency:'USD':'symbol':'1.2-2' }}</div>
+          <div class="summary-value">{{ incomeTotal | currency:selectedCurrencyCode:'symbol':'1.2-2' }}</div>
         </div>
       </div>
 
@@ -58,13 +58,13 @@
         </div>
         <div>
           <div class="summary-label">Expenses</div>
-          <div class="summary-value">{{ expenseTotal | currency:'USD':'symbol':'1.2-2' }}</div>
+          <div class="summary-value">{{ expenseTotal | currency:selectedCurrencyCode:'symbol':'1.2-2' }}</div>
         </div>
       </div>
     </div>
 
     <div class="section-header">
-      <div class="section-title">My Jars</div>
+      <div class="section-title">My Budgets</div>
       <button class="text-btn" type="button">See All</button>
     </div>
 
@@ -74,7 +74,7 @@
           <ion-icon [name]="i % 2 === 0 ? 'cart' : 'home'"></ion-icon>
         </div>
         <div class="jar-name">{{ jar.name }}</div>
-        <div class="jar-amount">{{ jar.balance | currency:'USD':'symbol':'1.0-0' }}</div>
+        <div class="jar-amount">{{ jar.balance | currency:selectedCurrencyCode:'symbol':'1.0-0' }}</div>
         <div class="jar-progress">
           <span [style.width.%]="getJarProgress(jar)"></span>
         </div>
@@ -92,7 +92,7 @@
           <div class="tx-time">{{ tx.time }}</div>
         </div>
         <div class="tx-amount" [class.credit]="tx.type === 'credit'" [class.debit]="tx.type === 'debit'">
-          {{ tx.amount | currency:'USD':'symbol':'1.2-2' }}
+          {{ tx.amount | currency:selectedCurrencyCode:'symbol':'1.2-2' }}
         </div>
       </div>
     </div>

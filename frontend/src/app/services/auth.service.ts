@@ -1,7 +1,9 @@
 import { Injectable } from '@angular/core';
 import { JwtHelperService } from '@auth0/angular-jwt';
 import { Storage } from '@ionic/storage-angular';
-import { tap } from 'rxjs/operators';
+import { firstValueFrom } from 'rxjs';
+import { from } from 'rxjs';
+import { map, switchMap } from 'rxjs/operators';
 import { ApiService } from './api.service';
 
 interface AuthResponse {
@@ -29,19 +31,23 @@ export class AuthService {
 
   login(payload: { email: string; password: string }) {
     return this.api.post<AuthResponse>('auth/login', payload).pipe(
-      tap((response) => this.setToken(response.access_token))
+      switchMap((response) =>
+        from(this.setToken(response.access_token)).pipe(map(() => response))
+      )
     );
   }
 
   register(payload: { name: string; email: string; password: string; password_confirmation: string }) {
     return this.api.post<AuthResponse>('auth/register', payload).pipe(
-      tap((response) => this.setToken(response.access_token))
+      switchMap((response) =>
+        from(this.setToken(response.access_token)).pipe(map(() => response))
+      )
     );
   }
 
   logout() {
     return this.api.post<{ message: string }>('auth/logout', {}).pipe(
-      tap(() => this.clearToken())
+      switchMap((response) => from(this.clearToken()).pipe(map(() => response)))
     );
   }
 
@@ -51,12 +57,19 @@ export class AuthService {
 
   async setToken(token: string): Promise<void> {
     await this.storageReady;
-    await this.storage.set(this.tokenKey, token);
+    const normalizedToken = this.normalizeToken(token);
+    if (!normalizedToken) {
+      await this.storage.remove(this.tokenKey);
+      return;
+    }
+
+    await this.storage.set(this.tokenKey, normalizedToken);
   }
 
   async getToken(): Promise<string | null> {
     await this.storageReady;
-    return this.storage.get(this.tokenKey);
+    const storedToken = await this.storage.get(this.tokenKey);
+    return this.normalizeToken(storedToken);
   }
 
   async clearToken(): Promise<void> {
@@ -70,6 +83,58 @@ export class AuthService {
       return false;
     }
 
-    return !this.jwtHelper.isTokenExpired(token);
+    try {
+      return !this.jwtHelper.isTokenExpired(token);
+    } catch {
+      await this.clearToken();
+      return false;
+    }
+  }
+
+  async hasValidSession(): Promise<boolean> {
+    const isTokenValid = await this.isLoggedIn();
+    if (!isTokenValid) {
+      return false;
+    }
+
+    try {
+      await firstValueFrom(this.me());
+      return true;
+    } catch {
+      await this.clearToken();
+      return false;
+    }
+  }
+
+  private normalizeToken(rawToken: unknown): string | null {
+    if (!rawToken) {
+      return null;
+    }
+
+    if (typeof rawToken === 'string') {
+      const token = rawToken.trim().replace(/^Bearer\s+/i, '');
+      if (!token) {
+        return null;
+      }
+
+      if ((token.startsWith('{') && token.endsWith('}')) || (token.startsWith('"') && token.endsWith('"'))) {
+        try {
+          const parsed = JSON.parse(token);
+          return this.normalizeToken(parsed);
+        } catch {
+          return token;
+        }
+      }
+
+      return token;
+    }
+
+    if (typeof rawToken === 'object') {
+      const tokenRecord = rawToken as Record<string, unknown>;
+      const nested = tokenRecord['access_token'] ?? tokenRecord['token'] ?? tokenRecord['value'];
+      return this.normalizeToken(nested);
+    }
+
+    return null;
   }
 }

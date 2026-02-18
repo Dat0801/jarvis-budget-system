@@ -7,6 +7,7 @@ use App\Models\Expense;
 use App\Models\Jar;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class ExpenseController extends Controller
 {
@@ -43,7 +44,7 @@ class ExpenseController extends Controller
             ->firstOrFail();
 
         if ($data['amount'] > $jar->balance) {
-            return response()->json(['message' => 'Expense exceeds jar balance'], 422);
+            return response()->json(['message' => 'Expense exceeds budget balance'], 422);
         }
 
         $expense = DB::transaction(function () use ($request, $data, $jar) {
@@ -71,14 +72,58 @@ class ExpenseController extends Controller
         $this->authorize($request, $expense);
 
         $data = $request->validate([
+            'jar_id' => 'sometimes|required|integer|exists:jars,id',
+            'amount' => 'sometimes|required|numeric|min:0.01',
             'category' => 'sometimes|nullable|string|max:255',
             'note' => 'sometimes|nullable|string',
             'spent_at' => 'sometimes|nullable|date',
         ]);
 
-        $expense->update($data);
+        $updatedExpense = DB::transaction(function () use ($request, $expense, $data) {
+            $newJarId = (int) ($data['jar_id'] ?? $expense->jar_id);
+            $newAmount = (float) ($data['amount'] ?? $expense->amount);
 
-        return response()->json($expense);
+            $newJar = Jar::query()
+                ->where('id', $newJarId)
+                ->where('user_id', $request->user()->id)
+                ->firstOrFail();
+
+            $oldJar = Jar::query()->lockForUpdate()->findOrFail($expense->jar_id);
+            $newJar = Jar::query()->lockForUpdate()->findOrFail($newJarId);
+
+            if ($oldJar->id === $newJar->id) {
+                $available = $oldJar->balance + $expense->amount;
+                if ($newAmount > $available) {
+                    throw ValidationException::withMessages([
+                        'amount' => ['Expense exceeds budget balance'],
+                    ]);
+                }
+
+                $oldJar->update([
+                    'balance' => $available - $newAmount,
+                ]);
+            } else {
+                if ($newAmount > $newJar->balance) {
+                    throw ValidationException::withMessages([
+                        'amount' => ['Expense exceeds budget balance'],
+                    ]);
+                }
+
+                $oldJar->update([
+                    'balance' => $oldJar->balance + $expense->amount,
+                ]);
+
+                $newJar->update([
+                    'balance' => $newJar->balance - $newAmount,
+                ]);
+            }
+
+            $expense->update($data);
+
+            return $expense->fresh();
+        });
+
+        return response()->json($updatedExpense);
     }
 
     public function destroy(Request $request, Expense $expense)

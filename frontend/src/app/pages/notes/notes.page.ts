@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 import { Note, NoteService } from '../../services/note.service';
@@ -12,7 +12,7 @@ import { FabService } from '../../services/fab.service';
   templateUrl: './notes.page.html',
   styleUrls: ['./notes.page.scss'],
 })
-export class NotesPage implements OnInit, OnDestroy {
+export class NotesPage implements OnInit {
   notes: Note[] = [];
   allNotes: Note[] = [];
   selectedTab: 'all' | 'reminders' | 'archived' = 'all';
@@ -27,10 +27,13 @@ export class NotesPage implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadNotes();
+  }
+
+  ionViewWillEnter(): void {
     this.fabService.showFab(() => this.openNewNoteModal(), 'add');
   }
 
-  ngOnDestroy(): void {
+  ionViewDidLeave(): void {
     this.fabService.hideFab();
   }
 

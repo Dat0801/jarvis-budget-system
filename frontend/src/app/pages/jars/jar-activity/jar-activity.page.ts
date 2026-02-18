@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { IonicModule } from '@ionic/angular';
-import { Jar, JarService, Transaction } from '../../../services/jar.service';
+import { Budget, BudgetService, Transaction } from '../../../services/budget.service';
 
 @Component({
   selector: 'app-jar-activity',
@@ -12,12 +12,12 @@ import { Jar, JarService, Transaction } from '../../../services/jar.service';
   styleUrls: ['./jar-activity.page.scss'],
 })
 export class JarActivityPage implements OnInit {
-  jar: Jar | null = null;
+  jar: Budget | null = null;
   transactions: Transaction[] = [];
   jarId: number | null = null;
 
   constructor(
-    private jarService: JarService,
+    private budgetService: BudgetService,
     private route: ActivatedRoute,
     private router: Router
   ) {}
@@ -32,14 +32,15 @@ export class JarActivityPage implements OnInit {
 
   loadJarDetail(): void {
     if (!this.jarId) return;
-    this.jarService.detail(this.jarId).subscribe((jar: Jar) => {
+    this.budgetService.detail(this.jarId).subscribe((jar: Budget) => {
       this.jar = jar;
     });
   }
 
   loadTransactions(): void {
     if (!this.jarId) return;
-    this.jarService.getTransactions(this.jarId).subscribe((transactions: Transaction[]) => {
+    this.budgetService.getTransactions(this.jarId).subscribe((response) => {
+      const transactions = response.data || [];
       this.transactions = transactions.sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
@@ -81,6 +82,6 @@ export class JarActivityPage implements OnInit {
   }
 
   goBack(): void {
-    this.router.navigate(['/tabs/jars', this.jarId]);
+    this.router.navigate(['/tabs/budgets', this.jarId]);
   }
 }

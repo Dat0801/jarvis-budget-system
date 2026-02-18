@@ -1,6 +1,6 @@
 <ion-header class="jars-header" translucent="true">
   <ion-toolbar>
-    <ion-title>My Jars</ion-title>
+    <ion-title>My Budgets</ion-title>
     <ion-buttons slot="end">
       <ion-button fill="clear" class="icon-button">
         <ion-icon name="search-outline"></ion-icon>
@@ -17,7 +17,7 @@
     <section class="total-card">
       <div class="total-label">TOTAL SAVED</div>
       <div class="total-amount">
-        <span class="currency">$</span>
+        <span class="currency">₫</span>
         <span class="value">{{ totalSavedMain }}</span>
         <span class="cents">.{{ totalSavedCents }}</span>
       </div>
@@ -27,7 +27,7 @@
       </div>
     </section>
 
-    <div class="section-title">ACTIVE JARS</div>
+    <div class="section-title">ACTIVE BUDGETS</div>
 
     <section class="jars-list">
       <article class="jar-card" *ngFor="let jar of jars" (click)="navigateToJar(jar.id)">
@@ -46,8 +46,8 @@
           </div>
           <div class="jar-amount-row">
             <div class="jar-amount">
-              ${{ formatCurrency(jar.balance) }}
-              <span class="jar-target">/ ${{ formatCurrency(getJarTarget(jar)) }}</span>
+              {{ formatCurrency(jar.balance) }}
+              <span class="jar-target">/ {{ formatCurrency(getJarTarget(jar)) }}</span>
             </div>
             <div class="jar-percent">{{ getJarProgress(jar) }}%</div>
           </div>
@@ -76,7 +76,7 @@
             <ion-icon name="close"></ion-icon>
           </ion-button>
         </ion-buttons>
-        <ion-title>Add Jar</ion-title>
+        <ion-title>Add Budget</ion-title>
       </ion-toolbar>
     </ion-header>
 
@@ -85,22 +85,23 @@
         <div class="amount-block">
           <div class="amount-label">TARGET</div>
           <div class="amount-input-row">
-            <div class="currency">$</div>
+            <div class="currency">₫</div>
             <ion-input
-              type="number"
-              inputmode="decimal"
-              placeholder="0.00"
+              type="text"
+              inputmode="numeric"
+              placeholder="0"
               [(ngModel)]="jarTarget"
+              (ionInput)="onJarTargetInput($event)"
               name="jarTarget"
             ></ion-input>
           </div>
         </div>
 
         <ion-card class="section-card">
-          <div class="section-title">Jar Details</div>
+          <div class="section-title">Budget Details</div>
 
           <div class="field">
-            <div class="field-label">JAR NAME</div>
+            <div class="field-label">BUDGET NAME</div>
             <ion-item lines="none" class="text-item">
               <ion-input
                 placeholder="e.g. Groceries"
@@ -116,7 +117,7 @@
             <ion-item lines="none" class="notes-item">
               <ion-textarea
                 auto-grow="true"
-                placeholder="What is this jar for?"
+                placeholder="What is this budget for?"
                 [(ngModel)]="jarDescription"
                 name="jarDescription"
               ></ion-textarea>
@@ -137,7 +138,7 @@
           type="submit"
           [disabled]="!canSaveJar"
         >
-          Save Jar
+          Save Budget
         </ion-button>
       </form>
     </ion-content>

@@ -7,7 +7,7 @@ export class AuthGuard implements CanActivate {
   constructor(private authService: AuthService, private router: Router) {}
 
   async canActivate(): Promise<boolean> {
-    const isLoggedIn = await this.authService.isLoggedIn();
+    const isLoggedIn = await this.authService.hasValidSession();
 
     if (!isLoggedIn) {
       await this.router.navigate(['/auth/login']);

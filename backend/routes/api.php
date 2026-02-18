@@ -17,13 +17,13 @@ Route::prefix('auth')->group(function () {
 });
 
 Route::middleware('auth:api')->group(function () {
-    Route::get('/jars', [JarController::class, 'index']);
-    Route::get('/jars/{jar}', [JarController::class, 'show']);
-    Route::post('/jars', [JarController::class, 'store']);
-    Route::get('/jars/{jar}/transactions', [JarController::class, 'getTransactions']);
-    Route::post('/jars/{jar}/add-money', [JarController::class, 'addMoney']);
-    Route::patch('/jars/{jar}', [JarController::class, 'update']);
-    Route::delete('/jars/{jar}', [JarController::class, 'destroy']);
+    Route::get('/budgets', [JarController::class, 'index']);
+    Route::get('/budgets/{jar}', [JarController::class, 'show']);
+    Route::post('/budgets', [JarController::class, 'store']);
+    Route::get('/budgets/{jar}/transactions', [JarController::class, 'getTransactions']);
+    Route::post('/budgets/{jar}/add-money', [JarController::class, 'addMoney']);
+    Route::patch('/budgets/{jar}', [JarController::class, 'update']);
+    Route::delete('/budgets/{jar}', [JarController::class, 'destroy']);
 
     Route::get('/incomes', [IncomeController::class, 'index']);
     Route::post('/incomes', [IncomeController::class, 'store']);
@@ -47,5 +47,7 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/stats/summary', [StatsController::class, 'getSummary']);
     Route::get('/reports/monthly', [StatsController::class, 'getMonthlyReports']);
 
+    Route::patch('/account/profile', [AccountController::class, 'updateProfile']);
+    Route::patch('/account/password', [AccountController::class, 'updatePassword']);
     Route::post('/account/reset-data', [AccountController::class, 'resetData']);
 });
