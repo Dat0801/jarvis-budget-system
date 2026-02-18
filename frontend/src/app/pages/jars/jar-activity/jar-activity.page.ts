@@ -78,7 +78,12 @@ export class JarActivityPage implements OnInit {
   }
 
   formatCurrency(value: string | number): string {
-    return parseFloat(value.toString()).toFixed(2);
+    const normalized = value.toString().replace(/[^0-9.-]+/g, '');
+    const amount = Number.parseFloat(normalized);
+    return new Intl.NumberFormat('vi-VN', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(Number.isFinite(amount) ? amount : 0);
   }
 
   goBack(): void {

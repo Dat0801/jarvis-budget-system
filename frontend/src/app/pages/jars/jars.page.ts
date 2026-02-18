@@ -4,8 +4,19 @@ import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 import { Router } from '@angular/router';
 import { Budget, BudgetService } from '../../services/budget.service';
+import { CategoryService, CategoryTreeNode } from '../../services/category.service';
 import { FabService } from '../../services/fab.service';
 import { formatVndAmountInput, parseVndAmount } from '../../utils/vnd-amount.util';
+
+type BudgetPeriod = 'week' | 'month' | 'quarter' | 'year';
+
+interface BudgetCategoryOption {
+  value: string;
+  label: string;
+  treeLabel: string;
+  categoryName: string;
+  subCategoryName?: string;
+}
 
 @Component({
   selector: 'app-jars',
@@ -20,9 +31,13 @@ export class JarsPage implements OnInit {
   totalSavedMain = '0';
   totalSavedCents = '00';
   isCreateJarOpen = false;
-  jarName = '';
-  jarTarget = '';
-  jarDescription = '';
+  selectedBudgetCategoryValue = '';
+  budgetAmount = '';
+  budgetPeriod: BudgetPeriod = 'month';
+  repeatThisBudget = false;
+  budgetCategories: CategoryTreeNode[] = [];
+  readonly categorySelectInterfaceOptions = { cssClass: 'category-tree-sheet' };
+  readonly budgetPeriodOptions: BudgetPeriod[] = ['week', 'month', 'quarter', 'year'];
   private readonly targetOverrides = [
     { match: 'emergency', target: 10000 },
     { match: 'car', target: 45000 },
@@ -30,9 +45,15 @@ export class JarsPage implements OnInit {
   ];
   private readonly targetPattern = /\[target=(\d+(?:\.\d+)?)\]/;
 
-  constructor(private budgetService: BudgetService, private fabService: FabService, private router: Router) {}
+  constructor(
+    private budgetService: BudgetService,
+    private categoryService: CategoryService,
+    private fabService: FabService,
+    private router: Router
+  ) {}
 
   ngOnInit(): void {
+    this.loadBudgetCategories();
     this.loadJars();
   }
 
@@ -63,24 +84,77 @@ export class JarsPage implements OnInit {
   }
 
   submitCreateJar(): void {
-    const name = this.jarName.trim();
-    if (!name) {
+    const category = this.selectedBudgetCategoryLabel;
+    const amount = parseVndAmount(this.budgetAmount);
+    if (!category || !amount) {
       return;
     }
-    const description = this.buildDescriptionWithTarget(
-      this.jarDescription,
-      this.jarTarget
-    );
-    this.createJar(name, description || undefined);
+    this.createJar({
+      category,
+      amount,
+      budget_date: this.getSelectedPeriodStartDate(),
+      repeat_this_budget: this.repeatThisBudget,
+    });
     this.closeCreateJar();
   }
 
-  onJarTargetInput(event: CustomEvent): void {
-    this.jarTarget = formatVndAmountInput(event.detail?.value);
+  onBudgetAmountChange(value: string | number | null | undefined): void {
+    this.budgetAmount = String(value ?? '').replace(/\D+/g, '');
+  }
+
+  onBudgetAmountBlur(): void {
+    this.budgetAmount = formatVndAmountInput(this.budgetAmount);
   }
 
   get canSaveJar(): boolean {
-    return this.jarName.trim().length > 0;
+    return this.selectedBudgetCategoryLabel.length > 0 && !!parseVndAmount(this.budgetAmount);
+  }
+
+  get budgetCategoryOptions(): BudgetCategoryOption[] {
+    const options: BudgetCategoryOption[] = [];
+
+    this.budgetCategories.forEach((category) => {
+      options.push({
+        value: `category:${category.id}`,
+        label: category.name,
+        treeLabel: `▸ ${category.name}`,
+        categoryName: category.name,
+      });
+
+      category.children.forEach((subCategory) => {
+        options.push({
+          value: `sub:${subCategory.id}`,
+          label: `${category.name} › ${subCategory.name}`,
+          treeLabel: `  └─ ${subCategory.name}`,
+          categoryName: category.name,
+          subCategoryName: subCategory.name,
+        });
+      });
+    });
+
+    return options;
+  }
+
+  get selectedBudgetCategoryLabel(): string {
+    const selected = this.budgetCategoryOptions.find(
+      (option) => option.value === this.selectedBudgetCategoryValue
+    );
+
+    if (!selected) {
+      return '';
+    }
+
+    return selected.subCategoryName || selected.categoryName;
+  }
+
+  get selectedPeriodLabel(): string {
+    return this.getPeriodOptionLabel(this.budgetPeriod);
+  }
+
+  getPeriodOptionLabel(period: BudgetPeriod): string {
+    const range = this.getPeriodRange(period);
+    const periodName = `This ${period}`;
+    return `${periodName} (${this.formatDateForRange(range.start)} - ${this.formatDateForRange(range.end)})`;
   }
 
   getJarTarget(jar: Budget): number {
@@ -104,6 +178,12 @@ export class JarsPage implements OnInit {
       return 0;
     }
     return Math.min(100, Math.round((balance / target) * 100));
+  }
+
+  getJarRemaining(jar: Budget): number {
+    const balance = this.parseBalance(jar.balance);
+    const target = this.getJarTarget(jar);
+    return Math.max(0, target - balance);
   }
 
   getJarIcon(jar: Budget): string {
@@ -149,27 +229,31 @@ export class JarsPage implements OnInit {
     this.router.navigate(['/tabs/budgets', jarId]);
   }
 
-  private createJar(name: string, description?: string): void {
-    this.budgetService.create({ name, description }).subscribe(() => this.loadJars());
+  private createJar(payload: {
+    category: string;
+    amount: number;
+    budget_date: string;
+    repeat_this_budget: boolean;
+  }): void {
+    this.budgetService.create(payload).subscribe(() => this.loadJars());
+  }
+
+  private loadBudgetCategories(): void {
+    this.categoryService.getTree('expense').subscribe({
+      next: (response) => {
+        this.budgetCategories = response.data || [];
+      },
+      error: () => {
+        this.budgetCategories = [];
+      },
+    });
   }
 
   private resetCreateForm(): void {
-    this.jarName = '';
-    this.jarTarget = '';
-    this.jarDescription = '';
-  }
-
-  private buildDescriptionWithTarget(description: string, target: string): string {
-    const cleanDescription = description.trim();
-    const normalizedTarget = parseVndAmount(target);
-    const parts = [] as string[];
-    if (normalizedTarget !== null) {
-      parts.push(`[target=${normalizedTarget}]`);
-    }
-    if (cleanDescription) {
-      parts.push(cleanDescription);
-    }
-    return parts.join(' ');
+    this.selectedBudgetCategoryValue = '';
+    this.budgetAmount = '';
+    this.budgetPeriod = 'month';
+    this.repeatThisBudget = false;
   }
 
   private parseTargetFromDescription(description?: string | null): number | null {
@@ -206,5 +290,50 @@ export class JarsPage implements OnInit {
     const [main, cents] = formatted.split('.');
     this.totalSavedMain = main || '0';
     this.totalSavedCents = cents || '00';
+  }
+
+  private getSelectedPeriodStartDate(): string {
+    const range = this.getPeriodRange(this.budgetPeriod);
+    const year = range.start.getFullYear();
+    const month = String(range.start.getMonth() + 1).padStart(2, '0');
+    const day = String(range.start.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  private getPeriodRange(period: BudgetPeriod): { start: Date; end: Date } {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+    const currentDay = now.getDay();
+
+    if (period === 'week') {
+      const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
+      const start = new Date(currentYear, currentMonth, now.getDate() + mondayOffset);
+      const end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6);
+      return { start, end };
+    }
+
+    if (period === 'quarter') {
+      const quarterStartMonth = Math.floor(currentMonth / 3) * 3;
+      const start = new Date(currentYear, quarterStartMonth, 1);
+      const end = new Date(currentYear, quarterStartMonth + 3, 0);
+      return { start, end };
+    }
+
+    if (period === 'year') {
+      const start = new Date(currentYear, 0, 1);
+      const end = new Date(currentYear, 11, 31);
+      return { start, end };
+    }
+
+    const start = new Date(currentYear, currentMonth, 1);
+    const end = new Date(currentYear, currentMonth + 1, 0);
+    return { start, end };
+  }
+
+  private formatDateForRange(date: Date): string {
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    return `${day}/${month}`;
   }
 }

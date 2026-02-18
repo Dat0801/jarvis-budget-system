@@ -1,12 +1,15 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
-import { forkJoin } from 'rxjs';
+import { catchError, forkJoin, of } from 'rxjs';
 import { BudgetService, Budget } from '../../services/budget.service';
 import { ExpenseService } from '../../services/expense.service';
 import { IncomeService } from '../../services/income.service';
+import { NoteService } from '../../services/note.service';
+import { IncomeVsExpenses, StatsService } from '../../services/stats.service';
 
 interface Transaction {
   id: number;
@@ -19,6 +22,11 @@ interface Transaction {
   amount: number;
   type: 'income' | 'expense';
   icon: string;
+}
+
+interface TopSpending {
+  title: string;
+  amount: number;
 }
 
 @Component({
@@ -35,19 +43,31 @@ export class DashboardPage implements OnInit {
   allTransactions: Transaction[] = [];
   filteredTransactions: Transaction[] = [];
   searchTerm = '';
+  notificationCount = 0;
 
   monthLabel = '';
   monthlyTransactionTotal = 0;
   monthlyIncomeTotal = 0;
   monthlyExpenseTotal = 0;
 
-  incomeBarHeight = 0;
-  expenseBarHeight = 0;
+  weeklyTopSpending: TopSpending = { title: 'No spending this week', amount: 0 };
+  monthlyTopSpending: TopSpending = { title: 'No spending this month', amount: 0 };
+  selectedSpendingTab: 'week' | 'month' = 'week';
+
+  reportLabels: string[] = [];
+  incomePath = '';
+  expensePath = '';
+  incomePoints = '';
+  expensePoints = '';
+  reportMaxValue = 1;
 
   constructor(
+    private router: Router,
     private budgetService: BudgetService,
     private expenseService: ExpenseService,
-    private incomeService: IncomeService
+    private incomeService: IncomeService,
+    private noteService: NoteService,
+    private statsService: StatsService
   ) {}
 
   ngOnInit(): void {
@@ -66,12 +86,21 @@ export class DashboardPage implements OnInit {
     this.applyTransactionSearch();
   }
 
+  openNotifications(): void {
+    this.router.navigateByUrl('/tabs/notes');
+  }
+
+  selectSpendingTab(tab: 'week' | 'month'): void {
+    this.selectedSpendingTab = tab;
+  }
+
   getWalletProgress(jar: Budget): number {
     const balance = Number(jar.balance);
-    if (!this.totalWalletBalance || Number.isNaN(balance)) {
+    const total = Math.abs(this.totalWalletBalance);
+    if (!total || Number.isNaN(balance)) {
       return 0;
     }
-    return Math.min(100, Math.max(0, (balance / this.totalWalletBalance) * 100));
+    return Math.min(100, Math.max(0, (Math.abs(balance) / total) * 100));
   }
 
   trackByTransactionId(_index: number, transaction: Transaction): number {
@@ -80,14 +109,18 @@ export class DashboardPage implements OnInit {
 
   private loadDashboardData(): void {
     forkJoin({
-      jars: this.budgetService.list(),
-      expensesResponse: this.expenseService.list(),
-      incomesResponse: this.incomeService.list(),
-    }).subscribe(({ jars, expensesResponse, incomesResponse }) => {
-      this.jars = Array.isArray(jars) ? jars : [];
-      this.totalWalletBalance = this.jars.reduce((sum, jar) => sum + Number(jar.balance), 0);
+      jars: this.budgetService.list().pipe(catchError(() => of([]))),
+      expensesResponse: this.expenseService.list().pipe(catchError(() => of([]))),
+      incomesResponse: this.incomeService.list().pipe(catchError(() => of([]))),
+      notes: this.noteService.list().pipe(catchError(() => of([]))),
+      incomeVsExpenses: this.statsService.getIncomeVsExpenses().pipe(catchError(() => of(null))),
+    }).subscribe(({ jars, expensesResponse, incomesResponse, notes, incomeVsExpenses }) => {
+      const sourceJars = Array.isArray(jars) ? jars : [];
+      this.notificationCount = Array.isArray(notes)
+        ? notes.filter((note: any) => Boolean(note?.reminder_date) && !note?.is_completed).length
+        : 0;
 
-      const jarNameById = this.jars.reduce<Record<number, string>>((accumulator, jar) => {
+      const jarNameById = sourceJars.reduce<Record<number, string>>((accumulator, jar) => {
         accumulator[jar.id] = jar.name;
         return accumulator;
       }, {});
@@ -128,7 +161,23 @@ export class DashboardPage implements OnInit {
         (first, second) => second.date.getTime() - first.date.getTime()
       );
 
+      this.totalWalletBalance = this.allTransactions.reduce(
+        (sum, transaction) => sum + transaction.amount,
+        0
+      );
+      this.jars = [
+        {
+          id: 0,
+          name: 'Cash',
+          balance: this.totalWalletBalance.toFixed(2),
+          description: null,
+          category: null,
+        },
+      ];
+
       this.calculateMonthlyTotals();
+      this.calculateTopSpending(expenses);
+      this.buildIncomeExpenseChart(incomeVsExpenses);
       this.applyTransactionSearch();
     });
   }
@@ -154,9 +203,112 @@ export class DashboardPage implements OnInit {
     this.monthlyTransactionTotal = currentMonthTransactions
       .reduce((sum, transaction) => sum + Math.abs(transaction.amount), 0);
 
-    const maxValue = Math.max(this.monthlyIncomeTotal, this.monthlyExpenseTotal, 1);
-    this.incomeBarHeight = (this.monthlyIncomeTotal / maxValue) * 100;
-    this.expenseBarHeight = (this.monthlyExpenseTotal / maxValue) * 100;
+  }
+
+  private calculateTopSpending(expenses: Transaction[]): void {
+    const now = new Date();
+    const weekStart = new Date(now);
+    weekStart.setHours(0, 0, 0, 0);
+    weekStart.setDate(weekStart.getDate() - 6);
+
+    const monthExpenses = expenses.filter((transaction) => {
+      const transactionDate = transaction.date;
+      return (
+        transactionDate.getFullYear() === now.getFullYear() &&
+        transactionDate.getMonth() === now.getMonth()
+      );
+    });
+
+    const weekExpenses = expenses.filter((transaction) => transaction.date >= weekStart);
+
+    this.weeklyTopSpending = this.getTopSpending(weekExpenses, 'No spending this week');
+    this.monthlyTopSpending = this.getTopSpending(monthExpenses, 'No spending this month');
+  }
+
+  private getTopSpending(expenses: Transaction[], emptyLabel: string): TopSpending {
+    if (!expenses.length) {
+      return { title: emptyLabel, amount: 0 };
+    }
+
+    const groupedAmounts = expenses.reduce<Record<string, number>>((accumulator, transaction) => {
+      const key = transaction.title || 'Other';
+      accumulator[key] = (accumulator[key] || 0) + Math.abs(transaction.amount);
+      return accumulator;
+    }, {});
+
+    const [title, amount] = Object.entries(groupedAmounts).sort(
+      (first, second) => second[1] - first[1]
+    )[0];
+
+    return { title, amount };
+  }
+
+  private buildIncomeExpenseChart(data: IncomeVsExpenses | null): void {
+    const fallbackLabel = this.monthLabel || this.getCurrentMonthLabel();
+    const labels = Array.isArray(data?.months) ? data?.months.slice(-6) : [fallbackLabel];
+    const income = Array.isArray(data?.income) ? data?.income.slice(-6) : [this.monthlyIncomeTotal];
+    const expenses = Array.isArray(data?.expenses)
+      ? data?.expenses.slice(-6)
+      : [this.monthlyExpenseTotal];
+
+    this.reportLabels = labels.length ? labels : [fallbackLabel];
+    const normalizedIncome = this.normalizeSeriesLength(income, this.reportLabels.length);
+    const normalizedExpenses = this.normalizeSeriesLength(expenses, this.reportLabels.length);
+
+    this.reportMaxValue = Math.max(...normalizedIncome, ...normalizedExpenses, 1);
+
+    this.incomePath = this.buildChartPath(normalizedIncome);
+    this.expensePath = this.buildChartPath(normalizedExpenses);
+    this.incomePoints = this.buildChartPoints(normalizedIncome);
+    this.expensePoints = this.buildChartPoints(normalizedExpenses);
+  }
+
+  private normalizeSeriesLength(values: number[], expectedLength: number): number[] {
+    if (!values.length) {
+      return new Array(expectedLength).fill(0);
+    }
+
+    if (values.length === expectedLength) {
+      return values;
+    }
+
+    if (values.length > expectedLength) {
+      return values.slice(values.length - expectedLength);
+    }
+
+    const padding = new Array(expectedLength - values.length).fill(values[0] || 0);
+    return [...padding, ...values];
+  }
+
+  private buildChartPath(values: number[]): string {
+    const points = this.getChartCoordinates(values);
+    return points
+      .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`)
+      .join(' ');
+  }
+
+  private buildChartPoints(values: number[]): string {
+    const points = this.getChartCoordinates(values);
+    return points.map((point) => `${point.x},${point.y}`).join(' ');
+  }
+
+  private getChartCoordinates(values: number[]): { x: number; y: number }[] {
+    const width = 300;
+    const height = 160;
+    const xPadding = 16;
+    const yPadding = 14;
+    const drawableWidth = width - xPadding * 2;
+    const drawableHeight = height - yPadding * 2;
+    const denominator = Math.max(values.length - 1, 1);
+
+    return values.map((value, index) => {
+      const x = xPadding + (index / denominator) * drawableWidth;
+      const y = yPadding + (1 - value / this.reportMaxValue) * drawableHeight;
+      return {
+        x: Number(x.toFixed(2)),
+        y: Number(y.toFixed(2)),
+      };
+    });
   }
 
   private applyTransactionSearch(): void {

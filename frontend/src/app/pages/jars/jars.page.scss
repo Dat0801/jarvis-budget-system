@@ -149,10 +149,21 @@ ion-content.jars-page {
 	gap: 6px;
 }
 
-.jar-title-row {
+.jar-top-row {
 	display: flex;
 	justify-content: space-between;
-	align-items: center;
+	align-items: flex-start;
+}
+
+.jar-title-group {
+	min-width: 0;
+}
+
+.jar-amount-group {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	margin-left: 12px;
 }
 
 .jar-title {
@@ -161,40 +172,34 @@ ion-content.jars-page {
 	color: #101828;
 }
 
-.more-button {
-	--padding-start: 0;
-	--padding-end: 0;
-	--color: #98a2b3;
-	height: 28px;
-	width: 28px;
-}
 
-.jar-subtitle {
-	font-size: 14px;
+.jar-left {
+	font-size: 12px;
 	color: #667085;
-}
-
-.jar-amount-row {
-	display: flex;
-	justify-content: space-between;
-	align-items: baseline;
-	font-weight: 700;
-	color: #101828;
+	text-align: right;
 }
 
 .jar-amount {
 	font-size: 22px;
+	font-weight: 700;
+	color: #101828;
+	white-space: nowrap;
+}
+
+.jar-bottom-row {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
 }
 
 .jar-target {
-	font-size: 16px;
+	font-size: 13px;
 	color: #98a2b3;
-	font-weight: 600;
-	margin-left: 6px;
 }
 
 .jar-percent {
-	font-size: 16px;
+	font-size: 14px;
+	font-weight: 700;
 	color: #2563eb;
 }
 

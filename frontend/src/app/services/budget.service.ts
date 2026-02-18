@@ -4,9 +4,12 @@ import { ApiService } from './api.service';
 export interface Budget {
   id: number;
   name: string;
+  category?: string | null;
   balance: string;
   description?: string | null;
   target?: number;
+  budget_date?: string | null;
+  repeat_this_budget?: boolean;
 }
 
 export interface Transaction {
@@ -42,11 +45,27 @@ export class BudgetService {
     return this.api.get<Budget>(`budgets/${id}`);
   }
 
-  create(payload: { name: string; description?: string | null; balance?: number }) {
+  create(payload: {
+    name?: string;
+    category?: string;
+    description?: string | null;
+    balance?: number;
+    amount?: number;
+    budget_date?: string;
+    repeat_this_budget?: boolean;
+  }) {
     return this.api.post<Budget>('budgets', payload);
   }
 
-  update(id: number, payload: { name?: string; description?: string | null }) {
+  update(id: number, payload: {
+    name?: string;
+    category?: string;
+    description?: string | null;
+    balance?: number;
+    amount?: number;
+    budget_date?: string | null;
+    repeat_this_budget?: boolean;
+  }) {
     return this.api.patch<Budget>(`budgets/${id}`, payload);
   }
 

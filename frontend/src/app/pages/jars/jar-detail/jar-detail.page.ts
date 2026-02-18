@@ -2,9 +2,20 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { IonicModule } from '@ionic/angular';
+import { AlertController, IonicModule } from '@ionic/angular';
 import { Budget, BudgetService, Transaction } from '../../../services/budget.service';
+import { CategoryService, CategoryTreeNode } from '../../../services/category.service';
 import { formatVndAmountInput, parseVndAmount } from '../../../utils/vnd-amount.util';
+
+type BudgetPeriod = 'week' | 'month' | 'quarter' | 'year';
+
+interface BudgetCategoryOption {
+  value: string;
+  label: string;
+  treeLabel: string;
+  categoryName: string;
+  subCategoryName?: string;
+}
 
 export interface JarDetail extends Budget {
   target?: number;
@@ -26,19 +37,27 @@ export class JarDetailPage implements OnInit {
   isAddMoneyOpen = false;
   isEditJarOpen = false;
   addAmount = '';
-  editName = '';
-  editDescription = '';
+  selectedBudgetCategoryValue = '';
+  editBudgetAmount = '';
+  editBudgetPeriod: BudgetPeriod = 'month';
+  editRepeatThisBudget = false;
+  budgetCategories: CategoryTreeNode[] = [];
+  readonly categorySelectInterfaceOptions = { cssClass: 'category-tree-sheet' };
+  readonly budgetPeriodOptions: BudgetPeriod[] = ['week', 'month', 'quarter', 'year'];
   jarId: number | null = null;
   parseFloat = parseFloat;
 
   constructor(
     private budgetService: BudgetService,
+    private categoryService: CategoryService,
     private route: ActivatedRoute,
-    private router: Router
+    private router: Router,
+    private alertController: AlertController
   ) {}
 
   ngOnInit(): void {
     this.jarId = Number(this.route.snapshot.paramMap.get('id'));
+    this.loadBudgetCategories();
     if (this.jarId) {
       this.loadJarDetail();
     }
@@ -48,8 +67,10 @@ export class JarDetailPage implements OnInit {
     if (!this.jarId) return;
     this.budgetService.detail(this.jarId).subscribe((jar: JarDetail) => {
       this.jar = jar;
-      this.editName = jar.name;
-      this.editDescription = jar.description || '';
+      this.selectedBudgetCategoryValue = this.getCategoryValueFromJar(jar);
+      this.editBudgetAmount = formatVndAmountInput(this.parseAmount(jar.balance));
+      this.editBudgetPeriod = this.getPeriodFromBudgetDate(jar.budget_date);
+      this.editRepeatThisBudget = !!jar.repeat_this_budget;
       this.loadTransactions();
     });
   }
@@ -64,18 +85,65 @@ export class JarDetailPage implements OnInit {
     });
   }
 
-  getProgress(): number {
-    if (!this.jar || !this.jar.target) return 0;
-    return Math.min((parseFloat(this.jar.balance) / this.jar.target) * 100, 100);
+  getSpentAmount(): number {
+    return this.transactions.reduce((sum, transaction) => {
+      if (transaction.type !== 'expense') {
+        return sum;
+      }
+      return sum + this.parseAmount(transaction.amount);
+    }, 0);
   }
 
-  getRemaining(): number {
-    if (!this.jar || !this.jar.target) return 0;
-    return Math.max(this.jar.target - parseFloat(this.jar.balance), 0);
+  getLeftAmount(): number {
+    if (!this.jar) {
+      return 0;
+    }
+    return Math.max(this.parseAmount(this.jar.balance), 0);
+  }
+
+  getSpentPercentage(): number {
+    const spent = this.getSpentAmount();
+    const left = this.getLeftAmount();
+    const total = spent + left;
+    if (total <= 0) {
+      return 0;
+    }
+    return Math.round((spent / total) * 100);
   }
 
   formatCurrency(value: string | number): string {
-    return parseFloat(value.toString()).toFixed(2);
+    return new Intl.NumberFormat('vi-VN', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(this.parseAmount(value));
+  }
+
+  getBudgetCycleDisplay(): string {
+    const startDate = this.getCycleStartDate();
+    const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
+    const today = new Date();
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const endStart = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+    const msPerDay = 1000 * 60 * 60 * 24;
+    const daysLeft = Math.max(0, Math.ceil((endStart.getTime() - todayStart.getTime()) / msPerDay));
+
+    return `${this.formatDayMonth(startDate)} - ${this.formatDayMonth(endDate)} ${daysLeft} days left`;
+  }
+
+  getBudgetDateRangeDisplay(): string {
+    const startDate = this.getCycleStartDate();
+    const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
+    return `${this.formatDayMonth(startDate)} - ${this.formatDayMonth(endDate)}`;
+  }
+
+  getBudgetDaysLeft(): number {
+    const startDate = this.getCycleStartDate();
+    const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
+    const today = new Date();
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const endStart = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+    const msPerDay = 1000 * 60 * 60 * 24;
+    return Math.max(0, Math.ceil((endStart.getTime() - todayStart.getTime()) / msPerDay));
   }
 
   getTransactionIcon(transaction: Transaction): string {
@@ -142,6 +210,12 @@ export class JarDetailPage implements OnInit {
   }
 
   openEditJar(): void {
+    if (this.jar) {
+      this.selectedBudgetCategoryValue = this.getCategoryValueFromJar(this.jar);
+      this.editBudgetAmount = formatVndAmountInput(this.parseAmount(this.jar.balance));
+      this.editBudgetPeriod = this.getPeriodFromBudgetDate(this.jar.budget_date);
+      this.editRepeatThisBudget = !!this.jar.repeat_this_budget;
+    }
     this.isEditJarOpen = true;
   }
 
@@ -150,14 +224,103 @@ export class JarDetailPage implements OnInit {
   }
 
   submitEditJar(): void {
-    if (!this.jarId || !this.editName) return;
+    if (!this.jarId) return;
+    const category = this.selectedBudgetCategoryLabel;
+    const amount = parseVndAmount(this.editBudgetAmount);
+    if (!category || !amount) {
+      return;
+    }
+
     this.budgetService.update(this.jarId, {
-      name: this.editName,
-      description: this.editDescription || null,
+      category,
+      amount,
+      budget_date: this.getSelectedPeriodStartDate(),
+      repeat_this_budget: this.editRepeatThisBudget,
     }).subscribe(() => {
       this.closeEditJar();
       this.loadJarDetail();
     });
+  }
+
+  onEditBudgetAmountChange(value: string | number | null | undefined): void {
+    this.editBudgetAmount = String(value ?? '').replace(/\D+/g, '');
+  }
+
+  onEditBudgetAmountBlur(): void {
+    this.editBudgetAmount = formatVndAmountInput(this.editBudgetAmount);
+  }
+
+  get canUpdateJar(): boolean {
+    return this.selectedBudgetCategoryLabel.length > 0 && !!parseVndAmount(this.editBudgetAmount);
+  }
+
+  get selectedBudgetCategoryLabel(): string {
+    const selected = this.budgetCategoryOptions.find(
+      (option) => option.value === this.selectedBudgetCategoryValue
+    );
+
+    if (!selected) {
+      return '';
+    }
+
+    return selected.subCategoryName || selected.categoryName;
+  }
+
+  get selectedPeriodLabel(): string {
+    return this.getPeriodOptionLabel(this.editBudgetPeriod);
+  }
+
+  get budgetCategoryOptions(): BudgetCategoryOption[] {
+    const options: BudgetCategoryOption[] = [];
+
+    this.budgetCategories.forEach((category) => {
+      options.push({
+        value: `category:${category.id}`,
+        label: category.name,
+        treeLabel: `▸ ${category.name}`,
+        categoryName: category.name,
+      });
+
+      category.children.forEach((subCategory) => {
+        options.push({
+          value: `sub:${subCategory.id}`,
+          label: `${category.name} › ${subCategory.name}`,
+          treeLabel: `  └─ ${subCategory.name}`,
+          categoryName: category.name,
+          subCategoryName: subCategory.name,
+        });
+      });
+    });
+
+    return options;
+  }
+
+  getPeriodOptionLabel(period: BudgetPeriod): string {
+    const range = this.getPeriodRange(period);
+    const periodName = `This ${period}`;
+    return `${periodName} (${this.formatDayMonth(range.start)} - ${this.formatDayMonth(range.end)})`;
+  }
+
+  async confirmDeleteJar(): Promise<void> {
+    const alert = await this.alertController.create({
+      header: 'Delete budget',
+      message: 'Are you sure you want to delete this budget?',
+      buttons: [
+        {
+          text: 'Cancel',
+          role: 'cancel',
+        },
+        {
+          text: 'Delete',
+          role: 'destructive',
+          handler: () => {
+            this.deleteJar();
+          },
+        },
+      ],
+    });
+
+    await alert.present();
   }
 
   goBack(): void {
@@ -166,5 +329,128 @@ export class JarDetailPage implements OnInit {
 
   seeAllTransactions(): void {
     this.router.navigate(['/tabs/budgets', this.jarId, 'activity']);
+  }
+
+  private deleteJar(): void {
+    if (!this.jarId) {
+      return;
+    }
+
+    this.budgetService.remove(this.jarId).subscribe(() => {
+      this.router.navigate(['/tabs/budgets']);
+    });
+  }
+
+  private loadBudgetCategories(): void {
+    this.categoryService.getTree('expense').subscribe({
+      next: (response) => {
+        this.budgetCategories = response.data || [];
+      },
+      error: () => {
+        this.budgetCategories = [];
+      },
+    });
+  }
+
+  private parseAmount(value: string | number): number {
+    const raw = value?.toString() ?? '0';
+    const normalized = raw.replace(/[^0-9.-]+/g, '');
+    const parsed = Number.parseFloat(normalized);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  private getCycleStartDate(): Date {
+    if (this.jar?.budget_date) {
+      const parsed = new Date(this.jar.budget_date);
+      if (!Number.isNaN(parsed.getTime())) {
+        return parsed;
+      }
+    }
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  }
+
+  private getCategoryValueFromJar(jar: JarDetail): string {
+    const rawCategory = (jar.category || jar.name || '').trim().toLowerCase();
+    if (!rawCategory) {
+      return '';
+    }
+
+    const matched = this.budgetCategoryOptions.find((option) => {
+      const subName = option.subCategoryName?.trim().toLowerCase();
+      const categoryName = option.categoryName.trim().toLowerCase();
+      return rawCategory === subName || rawCategory === categoryName;
+    });
+
+    return matched?.value || '';
+  }
+
+  private getPeriodFromBudgetDate(budgetDate?: string | null): BudgetPeriod {
+    if (!budgetDate) {
+      return 'month';
+    }
+
+    const parsedDate = new Date(budgetDate);
+    if (Number.isNaN(parsedDate.getTime())) {
+      return 'month';
+    }
+
+    const normalizedDate = this.normalizeDate(parsedDate);
+    const periods: BudgetPeriod[] = ['week', 'month', 'quarter', 'year'];
+    const matchedPeriod = periods.find((period) => {
+      const range = this.getPeriodRange(period);
+      return this.normalizeDate(range.start).getTime() === normalizedDate.getTime();
+    });
+
+    return matchedPeriod || 'month';
+  }
+
+  private getSelectedPeriodStartDate(): string {
+    const range = this.getPeriodRange(this.editBudgetPeriod);
+    const year = range.start.getFullYear();
+    const month = String(range.start.getMonth() + 1).padStart(2, '0');
+    const day = String(range.start.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  private getPeriodRange(period: BudgetPeriod): { start: Date; end: Date } {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+    const currentDay = now.getDay();
+
+    if (period === 'week') {
+      const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
+      const start = new Date(currentYear, currentMonth, now.getDate() + mondayOffset);
+      const end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6);
+      return { start, end };
+    }
+
+    if (period === 'quarter') {
+      const quarterStartMonth = Math.floor(currentMonth / 3) * 3;
+      const start = new Date(currentYear, quarterStartMonth, 1);
+      const end = new Date(currentYear, quarterStartMonth + 3, 0);
+      return { start, end };
+    }
+
+    if (period === 'year') {
+      const start = new Date(currentYear, 0, 1);
+      const end = new Date(currentYear, 11, 31);
+      return { start, end };
+    }
+
+    const start = new Date(currentYear, currentMonth, 1);
+    const end = new Date(currentYear, currentMonth + 1, 0);
+    return { start, end };
+  }
+
+  private normalizeDate(date: Date): Date {
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  }
+
+  private formatDayMonth(date: Date): string {
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    return `${day}/${month}`;
   }
 }

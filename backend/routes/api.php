@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\AccountController;
+use App\Http\Controllers\API\CategoryController;
 use App\Http\Controllers\API\ExpenseController;
 use App\Http\Controllers\API\IncomeController;
 use App\Http\Controllers\API\JarController;
@@ -36,6 +37,8 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/expenses/{expense}', [ExpenseController::class, 'show']);
     Route::patch('/expenses/{expense}', [ExpenseController::class, 'update']);
     Route::delete('/expenses/{expense}', [ExpenseController::class, 'destroy']);
+
+    Route::get('/categories/tree', [CategoryController::class, 'tree']);
 
     Route::get('/notes', [NoteController::class, 'index']);
     Route::post('/notes', [NoteController::class, 'store']);

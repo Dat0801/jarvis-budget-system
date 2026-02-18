@@ -9,13 +9,18 @@ class Jar extends Model
     protected $fillable = [
         'user_id',
         'name',
+        'category',
         'balance',
         'description',
         'color',
+        'budget_date',
+        'repeat_this_budget',
     ];
 
     protected $casts = [
         'balance' => 'decimal:2',
+        'budget_date' => 'date',
+        'repeat_this_budget' => 'boolean',
     ];
 
     public function user()

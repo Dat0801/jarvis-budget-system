@@ -35,20 +35,16 @@
           <ion-icon [name]="getJarIcon(jar)"></ion-icon>
         </div>
         <div class="jar-info">
-          <div class="jar-title-row">
-            <div class="jar-title">{{ jar.name }}</div>
-            <ion-button fill="clear" class="more-button">
-              <ion-icon name="ellipsis-vertical"></ion-icon>
-            </ion-button>
-          </div>
-          <div class="jar-subtitle">
-            {{ getJarDescription(jar) }}
-          </div>
-          <div class="jar-amount-row">
-            <div class="jar-amount">
-              {{ formatCurrency(jar.balance) }}
-              <span class="jar-target">/ {{ formatCurrency(getJarTarget(jar)) }}</span>
+          <div class="jar-top-row">
+            <div class="jar-title-group">
+              <div class="jar-title">{{ jar.name }}</div>
             </div>
+            <div class="jar-amount-group">
+              <div class="jar-amount">{{ formatCurrency(jar.balance) }}</div>
+              <div class="jar-left">Left {{ getJarRemaining(jar) | number:'1.0-0' }}</div>
+            </div>
+          </div>
+          <div class="jar-bottom-row">
             <div class="jar-percent">{{ getJarProgress(jar) }}%</div>
           </div>
           <div class="progress-track">
@@ -82,53 +78,73 @@
 
     <ion-content class="transaction-page">
       <form (ngSubmit)="submitCreateJar()">
-        <div class="amount-block">
-          <div class="amount-label">TARGET</div>
-          <div class="amount-input-row">
-            <div class="currency">₫</div>
-            <ion-input
-              type="text"
-              inputmode="numeric"
-              placeholder="0"
-              [(ngModel)]="jarTarget"
-              (ionInput)="onJarTargetInput($event)"
-              name="jarTarget"
-            ></ion-input>
-          </div>
-        </div>
-
         <ion-card class="section-card">
           <div class="section-title">Budget Details</div>
 
           <div class="field">
-            <div class="field-label">BUDGET NAME</div>
+            <div class="field-label">CATEGORY</div>
             <ion-item lines="none" class="text-item">
-              <ion-input
-                placeholder="e.g. Groceries"
-                [(ngModel)]="jarName"
-                name="jarName"
+              <ion-select
+                interface="action-sheet"
+                [interfaceOptions]="categorySelectInterfaceOptions"
+                placeholder="Select category or sub category"
+                [(ngModel)]="selectedBudgetCategoryValue"
+                name="selectedBudgetCategoryValue"
                 required
-              ></ion-input>
+              >
+                <ion-select-option
+                  *ngFor="let option of budgetCategoryOptions"
+                  [value]="option.value"
+              >
+                  {{ option.treeLabel }}
+                </ion-select-option>
+              </ion-select>
             </ion-item>
           </div>
 
           <div class="field">
-            <div class="field-label">DESCRIPTION</div>
-            <ion-item lines="none" class="notes-item">
-              <ion-textarea
-                auto-grow="true"
-                placeholder="What is this budget for?"
-                [(ngModel)]="jarDescription"
-                name="jarDescription"
-              ></ion-textarea>
+            <div class="field-label">AMOUNT</div>
+            <div class="amount-block">
+              <div class="amount-input-row">
+                <div class="currency">₫</div>
+                <ion-input
+                  type="text"
+                  inputmode="numeric"
+                  placeholder="0"
+                  [(ngModel)]="budgetAmount"
+                  (ngModelChange)="onBudgetAmountChange($event)"
+                  (ionBlur)="onBudgetAmountBlur()"
+                  name="budgetAmount"
+                  required
+                ></ion-input>
+              </div>
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="field-label">DATE</div>
+            <ion-item lines="none" class="text-item">
+              <ion-select
+                interface="action-sheet"
+                [(ngModel)]="budgetPeriod"
+                name="budgetPeriod"
+                [placeholder]="selectedPeriodLabel"
+              >
+                <ion-select-option
+                  *ngFor="let period of budgetPeriodOptions"
+                  [value]="period"
+                >
+                  {{ getPeriodOptionLabel(period) }}
+                </ion-select-option>
+              </ion-select>
             </ion-item>
           </div>
         </ion-card>
 
         <ion-card class="receipt-card">
-          <ion-item lines="none" button detail="true">
-            <ion-icon slot="start" name="color-palette-outline"></ion-icon>
-            <ion-label>Choose Icon</ion-label>
+          <ion-item lines="none">
+            <ion-label>Repeat this budget</ion-label>
+            <ion-toggle slot="end" [(ngModel)]="repeatThisBudget" name="repeatThisBudget"></ion-toggle>
           </ion-item>
         </ion-card>
 

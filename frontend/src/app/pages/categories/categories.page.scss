@@ -1,0 +1,44 @@
+ion-segment {
+  margin: 12px;
+}
+
+.categories-list {
+  margin-bottom: 12px;
+}
+
+.tree-parent {
+  --padding-start: 12px;
+
+  .parent-icon {
+    font-size: 20px;
+  }
+
+  .toggle-icon {
+    font-size: 18px;
+    opacity: 0.75;
+  }
+}
+
+.tree-child {
+  --padding-start: 36px;
+  --min-height: 40px;
+
+  .branch-icon,
+  .child-icon {
+    font-size: 16px;
+    opacity: 0.8;
+  }
+}
+
+.status {
+  margin: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  background: rgba(var(--ion-color-medium-rgb), 0.08);
+}
+
+.status-error {
+  color: var(--ion-color-danger);
+  background: rgba(var(--ion-color-danger-rgb), 0.08);
+}
