@@ -4,9 +4,6 @@
       <ion-back-button defaultHref="/" icon="close"></ion-back-button>
     </ion-buttons>
     <ion-title>Add Transaction</ion-title>
-    <ion-buttons slot="end">
-      <ion-menu-button></ion-menu-button>
-    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
@@ -23,10 +20,19 @@
       </ion-segment>
     </div>
 
+    <ion-item lines="none" class="currency-picker-item">
+      <ion-label>Currency</ion-label>
+      <ion-select [(ngModel)]="currency" name="currency" interface="popover">
+        <ion-select-option *ngFor="let option of currencyOptions" [value]="option">
+          {{ option }}
+        </ion-select-option>
+      </ion-select>
+    </ion-item>
+
     <div class="amount-block">
       <div class="amount-label">AMOUNT</div>
       <div class="amount-input-row">
-        <div class="currency">₫</div>
+        <div class="currency">{{ currencySymbol }}</div>
         <ion-input
           type="text"
           inputmode="numeric"
@@ -40,7 +46,7 @@
     </div>
 
     <ion-card class="section-card">
-      <div class="section-title">Select Budget</div>
+      <div class="section-title">Select Jar</div>
       <ion-item lines="none" class="select-item">
         <ion-select [(ngModel)]="jarId" name="jarId" interface="popover" required>
           <ion-select-option *ngFor="let jar of jars" [value]="jar.id">
@@ -53,7 +59,8 @@
         <div class="field-label">DATE</div>
         <ion-item lines="none" class="date-item">
           <ion-icon slot="start" name="calendar-outline"></ion-icon>
-          <ion-datetime presentation="date" [(ngModel)]="receivedAt" name="receivedAt"></ion-datetime>
+          <ion-input type="date" [(ngModel)]="receivedAt" name="receivedAt"></ion-input>
+          <ion-icon slot="end" name="calendar-outline"></ion-icon>
         </ion-item>
       </div>
 
@@ -78,6 +85,7 @@
     </ion-card>
 
     <ion-button expand="block" class="save-button" type="submit" [disabled]="!jars.length">
+      <ion-icon slot="start" name="checkmark-circle"></ion-icon>
       Save Transaction
     </ion-button>
 

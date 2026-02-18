@@ -1,6 +1,6 @@
 <ion-header [translucent]="true" class="app-header">
   <ion-toolbar>
-    <ion-title>Dashboard</ion-title>
+    <ion-title>Home</ion-title>
     <ion-buttons slot="end">
       <ion-menu-button></ion-menu-button>
     </ion-buttons>
@@ -9,93 +9,92 @@
 
 <ion-content [fullscreen]="false" class="dashboard app-content">
   <div class="page page-shell">
-    <div class="header-row">
-      <div class="greeting">
-        <div class="avatar">
-          <ion-icon name="wallet"></ion-icon>
-        </div>
-        <div>
-          <div class="eyebrow">WELCOME BACK</div>
-          <div class="title">Good {{ timeOfDay }}, {{ userName }}</div>
-        </div>
+    <div class="month-summary-card">
+      <div class="section-top-row">
+        <div class="small-label">{{ monthLabel }}</div>
+        <ion-icon name="calendar-outline"></ion-icon>
       </div>
+      <div class="big-title">Total transactions</div>
+      <div class="total-value">{{ monthlyTransactionTotal | currency:selectedCurrencyCode:'symbol':'1.0-0' }}</div>
 
-      <button class="icon-btn" type="button" aria-label="Notifications">
-        <ion-icon name="notifications"></ion-icon>
-        <span class="dot"></span>
-      </button>
+      <ion-searchbar
+        class="tx-search"
+        mode="ios"
+        placeholder="Search transaction"
+        [value]="searchTerm"
+        (ionInput)="onSearchChange($event)"
+        show-clear-button="focus"
+      ></ion-searchbar>
     </div>
 
-    <div class="balance-card">
-      <div class="balance-label">Total Balance</div>
-      <div class="balance-value">{{ totalBalance | currency:selectedCurrencyCode:'symbol':'1.2-2' }}</div>
-      <div class="balance-divider"></div>
-      <div class="balance-foot">
-        <div class="trend">
-          <ion-icon name="trending-up"></ion-icon>
-          <span>+2.4% from last month</span>
+    <div class="section-header">
+      <div class="section-title">My Wallets</div>
+    </div>
+
+    <div class="wallet-list" *ngIf="jars.length > 0; else emptyWallets">
+      <div class="wallet-card" *ngFor="let jar of jars; let i = index">
+        <div class="wallet-head">
+          <div class="wallet-icon" [class.alt]="i % 2 === 1">
+            <ion-icon [name]="i % 2 === 0 ? 'wallet-outline' : 'card-outline'"></ion-icon>
+          </div>
+          <div class="wallet-name">{{ jar.name }}</div>
         </div>
-        <div class="eye">
-          <ion-icon name="eye"></ion-icon>
+        <div class="wallet-balance">{{ jar.balance | currency:selectedCurrencyCode:'symbol':'1.0-0' }}</div>
+        <div class="wallet-progress">
+          <span [style.width.%]="getWalletProgress(jar)"></span>
         </div>
       </div>
     </div>
+    <ng-template #emptyWallets>
+      <div class="empty-card">No wallets yet.</div>
+    </ng-template>
 
-    <div class="summary-grid">
-      <div class="summary-card income">
-        <div class="summary-icon">
-          <ion-icon name="arrow-down"></ion-icon>
-        </div>
-        <div>
-          <div class="summary-label">Income</div>
-          <div class="summary-value">{{ incomeTotal | currency:selectedCurrencyCode:'symbol':'1.2-2' }}</div>
-        </div>
-      </div>
+    <div class="section-header">
+      <div class="section-title">Report this month</div>
+    </div>
 
-      <div class="summary-card expense">
-        <div class="summary-icon">
-          <ion-icon name="arrow-up"></ion-icon>
+    <div class="report-card">
+      <div class="report-chart">
+        <div class="report-group">
+          <div class="bar-track">
+            <span class="bar income" [style.height.%]="incomeBarHeight"></span>
+          </div>
+          <div class="bar-label">Income</div>
+          <div class="bar-value">{{ monthlyIncomeTotal | currency:selectedCurrencyCode:'symbol':'1.0-0' }}</div>
         </div>
-        <div>
-          <div class="summary-label">Expenses</div>
-          <div class="summary-value">{{ expenseTotal | currency:selectedCurrencyCode:'symbol':'1.2-2' }}</div>
+
+        <div class="report-group">
+          <div class="bar-track">
+            <span class="bar expense" [style.height.%]="expenseBarHeight"></span>
+          </div>
+          <div class="bar-label">Spent</div>
+          <div class="bar-value">{{ monthlyExpenseTotal | currency:selectedCurrencyCode:'symbol':'1.0-0' }}</div>
         </div>
       </div>
     </div>
 
     <div class="section-header">
-      <div class="section-title">My Budgets</div>
-      <button class="text-btn" type="button">See All</button>
+      <div class="section-title">Recent transactions</div>
+      <div class="tx-count">{{ filteredTransactions.length }}</div>
     </div>
 
-    <div class="jar-grid">
-      <div class="jar-card" *ngFor="let jar of jars; let i = index">
-        <div class="jar-icon" [class.alt]="i % 2 === 1">
-          <ion-icon [name]="i % 2 === 0 ? 'cart' : 'home'"></ion-icon>
-        </div>
-        <div class="jar-name">{{ jar.name }}</div>
-        <div class="jar-amount">{{ jar.balance | currency:selectedCurrencyCode:'symbol':'1.0-0' }}</div>
-        <div class="jar-progress">
-          <span [style.width.%]="getJarProgress(jar)"></span>
-        </div>
-      </div>
-    </div>
-
-    <div class="section-title">Recent Transactions</div>
-    <div class="transaction-list">
-      <div class="transaction-card" *ngFor="let tx of recentTransactions">
-        <div class="tx-icon" [class.credit]="tx.type === 'credit'" [class.debit]="tx.type === 'debit'">
+    <div class="transaction-list" *ngIf="filteredTransactions.length > 0; else emptyTransactions">
+      <div class="transaction-card" *ngFor="let tx of filteredTransactions; trackBy: trackByTransactionId">
+        <div class="tx-icon" [class.income]="tx.type === 'income'" [class.expense]="tx.type === 'expense'">
           <ion-icon [name]="tx.icon"></ion-icon>
         </div>
         <div class="tx-meta">
           <div class="tx-title">{{ tx.title }}</div>
-          <div class="tx-time">{{ tx.time }}</div>
+          <div class="tx-sub">{{ tx.jarName }} • {{ tx.timeLabel }}</div>
         </div>
-        <div class="tx-amount" [class.credit]="tx.type === 'credit'" [class.debit]="tx.type === 'debit'">
-          {{ tx.amount | currency:selectedCurrencyCode:'symbol':'1.2-2' }}
+        <div class="tx-amount" [class.income]="tx.type === 'income'" [class.expense]="tx.type === 'expense'">
+          {{ tx.amount | currency:selectedCurrencyCode:'symbol':'1.0-0' }}
         </div>
       </div>
     </div>
+    <ng-template #emptyTransactions>
+      <div class="empty-card">No transactions match your search.</div>
+    </ng-template>
   </div>
 
 </ion-content>

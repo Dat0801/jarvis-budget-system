@@ -30,11 +30,13 @@ interface PaginatedExpenseResponse {
 })
 export class ExpensePage implements OnInit {
   segmentValue: 'income' | 'expense' = 'expense';
+  currencyOptions = ['USD', 'VND', 'EUR'] as const;
+  currency: (typeof this.currencyOptions)[number] = 'USD';
   jarId: number | null = null;
   amount = '';
   category = '';
   note = '';
-  spentAt = '';
+  spentAt = this.getTodayDate();
   jars: Budget[] = [];
   recentExpenses: ExpenseItem[] = [];
   isEditOpen = false;
@@ -52,6 +54,7 @@ export class ExpensePage implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this.spentAt = this.spentAt || this.getTodayDate();
     this.loadJars();
     this.loadExpenses();
   }
@@ -95,10 +98,19 @@ export class ExpensePage implements OnInit {
   get remainingBalanceText(): string {
     const enteredAmount = parseVndAmount(this.amount);
     if (!this.jarBalance || !enteredAmount) {
-      return '$0.00';
+	  return this.formatBySelectedCurrency(0);
     }
     const remaining = Math.max(this.jarBalance - enteredAmount, 0);
-    return `$${remaining.toFixed(2)}`;
+    return this.formatBySelectedCurrency(remaining);
+  }
+
+  get currencySymbol(): string {
+    const symbolByCurrency: Record<(typeof this.currencyOptions)[number], string> = {
+      USD: '$',
+      VND: '₫',
+      EUR: '€',
+    };
+    return symbolByCurrency[this.currency];
   }
 
   submit(): void {
@@ -120,10 +132,22 @@ export class ExpensePage implements OnInit {
         this.amount = '';
         this.category = '';
         this.note = '';
-        this.spentAt = '';
+        this.spentAt = this.getTodayDate();
         this.loadExpenses();
         this.loadJars();
       });
+  }
+
+  private formatBySelectedCurrency(value: number): string {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: this.currency,
+      maximumFractionDigits: this.currency === 'VND' ? 0 : 2,
+    }).format(value);
+  }
+
+  private getTodayDate(): string {
+    return new Date().toISOString().split('T')[0];
   }
 
   onAmountInput(event: CustomEvent): void {

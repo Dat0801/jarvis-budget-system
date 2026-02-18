@@ -28,10 +28,12 @@ interface PaginatedIncomeResponse {
 })
 export class IncomePage implements OnInit {
   segmentValue: 'income' | 'expense' = 'income';
+  currencyOptions = ['USD', 'VND', 'EUR'] as const;
+  currency: (typeof this.currencyOptions)[number] = 'USD';
   jarId: number | null = null;
   amount = '';
   source = '';
-  receivedAt = '';
+  receivedAt = this.getTodayDate();
   jars: Budget[] = [];
   recentIncomes: IncomeItem[] = [];
   isEditOpen = false;
@@ -46,8 +48,18 @@ export class IncomePage implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this.receivedAt = this.receivedAt || this.getTodayDate();
     this.loadJars();
     this.loadIncomes();
+  }
+
+  get currencySymbol(): string {
+    const symbolByCurrency: Record<(typeof this.currencyOptions)[number], string> = {
+      USD: '$',
+      VND: '₫',
+      EUR: '€',
+    };
+    return symbolByCurrency[this.currency];
   }
 
   loadJars(): void {
@@ -83,7 +95,7 @@ export class IncomePage implements OnInit {
         this.jarId = null;
         this.amount = '';
         this.source = '';
-        this.receivedAt = '';
+        this.receivedAt = this.getTodayDate();
         this.loadIncomes();
         this.loadJars();
       });
@@ -91,6 +103,10 @@ export class IncomePage implements OnInit {
 
   onAmountInput(event: CustomEvent): void {
     this.amount = formatVndAmountInput(event.detail?.value);
+  }
+
+  private getTodayDate(): string {
+    return new Date().toISOString().split('T')[0];
   }
 
   loadIncomes(): void {
