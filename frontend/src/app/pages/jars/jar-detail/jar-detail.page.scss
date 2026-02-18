@@ -19,6 +19,10 @@ ion-content.jar-detail-page {
   --padding-end: 8px;
 }
 
+.header-icon-btn {
+  font-size: 18px;
+}
+
 .page-inner {
   padding: 20px 18px 100px;
 }
@@ -32,68 +36,73 @@ ion-content.jar-detail-page {
   box-shadow: 0 2px 8px rgba(16, 24, 40, 0.08);
   display: flex;
   flex-direction: column;
+  gap: 16px;
+}
+
+.budget-category-row {
+  display: flex;
   align-items: center;
-  text-align: center;
+  gap: 12px;
 }
 
 .jar-icon-large {
-  width: 100px;
-  height: 100px;
+  width: 52px;
+  height: 52px;
   background: linear-gradient(135deg, #d4e2f7, #e8f0fc);
-  border-radius: 50%;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 20px;
 
   ion-icon {
-    font-size: 48px;
+    font-size: 24px;
     color: #2f6fe4;
   }
 }
 
-.balance-section {
-  margin-bottom: 20px;
-}
-
-.balance-label {
-  font-size: 12px;
-  letter-spacing: 1.2px;
-  color: #98a2b3;
-  font-weight: 500;
-  text-transform: uppercase;
-  margin-bottom: 8px;
-}
-
-.balance-amount {
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  gap: 2px;
-  margin-bottom: 8px;
-
-  .currency {
-    font-size: 24px;
-    font-weight: 600;
-    color: #101828;
-  }
-
-  .value {
-    font-size: 36px;
-    font-weight: 700;
-    color: #101828;
-    letter-spacing: -0.5px;
-  }
-}
-
-.target-label {
-  font-size: 14px;
-  color: #667085;
-  margin-bottom: 16px;
+.budget-category-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: #101828;
 }
 
 .progress-section {
   width: 100%;
+}
+
+.progress-top-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 10px;
+}
+
+.progress-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 14px;
+  color: #667085;
+}
+
+.progress-stat.spent {
+  text-align: left;
+}
+
+.progress-stat.left {
+  text-align: right;
+}
+
+.progress-label {
+  font-size: 13px;
+  color: #667085;
+  font-weight: 500;
+}
+
+.progress-value {
+  font-size: 16px;
+  color: #101828;
+  font-weight: 700;
 }
 
 .progress-bar {
@@ -112,49 +121,43 @@ ion-content.jar-detail-page {
   }
 }
 
-.progress-info {
+.progress-date {
+  margin-top: 10px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 14px;
+  gap: 12px;
+}
 
-  .progress-percent {
-    color: #2f6fe4;
-    font-weight: 600;
-  }
+.progress-date-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #667085;
 
-  .remaining {
-    color: #98a2b3;
+  ion-icon {
+    font-size: 15px;
   }
 }
 
-// Action Buttons
-.action-buttons {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
+.progress-days-left {
+  font-size: 13px;
+  color: #98a2b3;
+  white-space: nowrap;
+}
+
+// Transactions Action
+.transactions-list-action {
   margin-bottom: 24px;
 }
 
-.add-money-btn,
-.edit-jar-btn {
+.transactions-list-btn {
   font-size: 15px;
   font-weight: 600;
   text-transform: capitalize;
   height: 48px;
   --border-radius: 12px;
-}
-
-.add-money-btn {
-  --background: #2f6fe4;
-  --color: #ffffff;
-
-  &:hover {
-    --background: #2759c4;
-  }
-}
-
-.edit-jar-btn {
   --border-color: #d0d5dd;
   --color: #344054;
 
@@ -363,6 +366,98 @@ ion-content.jar-detail-page {
   }
 }
 
+.edit-budget-modal {
+  .transaction-page {
+    --background: #f6f7f9;
+    --padding-top: 12px;
+    --padding-start: 16px;
+    --padding-end: 16px;
+    --padding-bottom: 24px;
+    padding: 0;
+
+    .amount-block {
+      text-align: center;
+      margin: 12px 0 16px;
+      background: transparent;
+      border-radius: 0;
+      padding: 0;
+    }
+
+    .amount-input-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+
+      .currency {
+        font-size: 40px;
+        font-weight: 700;
+        color: #2f6fed;
+      }
+
+      ion-input {
+        --padding-start: 0;
+        --padding-end: 0;
+        --background: transparent;
+        color: #6f7681;
+        font-weight: 700;
+
+        &::part(native) {
+          text-align: center;
+          font-size: 56px;
+        }
+      }
+    }
+
+    .section-card {
+      margin: 0 0 16px;
+      border-radius: 20px;
+      box-shadow: none;
+      background: #ffffff;
+      padding: 16px;
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #6f7681;
+      margin: 0 0 10px;
+    }
+
+    .text-item,
+    .notes-item {
+      --background: #f5f6f8;
+      --border-radius: 14px;
+      --padding-start: 12px;
+      --inner-padding-end: 12px;
+      margin-bottom: 12px;
+    }
+
+    .field {
+      margin-top: 8px;
+    }
+
+    .field-label {
+      font-size: 12px;
+      letter-spacing: 1.5px;
+      font-weight: 600;
+      color: #a0a8b4;
+      margin: 6px 0 8px;
+    }
+
+    .receipt-card {
+      margin: 0 0 16px;
+      border-radius: 20px;
+      box-shadow: none;
+      background: #ffffff;
+    }
+
+    .save-button {
+      margin-top: 8px;
+    }
+  }
+}
+
 .amount-block {
   background: #ffffff;
   border-radius: 12px;
@@ -461,10 +556,6 @@ ion-content.jar-detail-page {
     .value {
       font-size: 28px;
     }
-  }
-
-  .action-buttons {
-    grid-template-columns: 1fr;
   }
 
   .insights-grid {

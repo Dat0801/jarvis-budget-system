@@ -5,10 +5,13 @@
         <ion-icon name="chevron-back-outline"></ion-icon>
       </ion-button>
     </ion-buttons>
-    <ion-title>{{ jar?.name }}</ion-title>
+    <ion-title>Budget details</ion-title>
     <ion-buttons slot="end">
-      <ion-button fill="clear" class="icon-button">
-        <ion-icon name="ellipsis-vertical"></ion-icon>
+      <ion-button fill="clear" class="header-icon-btn" (click)="openEditJar()" aria-label="Edit budget">
+        <ion-icon name="create-outline"></ion-icon>
+      </ion-button>
+      <ion-button fill="clear" class="header-icon-btn" (click)="confirmDeleteJar()" aria-label="Delete budget">
+        <ion-icon name="trash-outline"></ion-icon>
       </ion-button>
     </ion-buttons>
   </ion-toolbar>
@@ -16,41 +19,44 @@
 
 <ion-content class="jar-detail-page" fullscreen="true">
   <div class="page-inner">
-    <!-- Budget Balance Card -->
     <section class="balance-card">
-      <div class="jar-icon-large">
-        <ion-icon name="basket-outline"></ion-icon>
-      </div>
-
-      <div class="balance-section">
-        <div class="balance-label">AVAILABLE BALANCE</div>
-        <div class="balance-amount">
-          <span class="currency">₫</span>
-          <span class="value">{{ formatCurrency(jar?.balance || 0) }}</span>
+      <div class="budget-category-row">
+        <div class="jar-icon-large">
+          <ion-icon name="basket-outline"></ion-icon>
         </div>
-        <div class="target-label">Target: ₫{{ jar?.target | number: '1.0-0' }}</div>
+        <div class="budget-category-name">{{ jar?.category || jar?.name }}</div>
       </div>
 
       <div class="progress-section">
-        <div class="progress-bar">
-          <div class="progress-fill" [style.width.%]="getProgress()"></div>
+        <div class="progress-top-info">
+          <div class="progress-stat spent">
+            <div class="progress-label">Spent</div>
+            <div class="progress-value">{{ formatCurrency(getLeftAmount()) }}</div>
+          </div>
+          <div class="progress-stat left">
+            <div class="progress-label">Left</div>
+            <div class="progress-value">{{ formatCurrency(getSpentAmount()) }}</div>
+          </div>
         </div>
-        <div class="progress-info">
-          <span class="progress-percent">{{ getProgress() | number: '1.0-0' }}% Saved</span>
-          <span class="remaining">₫{{ formatCurrency(getRemaining()) }} left</span>
+
+        <div class="progress-bar">
+          <div class="progress-fill" [style.width.%]="getSpentPercentage()"></div>
+        </div>
+
+        <div class="progress-date">
+          <div class="progress-date-main">
+            <ion-icon name="calendar-outline"></ion-icon>
+            <span>{{ getBudgetDateRangeDisplay() }}</span>
+          </div>
+          <div class="progress-days-left">{{ getBudgetDaysLeft() }} days left</div>
         </div>
       </div>
     </section>
 
-    <!-- Action Buttons -->
-    <section class="action-buttons">
-      <ion-button expand="block" class="add-money-btn" (click)="openAddMoney()">
-        <ion-icon name="add-circle" slot="start"></ion-icon>
-        Add Money
-      </ion-button>
-      <ion-button expand="block" fill="outline" class="edit-jar-btn" (click)="openEditJar()">
-        <ion-icon name="pencil" slot="start"></ion-icon>
-        Edit Budget
+    <section class="transactions-list-action">
+      <ion-button expand="block" fill="outline" class="transactions-list-btn" (click)="seeAllTransactions()">
+        <ion-icon name="list-outline" slot="start"></ion-icon>
+        Transactions list
       </ion-button>
     </section>
 
@@ -154,7 +160,7 @@
 </ion-modal>
 
 <!-- Edit Budget Modal -->
-<ion-modal [isOpen]="isEditJarOpen" (didDismiss)="closeEditJar()" class="transaction-modal">
+<ion-modal [isOpen]="isEditJarOpen" (didDismiss)="closeEditJar()" class="transaction-modal edit-budget-modal">
   <ng-template>
     <ion-header class="transaction-header">
       <ion-toolbar>
@@ -169,30 +175,84 @@
 
     <ion-content class="transaction-page">
       <form (ngSubmit)="submitEditJar()">
-        <div class="form-group">
-          <label>Budget Name</label>
-          <ion-input
-            type="text"
-            placeholder="Enter budget name"
-            [(ngModel)]="editName"
-            name="editName"
-          ></ion-input>
-        </div>
+        <ion-card class="section-card">
+          <div class="section-title">Budget Details</div>
 
-        <div class="form-group">
-          <label>Description</label>
-          <ion-textarea
-            placeholder="Enter jar description"
-            [(ngModel)]="editDescription"
-            name="editDescription"
-            rows="4"
-          ></ion-textarea>
-        </div>
+          <div class="field">
+            <div class="field-label">CATEGORY</div>
+            <ion-item lines="none" class="text-item">
+              <ion-select
+                interface="action-sheet"
+                [interfaceOptions]="categorySelectInterfaceOptions"
+                placeholder="Select category or sub category"
+                [(ngModel)]="selectedBudgetCategoryValue"
+                name="selectedBudgetCategoryValue"
+                required
+              >
+                <ion-select-option
+                  *ngFor="let option of budgetCategoryOptions"
+                  [value]="option.value"
+                >
+                  {{ option.treeLabel }}
+                </ion-select-option>
+              </ion-select>
+            </ion-item>
+          </div>
 
-        <div class="form-actions">
-          <ion-button fill="clear" (click)="closeEditJar()" expand="block">Cancel</ion-button>
-          <ion-button type="submit" expand="block" [disabled]="!editName">Update Budget</ion-button>
-        </div>
+          <div class="field">
+            <div class="field-label">AMOUNT</div>
+            <div class="amount-block">
+              <div class="amount-input-row">
+                <div class="currency">₫</div>
+                <ion-input
+                  type="text"
+                  inputmode="numeric"
+                  placeholder="0"
+                  [(ngModel)]="editBudgetAmount"
+                  (ngModelChange)="onEditBudgetAmountChange($event)"
+                  (ionBlur)="onEditBudgetAmountBlur()"
+                  name="editBudgetAmount"
+                  required
+                ></ion-input>
+              </div>
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="field-label">DATE</div>
+            <ion-item lines="none" class="text-item">
+              <ion-select
+                interface="action-sheet"
+                [(ngModel)]="editBudgetPeriod"
+                name="editBudgetPeriod"
+                [placeholder]="selectedPeriodLabel"
+              >
+                <ion-select-option
+                  *ngFor="let period of budgetPeriodOptions"
+                  [value]="period"
+                >
+                  {{ getPeriodOptionLabel(period) }}
+                </ion-select-option>
+              </ion-select>
+            </ion-item>
+          </div>
+        </ion-card>
+
+        <ion-card class="receipt-card">
+          <ion-item lines="none">
+            <ion-label>Repeat this budget</ion-label>
+            <ion-toggle slot="end" [(ngModel)]="editRepeatThisBudget" name="editRepeatThisBudget"></ion-toggle>
+          </ion-item>
+        </ion-card>
+
+        <ion-button
+          expand="block"
+          class="save-button"
+          type="submit"
+          [disabled]="!canUpdateJar"
+        >
+          Update Budget
+        </ion-button>
       </form>
     </ion-content>
   </ng-template>

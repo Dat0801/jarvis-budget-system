@@ -1,176 +1,89 @@
-<ion-header [translucent]="true" class="app-header">
+<ion-header [translucent]="true" class="transaction-header">
   <ion-toolbar>
-    <ion-title>Spending Analytics</ion-title>
+    <ion-buttons slot="start">
+      <ion-button fill="clear" routerLink="/tabs/dashboard" aria-label="Back to Home">
+        <ion-icon name="chevron-back-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Transactions</ion-title>
     <ion-buttons slot="end">
-      <ion-menu-button></ion-menu-button>
+      <ion-button fill="clear" aria-label="Search transactions">
+        <ion-icon name="search-outline"></ion-icon>
+      </ion-button>
     </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="app-content" [fullscreen]="false">
-  <div class="stats-container page-shell">
-    <!-- Loading spinner -->
-    <ion-spinner *ngIf="isLoading" name="crescent" class="spinner"></ion-spinner>
-
-    <!-- Error message -->
-    <ion-card *ngIf="error" color="danger">
-      <ion-card-content>
-        {{ error }}
-      </ion-card-content>
-    </ion-card>
-
-    <!-- Month selector -->
-    <ion-card class="month-selector-card">
-      <ion-item>
-        <ion-label position="floating">Select Month</ion-label>
-        <ion-input 
-          type="month" 
-          [value]="selectedMonth" 
-          (ionChange)="onMonthChange($event)">
-        </ion-input>
-      </ion-item>
-    </ion-card>
-
-    <!-- Total spent section -->
-    <ion-card class="total-spent-card" *ngIf="spendingData">
-      <ion-card-content>
-        <div class="donut-chart-container">
-          <svg class="donut-chart" viewBox="0 0 120 120">
-            <!-- Donut chart will be rendered here -->
-            <ng-container *ngFor="let item of getJarChartData(); let i = index">
-              <circle 
-                *ngIf="item.value > 0"
-                [attr.cx]="60" 
-                [attr.cy]="60" 
-                [attr.r]="40"
-                [attr.fill]="'none'"
-                [attr.stroke]="item.color"
-                [attr.stroke-width]="15"
-                [attr.stroke-dasharray]="(item.percentage * 2.51) + ' 251'"
-                [attr.stroke-dashoffset]="getDonutSegmentOffset(i)"
-                [attr.stroke-linecap]="'round'"
-                class="donut-segment"
-              />
-            </ng-container>
-          </svg>
-          <div class="donut-center">
-            <div class="label">TOTAL SPENT</div>
-            <div class="amount">{{ formatCurrency(spendingData.total_spent) }}</div>
-          </div>
-        </div>
-      </ion-card-content>
-    </ion-card>
-
-    <!-- Budget breakdown section -->
-    <div class="jar-breakdown">
-      <div class="section-header">
-        <h3>Budget Breakdown</h3>
-        <a href="#view-all" class="view-all" (click)="openReportsModal(); $event.preventDefault()">VIEW ALL</a>
+<ion-content class="transaction-content" [fullscreen]="false">
+  <section class="summary-card" *ngIf="!isLoading && !error">
+    <div class="summary-head">
+      <div>
+        <p class="summary-label">Total Balance</p>
+        <h2>{{ formatSignedCurrency(totalBalance) }}</h2>
+        <p class="summary-delta" [class.positive]="monthDeltaPercent >= 0" [class.negative]="monthDeltaPercent < 0">
+          {{ monthDeltaPercent >= 0 ? '↗' : '↘' }}
+          {{ monthDeltaPercent >= 0 ? '+' : '' }}{{ monthDeltaPercent }}% vs last month
+        </p>
       </div>
-
-      <ion-card *ngFor="let jar of spendingData?.expenses_by_budget">
-        <ion-card-content class="jar-item">
-          <div class="jar-info">
-            <div class="color-dot" [style.backgroundColor]="jar.budget_color"></div>
-            <div class="jar-details">
-              <h4>{{ jar.budget_name }}</h4>
-              <p class="jar-description">
-                <!-- Categories example - can be customized -->
-                {{ jar.budget_name === 'Essential Budget' ? 'Rent, Utilities, Food' :
-                   jar.budget_name === 'Wants Budget' ? 'Entertainment, Dining' :
-                   jar.budget_name === 'Education Budget' ? 'Books, Courses' : 'Miscellaneous' }}
-              </p>
-            </div>
-          </div>
-          <div class="jar-right">
-            <div class="amount">{{ formatCurrency(jar.amount) }}</div>
-            <div class="percentage" [style.color]="jar.budget_color">{{ jar.percentage }}%</div>
-          </div>
-        </ion-card-content>
-      </ion-card>
+      <ion-button size="small" (click)="openReportsModal()">View Report</ion-button>
     </div>
 
-    <!-- Income vs Expenses chart -->
-    <div class="income-vs-expenses" *ngIf="incomeVsExpensesData">
-      <div class="section-header">
-        <h3>Income vs Expenses</h3>
-        <span class="period">Last 6 Months</span>
-      </div>
-
-      <ion-card>
-        <ion-card-content class="chart-container">
-          <div class="bar-chart">
-            <div class="bars-wrapper">
-              <ng-container *ngFor="let month of chartLabels; let i = index">
-                <div class="bar-group">
-                  <div class="bar-wrapper">
-                    <div class="bar income-bar" 
-                         [style.height]="(incomeData[i] / 3000 * 100) + '%'"
-                         [title]="formatCurrency(incomeData[i])">
-                    </div>
-                    <div class="bar expense-bar" 
-                         [style.height]="(expenseData[i] / 3000 * 100) + '%'"
-                         [title]="formatCurrency(expenseData[i])">
-                    </div>
-                  </div>
-                  <label>{{ month }}</label>
-                </div>
-              </ng-container>
-            </div>
-          </div>
-
-          <div class="chart-legend">
-            <div class="legend-item">
-              <div class="legend-color income"></div>
-              <span>INCOME</span>
-            </div>
-            <div class="legend-item">
-              <div class="legend-color expense"></div>
-              <span>EXPENSES</span>
-            </div>
-          </div>
-        </ion-card-content>
-      </ion-card>
+    <div class="summary-grid">
+      <article class="summary-item inflow">
+        <p>↓ INFLOW</p>
+        <h3>{{ formatCurrency(inflowTotal) }}</h3>
+      </article>
+      <article class="summary-item outflow">
+        <p>↑ OUTFLOW</p>
+        <h3>{{ formatCurrency(outflowTotal) }}</h3>
+      </article>
     </div>
+  </section>
 
-    <!-- Summary section -->
-    <ion-card *ngIf="summary" class="summary-card">
-      <ion-card-content>
-        <div class="summary-grid">
-          <div class="summary-item">
-            <label>Total Income</label>
-            <div class="value income">{{ formatCurrency(summary.total_income) }}</div>
-          </div>
-          <div class="summary-item">
-            <label>Total Expenses</label>
-            <div class="value expense">{{ formatCurrency(summary.total_expenses) }}</div>
-          </div>
-          <div class="summary-item">
-            <label>Balance</label>
-            <div class="value" [ngClass]="{ 'positive': summary.balance >= 0, 'negative': summary.balance < 0 }">
-              {{ formatCurrency(summary.balance) }}
-            </div>
-          </div>
-        </div>
-      </ion-card-content>
-    </ion-card>
-
-    <ion-card *ngIf="monthlyReports.length > 0" class="summary-card">
-      <ion-card-content>
-        <div class="section-header">
-          <h3>Monthly Reports</h3>
-        </div>
-        <ion-list lines="none">
-          <ion-item *ngFor="let report of monthlyReports | slice:0:6">
-            <ion-label>
-              <h3>{{ formatMonth(report.month) }}</h3>
-              <p>Income: {{ formatCurrency(+report.total_income) }} • Expenses: {{ formatCurrency(+report.total_expenses) }}</p>
-            </ion-label>
-          </ion-item>
-        </ion-list>
-      </ion-card-content>
-    </ion-card>
+  <div class="state-wrap" *ngIf="isLoading">
+    <ion-spinner name="crescent"></ion-spinner>
   </div>
+
+  <ion-card color="danger" *ngIf="error">
+    <ion-card-content>{{ error }}</ion-card-content>
+  </ion-card>
+
+  <section class="transactions-list" *ngIf="!isLoading && !error">
+    <ng-container *ngFor="let group of groupedTransactions; trackBy: trackByGroup">
+      <ion-list lines="none">
+        <ion-item *ngFor="let transaction of group.items; trackBy: trackByTransaction">
+          <div
+            slot="start"
+            class="icon-box"
+            [class.income]="transaction.type === 'income'"
+            [class.expense]="transaction.type === 'expense'"
+          >
+            <ion-icon [name]="transaction.icon"></ion-icon>
+          </div>
+
+          <ion-label>
+            <h3>{{ transaction.title }}</h3>
+            <p>{{ transaction.subtitle }}</p>
+          </ion-label>
+
+          <p
+            class="amount"
+            [class.income]="transaction.type === 'income'"
+            [class.expense]="transaction.type === 'expense'"
+            [style.color]="transaction.type === 'income' ? '#16a34a' : '#e23a3d'"
+          >
+            <span class="amount-sign">{{ getAmountPrefix(transaction.type) }}</span>{{ formatCurrency(transaction.amount) }}
+          </p>
+        </ion-item>
+      </ion-list>
+    </ng-container>
+  </section>
+
+  <ion-fab slot="fixed" vertical="bottom" horizontal="end">
+    <ion-fab-button routerLink="/income">
+      <ion-icon name="add"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
 </ion-content>
 
 <ion-modal [isOpen]="isReportsModalOpen" (didDismiss)="closeReportsModal()">
@@ -187,7 +100,7 @@
       <ion-list lines="full">
         <ion-item *ngFor="let report of monthlyReports">
           <ion-label>
-            <h3>{{ formatMonth(report.month) }}</h3>
+            <h3>{{ formatReportMonth(report.month) }}</h3>
             <p>Income: {{ formatCurrency(+report.total_income) }}</p>
             <p>Expenses: {{ formatCurrency(+report.total_expenses) }}</p>
           </ion-label>

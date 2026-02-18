@@ -12,8 +12,13 @@ const routes: Routes = [
         loadChildren: () => import('../pages/dashboard/dashboard.module').then(m => m.DashboardPageModule)
       },
       {
-        path: 'stats',
+        path: 'transactions',
         loadChildren: () => import('../tab2/tab2.module').then(m => m.Tab2PageModule)
+      },
+      {
+        path: 'stats',
+        redirectTo: 'transactions',
+        pathMatch: 'full'
       },
       {
         path: 'notes',
@@ -26,6 +31,10 @@ const routes: Routes = [
       {
         path: 'settings',
         loadChildren: () => import('../tab3/tab3.module').then(m => m.Tab3PageModule)
+      },
+      {
+        path: 'categories',
+        loadChildren: () => import('../pages/categories/categories.module').then(m => m.CategoriesPageModule)
       },
       {
         path: '',

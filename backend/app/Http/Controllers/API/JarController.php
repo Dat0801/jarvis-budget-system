@@ -26,15 +26,25 @@ class JarController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => 'nullable|string|max:255|required_without:category',
+            'category' => 'nullable|string|max:255|required_without:name',
             'description' => 'nullable|string',
             'balance' => 'nullable|numeric|min:0',
+            'amount' => 'nullable|numeric|min:0',
+            'budget_date' => 'nullable|date',
+            'repeat_this_budget' => 'sometimes|boolean',
         ]);
 
+        $resolvedName = $data['name'] ?? $data['category'];
+        $resolvedBalance = $data['amount'] ?? ($data['balance'] ?? 0);
+
         $jar = $request->user()->jars()->create([
-            'name' => $data['name'],
+            'name' => $resolvedName,
+            'category' => $data['category'] ?? $resolvedName,
             'description' => $data['description'] ?? null,
-            'balance' => $data['balance'] ?? 0,
+            'balance' => $resolvedBalance,
+            'budget_date' => $data['budget_date'] ?? null,
+            'repeat_this_budget' => $data['repeat_this_budget'] ?? false,
         ]);
 
         return response()->json($jar, 201);
@@ -46,8 +56,22 @@ class JarController extends Controller
 
         $data = $request->validate([
             'name' => 'sometimes|required|string|max:255',
+            'category' => 'sometimes|nullable|string|max:255',
             'description' => 'nullable|string',
+            'balance' => 'sometimes|numeric|min:0',
+            'amount' => 'sometimes|numeric|min:0',
+            'budget_date' => 'sometimes|nullable|date',
+            'repeat_this_budget' => 'sometimes|boolean',
         ]);
+
+        if (array_key_exists('amount', $data)) {
+            $data['balance'] = $data['amount'];
+            unset($data['amount']);
+        }
+
+        if (array_key_exists('category', $data) && !array_key_exists('name', $data) && !empty($data['category'])) {
+            $data['name'] = $data['category'];
+        }
 
         $jar->update($data);
 

@@ -287,6 +287,10 @@ export class Tab3Page implements OnInit {
     await alert.present();
   }
 
+  openCategories() {
+    this.router.navigate(['/tabs/categories']);
+  }
+
   async logout() {
     const alert = await this.alertController.create({
       header: 'Log Out',

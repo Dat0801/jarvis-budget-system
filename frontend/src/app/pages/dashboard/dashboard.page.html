@@ -9,14 +9,7 @@
 
 <ion-content [fullscreen]="false" class="dashboard app-content">
   <div class="page page-shell">
-    <div class="month-summary-card">
-      <div class="section-top-row">
-        <div class="small-label">{{ monthLabel }}</div>
-        <ion-icon name="calendar-outline"></ion-icon>
-      </div>
-      <div class="big-title">Total transactions</div>
-      <div class="total-value">{{ monthlyTransactionTotal | currency:selectedCurrencyCode:'symbol':'1.0-0' }}</div>
-
+    <div class="home-actions-row">
       <ion-searchbar
         class="tx-search"
         mode="ios"
@@ -25,6 +18,24 @@
         (ionInput)="onSearchChange($event)"
         show-clear-button="focus"
       ></ion-searchbar>
+
+      <button class="notification-btn" type="button" (click)="openNotifications()" aria-label="Notifications">
+        <ion-icon name="notifications-outline"></ion-icon>
+        <span class="notification-badge" *ngIf="notificationCount > 0">{{ notificationCount }}</span>
+      </button>
+    </div>
+
+    <div class="month-summary-card">
+      <div class="section-top-row">
+        <div class="small-label">Total Balance</div>
+        <ion-icon name="wallet-outline"></ion-icon>
+      </div>
+      <div class="total-value">{{ totalWalletBalance | currency:selectedCurrencyCode:'symbol':'1.0-0' }}</div>
+
+      <div class="month-inline-summary">
+        <span>{{ monthLabel }}</span>
+        <span>{{ monthlyTransactionTotal | currency:selectedCurrencyCode:'symbol':'1.0-0' }} transactions</span>
+      </div>
     </div>
 
     <div class="section-header">
@@ -50,26 +61,80 @@
     </ng-template>
 
     <div class="section-header">
+      <div class="section-title">Top spending</div>
+    </div>
+
+    <div class="spending-tabs">
+      <button
+        type="button"
+        class="spending-tab"
+        [class.active]="selectedSpendingTab === 'week'"
+        (click)="selectSpendingTab('week')"
+      >
+        Week
+      </button>
+      <button
+        type="button"
+        class="spending-tab"
+        [class.active]="selectedSpendingTab === 'month'"
+        (click)="selectSpendingTab('month')"
+      >
+        Month
+      </button>
+    </div>
+
+    <div class="top-spending-grid">
+      <div class="spending-card" *ngIf="selectedSpendingTab === 'week'; else monthSpending">
+        <div class="spending-label">This week</div>
+        <div class="spending-title">{{ weeklyTopSpending.title }}</div>
+        <div class="spending-value">{{ weeklyTopSpending.amount | currency:selectedCurrencyCode:'symbol':'1.0-0' }}</div>
+      </div>
+
+      <ng-template #monthSpending>
+        <div class="spending-card">
+          <div class="spending-label">This month</div>
+          <div class="spending-title">{{ monthlyTopSpending.title }}</div>
+          <div class="spending-value">{{ monthlyTopSpending.amount | currency:selectedCurrencyCode:'symbol':'1.0-0' }}</div>
+        </div>
+      </ng-template>
+    </div>
+
+    <div class="section-header">
       <div class="section-title">Report this month</div>
     </div>
 
     <div class="report-card">
-      <div class="report-chart">
-        <div class="report-group">
-          <div class="bar-track">
-            <span class="bar income" [style.height.%]="incomeBarHeight"></span>
-          </div>
-          <div class="bar-label">Income</div>
-          <div class="bar-value">{{ monthlyIncomeTotal | currency:selectedCurrencyCode:'symbol':'1.0-0' }}</div>
-        </div>
+      <div class="report-chart-line">
+        <svg viewBox="0 0 300 160" preserveAspectRatio="none">
+          <g class="grid-lines">
+            <line x1="16" y1="20" x2="284" y2="20"></line>
+            <line x1="16" y1="80" x2="284" y2="80"></line>
+            <line x1="16" y1="140" x2="284" y2="140"></line>
+          </g>
 
-        <div class="report-group">
-          <div class="bar-track">
-            <span class="bar expense" [style.height.%]="expenseBarHeight"></span>
-          </div>
-          <div class="bar-label">Spent</div>
-          <div class="bar-value">{{ monthlyExpenseTotal | currency:selectedCurrencyCode:'symbol':'1.0-0' }}</div>
+          <path class="income-line" [attr.d]="incomePath"></path>
+          <path class="expense-line" [attr.d]="expensePath"></path>
+
+          <polyline class="income-points" [attr.points]="incomePoints"></polyline>
+          <polyline class="expense-points" [attr.points]="expensePoints"></polyline>
+        </svg>
+      </div>
+
+      <div class="chart-legend">
+        <div class="legend-item">
+          <span class="legend-dot income"></span>
+          <span>Income</span>
+          <strong>{{ monthlyIncomeTotal | currency:selectedCurrencyCode:'symbol':'1.0-0' }}</strong>
         </div>
+        <div class="legend-item">
+          <span class="legend-dot expense"></span>
+          <span>Expense</span>
+          <strong>{{ monthlyExpenseTotal | currency:selectedCurrencyCode:'symbol':'1.0-0' }}</strong>
+        </div>
+      </div>
+
+      <div class="chart-labels" *ngIf="reportLabels.length > 0">
+        <span *ngFor="let label of reportLabels">{{ label }}</span>
       </div>
     </div>
 
