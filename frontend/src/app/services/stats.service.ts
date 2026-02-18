@@ -29,6 +29,21 @@ export interface Summary {
   balance: number;
 }
 
+export interface MonthlyReport {
+  id: number;
+  month: string;
+  total_income: string;
+  total_expenses: string;
+  generated_at: string | null;
+}
+
+export interface PaginatedMonthlyReports {
+  data: MonthlyReport[];
+  current_page: number;
+  last_page: number;
+  total: number;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -49,5 +64,9 @@ export class StatsService {
 
   getSummary(): Observable<Summary> {
     return this.api.get<Summary>('/stats/summary');
+  }
+
+  getMonthlyReports(): Observable<PaginatedMonthlyReports> {
+    return this.api.get<PaginatedMonthlyReports>('/reports/monthly');
   }
 }

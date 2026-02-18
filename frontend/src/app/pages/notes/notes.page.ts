@@ -17,17 +17,20 @@ export class NotesPage implements OnInit, OnDestroy {
   allNotes: Note[] = [];
   selectedTab: 'all' | 'reminders' | 'archived' = 'all';
   searchTerm: string = '';
+  isCreateNoteOpen = false;
+  newTitle = '';
+  newBody = '';
+  newReminderDate = '';
+  isSubmitting = false;
 
   constructor(private noteService: NoteService, private fabService: FabService) {}
 
   ngOnInit(): void {
     this.loadNotes();
-    // Show the global FAB with the openNewNoteModal action
     this.fabService.showFab(() => this.openNewNoteModal(), 'add');
   }
 
   ngOnDestroy(): void {
-    // Hide the global FAB when leaving this page
     this.fabService.hideFab();
   }
 
@@ -85,7 +88,47 @@ export class NotesPage implements OnInit, OnDestroy {
   }
 
   openNewNoteModal(): void {
-    // TODO: Implement modal for creating new note
-    console.log('Open new note modal');
+    this.isCreateNoteOpen = true;
+  }
+
+  closeNewNoteModal(): void {
+    this.isCreateNoteOpen = false;
+    this.newTitle = '';
+    this.newBody = '';
+    this.newReminderDate = '';
+    this.isSubmitting = false;
+  }
+
+  submitNewNote(): void {
+    const title = this.newTitle.trim();
+    if (!title || this.isSubmitting) {
+      return;
+    }
+
+    this.isSubmitting = true;
+
+    this.noteService.create({
+      title,
+      body: this.newBody.trim() || undefined,
+      reminder_date: this.newReminderDate || undefined,
+    }).subscribe({
+      next: () => {
+        this.closeNewNoteModal();
+        this.loadNotes();
+      },
+      error: () => {
+        this.isSubmitting = false;
+      }
+    });
+  }
+
+  toggleCompleted(note: Note): void {
+    this.noteService.update(note.id, {
+      is_completed: !note.is_completed,
+    }).subscribe(() => this.loadNotes());
+  }
+
+  deleteNote(note: Note): void {
+    this.noteService.remove(note.id).subscribe(() => this.loadNotes());
   }
 }

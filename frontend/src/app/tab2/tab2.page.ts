@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { StatsService, SpendingAnalytics, IncomeVsExpenses, Summary } from '../services/stats.service';
+import { StatsService, SpendingAnalytics, IncomeVsExpenses, Summary, MonthlyReport } from '../services/stats.service';
 
 @Component({
   selector: 'app-tab2',
@@ -11,6 +11,7 @@ export class Tab2Page implements OnInit {
   spendingData: SpendingAnalytics | null = null;
   incomeVsExpensesData: IncomeVsExpenses | null = null;
   summary: Summary | null = null;
+  monthlyReports: MonthlyReport[] = [];
   
   selectedMonth: string = '';
   isLoading = true;
@@ -67,6 +68,15 @@ export class Tab2Page implements OnInit {
         console.error('Error loading summary:', err);
       }
     });
+
+    this.statsService.getMonthlyReports().subscribe({
+      next: (response) => {
+        this.monthlyReports = response.data || [];
+      },
+      error: (err) => {
+        console.error('Error loading monthly reports:', err);
+      }
+    });
   }
 
   onMonthChange(event: any) {
@@ -98,5 +108,13 @@ export class Tab2Page implements OnInit {
       style: 'currency',
       currency: 'USD'
     }).format(value);
+  }
+
+  formatMonth(value: string): string {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+    return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
   }
 }

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\API\AuthController;
+use App\Http\Controllers\API\AccountController;
 use App\Http\Controllers\API\ExpenseController;
 use App\Http\Controllers\API\IncomeController;
 use App\Http\Controllers\API\JarController;
@@ -12,10 +13,12 @@ Route::prefix('auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:api');
+    Route::get('/me', [AuthController::class, 'me'])->middleware('auth:api');
 });
 
 Route::middleware('auth:api')->group(function () {
     Route::get('/jars', [JarController::class, 'index']);
+    Route::get('/jars/{jar}', [JarController::class, 'show']);
     Route::post('/jars', [JarController::class, 'store']);
     Route::get('/jars/{jar}/transactions', [JarController::class, 'getTransactions']);
     Route::post('/jars/{jar}/add-money', [JarController::class, 'addMoney']);
@@ -42,4 +45,7 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/stats/spending', [StatsController::class, 'getSpendingAnalytics']);
     Route::get('/stats/income-vs-expenses', [StatsController::class, 'getIncomeVsExpenses']);
     Route::get('/stats/summary', [StatsController::class, 'getSummary']);
+    Route::get('/reports/monthly', [StatsController::class, 'getMonthlyReports']);
+
+    Route::post('/account/reset-data', [AccountController::class, 'resetData']);
 });

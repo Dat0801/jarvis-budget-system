@@ -154,5 +154,21 @@
         </div>
       </ion-card-content>
     </ion-card>
+
+    <ion-card *ngIf="monthlyReports.length > 0" class="summary-card">
+      <ion-card-content>
+        <div class="section-header">
+          <h3>Monthly Reports</h3>
+        </div>
+        <ion-list lines="none">
+          <ion-item *ngFor="let report of monthlyReports | slice:0:6">
+            <ion-label>
+              <h3>{{ formatMonth(report.month) }}</h3>
+              <p>Income: {{ formatCurrency(+report.total_income) }} • Expenses: {{ formatCurrency(+report.total_expenses) }}</p>
+            </ion-label>
+          </ion-item>
+        </ion-list>
+      </ion-card-content>
+    </ion-card>
   </div>
 </ion-content>

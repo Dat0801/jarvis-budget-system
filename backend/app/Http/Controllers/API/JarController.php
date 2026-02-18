@@ -13,6 +13,13 @@ class JarController extends Controller
         return response()->json($request->user()->jars()->latest()->get());
     }
 
+    public function show(Request $request, Jar $jar)
+    {
+        $this->authorizeJar($request, $jar);
+
+        return response()->json($jar);
+    }
+
     public function store(Request $request)
     {
         $data = $request->validate([

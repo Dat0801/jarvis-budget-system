@@ -19,6 +19,7 @@ class NoteController extends Controller
             'title' => 'required|string|max:255',
             'body' => 'nullable|string',
             'reminder_date' => 'nullable|date',
+            'is_completed' => 'nullable|boolean',
         ]);
 
         $note = $request->user()->notes()->create($data);
@@ -35,6 +36,7 @@ class NoteController extends Controller
             'body' => 'nullable|string',
             'reminder_date' => 'nullable|date',
             'is_notified' => 'nullable|boolean',
+            'is_completed' => 'nullable|boolean',
         ]);
 
         $note->update($data);

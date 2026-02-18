@@ -26,12 +26,12 @@
     <h2 class="section-title">ACCOUNT SETTINGS</h2>
     
     <ion-list class="settings-list">
-      <ion-item button detail routerLink="/edit-profile" class="setting-item">
+      <ion-item button detail (click)="openUnavailableFeature('Edit Profile')" class="setting-item">
         <ion-icon name="person-circle" slot="start" color="primary"></ion-icon>
         <ion-label>Edit Profile</ion-label>
       </ion-item>
       
-      <ion-item button detail routerLink="/security" class="setting-item">
+      <ion-item button detail (click)="openUnavailableFeature('Security')" class="setting-item">
         <ion-icon name="shield-checkmark" slot="start" color="primary"></ion-icon>
         <ion-label>Security</ion-label>
       </ion-item>
@@ -77,12 +77,12 @@
     <h2 class="section-title">SUPPORT</h2>
     
     <ion-list class="settings-list">
-      <ion-item button detail routerLink="/help" class="setting-item">
+      <ion-item button detail (click)="openUnavailableFeature('Help Center')" class="setting-item">
         <ion-icon name="help-circle" slot="start" color="primary"></ion-icon>
         <ion-label>Help Center</ion-label>
       </ion-item>
       
-      <ion-item button detail routerLink="/about" class="setting-item">
+      <ion-item button detail (click)="openUnavailableFeature('About Jarvis')" class="setting-item">
         <ion-icon name="information-circle" slot="start" color="primary"></ion-icon>
         <ion-label>About Jarvis</ion-label>
       </ion-item>

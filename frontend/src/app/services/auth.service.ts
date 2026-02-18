@@ -10,6 +10,13 @@ interface AuthResponse {
   expires_in: number;
 }
 
+export interface CurrentUser {
+  id: number;
+  name: string;
+  email: string;
+  role?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly tokenKey = 'auth_token';
@@ -36,6 +43,10 @@ export class AuthService {
     return this.api.post<{ message: string }>('auth/logout', {}).pipe(
       tap(() => this.clearToken())
     );
+  }
+
+  me() {
+    return this.api.get<CurrentUser>('auth/me');
   }
 
   async setToken(token: string): Promise<void> {

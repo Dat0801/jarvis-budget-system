@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Models\Expense;
 use App\Models\Income;
+use App\Models\MonthlyReport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
@@ -126,5 +127,20 @@ class StatsController extends Controller
             'total_expenses' => round($totalExpense, 2),
             'balance' => round($balance, 2),
         ]);
+    }
+
+    /**
+     * Get generated monthly reports
+     */
+    public function getMonthlyReports()
+    {
+        $user = Auth::user();
+
+        $reports = MonthlyReport::query()
+            ->where('user_id', $user->id)
+            ->orderByDesc('month')
+            ->paginate(12);
+
+        return response()->json($reports);
     }
 }

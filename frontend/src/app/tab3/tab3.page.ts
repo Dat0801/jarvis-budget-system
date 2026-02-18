@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { AlertController, ToastController } from '@ionic/angular';
 import { AuthService } from '../services/auth.service';
+import { AccountService } from '../services/account.service';
 
 @Component({
   selector: 'app-tab3',
@@ -19,6 +20,7 @@ export class Tab3Page implements OnInit {
   constructor(
     private router: Router,
     private authService: AuthService,
+    private accountService: AccountService,
     private alertController: AlertController,
     private toastController: ToastController
   ) {}
@@ -29,10 +31,16 @@ export class Tab3Page implements OnInit {
   }
 
   loadUserData() {
-    // Load user information from service/API
-    // This is placeholder data - replace with actual API calls
-    this.userName = 'Minh';
-    this.userEmail = 'minh@jarvis.finance';
+    this.authService.me().subscribe({
+      next: (user) => {
+        this.userName = user.name;
+        this.userEmail = user.email;
+      },
+      error: () => {
+        this.userName = 'User';
+        this.userEmail = 'unknown@jarvis.finance';
+      }
+    });
   }
 
   loadPreferences() {
@@ -171,13 +179,19 @@ export class Tab3Page implements OnInit {
           text: 'Reset',
           role: 'destructive',
           handler: () => {
-            // Call API to reset jars data
-            this.showToast('Jars data reset successfully');
+            this.accountService.resetData().subscribe({
+              next: () => this.showToast('Jars data reset successfully'),
+              error: () => this.showToast('Failed to reset jars data'),
+            });
           }
         }
       ]
     });
     await alert.present();
+  }
+
+  openUnavailableFeature(name: string) {
+    this.showToast(`${name} will be available soon`);
   }
 
   async logout() {

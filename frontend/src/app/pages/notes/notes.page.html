@@ -57,8 +57,11 @@
       <div class="note-title">{{ note.title }}</div>
       <div class="note-body">{{ note.body || 'No details added yet.' }}</div>
       <div class="note-actions">
-        <ion-button fill="clear" size="small">
-          <ion-icon name="ellipsis-vertical" aria-hidden="true"></ion-icon>
+        <ion-button fill="clear" size="small" (click)="toggleCompleted(note)">
+          <ion-icon [name]="note.is_completed ? 'refresh-outline' : 'checkmark-done-outline'" aria-hidden="true"></ion-icon>
+        </ion-button>
+        <ion-button fill="clear" color="danger" size="small" (click)="deleteNote(note)">
+          <ion-icon name="trash-outline" aria-hidden="true"></ion-icon>
         </ion-button>
       </div>
     </div>
@@ -70,4 +73,43 @@
   </div>
 </div>
 </ion-content>
+
+<ion-modal [isOpen]="isCreateNoteOpen" (didDismiss)="closeNewNoteModal()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>New Note</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closeNewNoteModal()">Close</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+
+    <ion-content class="ion-padding">
+      <ion-item>
+        <ion-label position="stacked">Title</ion-label>
+        <ion-input [(ngModel)]="newTitle"></ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="stacked">Details</ion-label>
+        <ion-textarea rows="4" [(ngModel)]="newBody"></ion-textarea>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="stacked">Reminder Date</ion-label>
+        <ion-input type="date" [(ngModel)]="newReminderDate"></ion-input>
+      </ion-item>
+
+      <ion-button
+        expand="block"
+        class="ion-margin-top"
+        [disabled]="!newTitle.trim() || isSubmitting"
+        (click)="submitNewNote()"
+      >
+        Create Note
+      </ion-button>
+    </ion-content>
+  </ng-template>
+</ion-modal>
 
