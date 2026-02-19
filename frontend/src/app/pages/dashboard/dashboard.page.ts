@@ -4,8 +4,8 @@ import { Router } from '@angular/router';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
-import { catchError, forkJoin, of } from 'rxjs';
-import { BudgetService, Budget } from '../../services/budget.service';
+import { catchError, finalize, forkJoin, of } from 'rxjs';
+import { Budget } from '../../services/budget.service';
 import { ExpenseService } from '../../services/expense.service';
 import { IncomeService } from '../../services/income.service';
 import { NoteService } from '../../services/note.service';
@@ -44,6 +44,7 @@ export class DashboardPage implements OnInit {
   filteredTransactions: Transaction[] = [];
   searchTerm = '';
   notificationCount = 0;
+  isLoadingDashboard = false;
 
   monthLabel = '';
   monthlyTransactionTotal = 0;
@@ -63,7 +64,6 @@ export class DashboardPage implements OnInit {
 
   constructor(
     private router: Router,
-    private budgetService: BudgetService,
     private expenseService: ExpenseService,
     private incomeService: IncomeService,
     private noteService: NoteService,
@@ -108,29 +108,23 @@ export class DashboardPage implements OnInit {
   }
 
   private loadDashboardData(): void {
+    this.isLoadingDashboard = true;
     forkJoin({
-      jars: this.budgetService.list().pipe(catchError(() => of([]))),
       expensesResponse: this.expenseService.list().pipe(catchError(() => of([]))),
       incomesResponse: this.incomeService.list().pipe(catchError(() => of([]))),
-      notes: this.noteService.list().pipe(catchError(() => of([]))),
+      reminders: this.noteService.reminderCount().pipe(catchError(() => of({ count: 0 }))),
       incomeVsExpenses: this.statsService.getIncomeVsExpenses().pipe(catchError(() => of(null))),
-    }).subscribe(({ jars, expensesResponse, incomesResponse, notes, incomeVsExpenses }) => {
-      const sourceJars = Array.isArray(jars) ? jars : [];
-      this.notificationCount = Array.isArray(notes)
-        ? notes.filter((note: any) => Boolean(note?.reminder_date) && !note?.is_completed).length
-        : 0;
-
-      const jarNameById = sourceJars.reduce<Record<number, string>>((accumulator, jar) => {
-        accumulator[jar.id] = jar.name;
-        return accumulator;
-      }, {});
+    }).pipe(finalize(() => {
+      this.isLoadingDashboard = false;
+    })).subscribe(({ expensesResponse, incomesResponse, reminders, incomeVsExpenses }) => {
+      this.notificationCount = Number(reminders?.count) || 0;
 
       const expenses = this.extractList(expensesResponse).map((expense: any) => {
         const transactionDate = this.parseDate(expense.spent_at || expense.created_at);
         return {
           id: Number(expense.id),
           jarId: expense.jar_id ?? null,
-          jarName: jarNameById[Number(expense.jar_id)] || 'Wallet',
+          jarName: expense?.jar?.name || 'Wallet',
           title: expense.category || 'Expense',
           note: expense.note || '',
           timeLabel: this.formatDateLabel(transactionDate),
@@ -146,7 +140,7 @@ export class DashboardPage implements OnInit {
         return {
           id: Number(income.id),
           jarId: income.jar_id ?? null,
-          jarName: jarNameById[Number(income.jar_id)] || 'Wallet',
+          jarName: income?.jar?.name || 'Wallet',
           title: income.source || 'Income',
           note: '',
           timeLabel: this.formatDateLabel(transactionDate),

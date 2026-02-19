@@ -66,3 +66,18 @@
 		white-space: pre;
 	}
 }
+
+.loading-state {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 10px;
+	padding: 16px 12px;
+	color: #667085;
+	font-size: 13px;
+}
+
+.loading-state ion-spinner {
+	width: 18px;
+	height: 18px;
+}

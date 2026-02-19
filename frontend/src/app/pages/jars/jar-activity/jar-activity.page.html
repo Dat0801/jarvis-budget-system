@@ -11,7 +11,12 @@
 
 <ion-content class="activity-page" fullscreen="true">
   <div class="page-inner">
-    <div class="activity-list" *ngIf="transactions.length > 0">
+    <div class="loading-state" *ngIf="isLoadingTransactions">
+      <ion-spinner name="crescent"></ion-spinner>
+      <span>Loading transactions...</span>
+    </div>
+
+    <div class="activity-list" *ngIf="!isLoadingTransactions && transactions.length > 0">
       <article class="activity-item" *ngFor="let transaction of transactions">
         <div class="activity-icon" [ngClass]="'icon-' + getTransactionColor(transaction)">
           <ion-icon [name]="getTransactionIcon(transaction)"></ion-icon>
@@ -32,7 +37,7 @@
         </div>
       </article>
     </div>
-    <div class="empty-state" *ngIf="transactions.length === 0">
+    <div class="empty-state" *ngIf="!isLoadingTransactions && transactions.length === 0">
       <ion-icon name="inbox-outline"></ion-icon>
       <h3>No Activity Yet</h3>
       <p>This budget doesn't have any transactions yet</p>

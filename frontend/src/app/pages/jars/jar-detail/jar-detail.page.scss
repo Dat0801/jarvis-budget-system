@@ -105,6 +105,13 @@ ion-content.jar-detail-page {
   font-weight: 700;
 }
 
+.progress-stat.progress-stat--overspent {
+  .progress-label,
+  .progress-value {
+    color: #d92d20;
+  }
+}
+
 .progress-bar {
   width: 100%;
   height: 8px;

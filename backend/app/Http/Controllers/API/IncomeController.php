@@ -30,22 +30,21 @@ class IncomeController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'jar_id' => 'required|integer|exists:jars,id',
+            'jar_id' => 'nullable|integer|exists:jars,id',
             'amount' => 'required|numeric|min:0.01',
+            'category' => 'required_without:jar_id|nullable|string|max:255',
             'source' => 'nullable|string|max:255',
             'received_at' => 'nullable|date',
         ]);
 
-        $jar = Jar::query()
-            ->where('id', $data['jar_id'])
-            ->where('user_id', $request->user()->id)
-            ->firstOrFail();
+        $jar = $this->resolveJarForIncome($request, $data);
 
         $income = DB::transaction(function () use ($request, $data, $jar) {
             $income = Income::create([
                 'user_id' => $request->user()->id,
                 'jar_id' => $jar->id,
                 'amount' => $data['amount'],
+                'category' => $data['category'] ?? $jar->category ?? $jar->name,
                 'source' => $data['source'] ?? null,
                 'received_at' => $data['received_at'] ?? null,
             ]);
@@ -65,6 +64,7 @@ class IncomeController extends Controller
         $this->authorize($request, $income);
 
         $data = $request->validate([
+            'category' => 'sometimes|nullable|string|max:255',
             'source' => 'sometimes|nullable|string|max:255',
             'received_at' => 'sometimes|nullable|date',
         ]);
@@ -95,5 +95,41 @@ class IncomeController extends Controller
         if ($income->user_id !== $request->user()->id) {
             abort(403, 'Unauthorized');
         }
+    }
+
+    private function resolveJarForIncome(Request $request, array $data): Jar
+    {
+        if (!empty($data['jar_id'])) {
+            return Jar::query()
+                ->where('id', $data['jar_id'])
+                ->where('user_id', $request->user()->id)
+                ->firstOrFail();
+        }
+
+        $category = mb_strtolower(trim((string) ($data['category'] ?? '')));
+
+        if ($category === '') {
+            abort(422, 'Category is required for income');
+        }
+
+        $jar = Jar::query()
+            ->where('user_id', $request->user()->id)
+            ->where(function ($query) use ($category) {
+                $query
+                    ->whereRaw("LOWER(COALESCE(category, '')) = ?", [$category])
+                    ->orWhereRaw('LOWER(name) = ?', [$category]);
+            })
+            ->first();
+
+        if (!$jar) {
+            $jar = Jar::create([
+                'user_id' => $request->user()->id,
+                'name' => $data['category'],
+                'category' => $data['category'],
+                'balance' => 0,
+            ]);
+        }
+
+        return $jar;
     }
 }

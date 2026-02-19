@@ -13,7 +13,7 @@ export class ExpenseService {
     return this.api.get(`expenses/${id}`);
   }
 
-  create(payload: { jar_id: number; amount: number; category?: string; note?: string; spent_at?: string }) {
+  create(payload: { jar_id?: number; amount: number; category?: string; note?: string; spent_at?: string }) {
     return this.api.post('expenses', payload);
   }
 

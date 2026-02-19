@@ -1,7 +1,7 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
     <ion-buttons slot="start">
-      <ion-back-button defaultHref="/tabs/settings"></ion-back-button>
+      <ion-back-button [defaultHref]="backHref"></ion-back-button>
     </ion-buttons>
     <ion-title>Categories</ion-title>
   </ion-toolbar>
@@ -22,10 +22,11 @@
 
   <ion-list lines="full" class="categories-list" *ngIf="!isLoading && !loadError">
     <ng-container *ngFor="let category of categories">
-      <ion-item button detail="false" class="tree-parent" (click)="toggleCategory(category.id)">
+      <ion-item button detail="false" class="tree-parent" (click)="onCategoryClick(category.id)">
         <ion-icon slot="start" [name]="getCategoryIcon(category.icon)" class="parent-icon"></ion-icon>
         <ion-label>{{ category.name }}</ion-label>
         <ion-icon
+          *ngIf="!isSelectMode"
           slot="end"
           class="toggle-icon"
           [name]="isExpanded(category.id) ? 'chevron-down-outline' : 'chevron-forward-outline'"
@@ -34,9 +35,12 @@
 
       <ng-container *ngIf="isExpanded(category.id)">
         <ion-item
+          button
+          detail="false"
           lines="none"
           class="tree-child"
           *ngFor="let subCategory of category.children"
+          (click)="onSubCategoryClick(subCategory.id)"
         >
           <ion-icon slot="start" name="return-down-forward-outline" class="branch-icon"></ion-icon>
           <ion-icon slot="start" [name]="getCategoryIcon(subCategory.icon)" class="child-icon"></ion-icon>
@@ -46,6 +50,9 @@
     </ng-container>
   </ion-list>
 
-  <div class="status" *ngIf="isLoading">Loading {{ getCurrentTabLabel() }} categories...</div>
+  <div class="loading-state" *ngIf="isLoading">
+    <ion-spinner name="crescent"></ion-spinner>
+    <span>Loading {{ getCurrentTabLabel() }} categories...</span>
+  </div>
   <div class="status status-error" *ngIf="loadError">{{ loadError }}</div>
 </ion-content>

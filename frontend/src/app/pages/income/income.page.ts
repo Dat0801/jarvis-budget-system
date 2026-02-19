@@ -6,6 +6,7 @@ import { IonicModule } from '@ionic/angular';
 import { IncomeService } from '../../services/income.service';
 import { Budget, BudgetService } from '../../services/budget.service';
 import { formatVndAmountInput, parseVndAmount } from '../../utils/vnd-amount.util';
+import { finalize } from 'rxjs';
 
 interface IncomeItem {
   id: number;
@@ -34,8 +35,12 @@ export class IncomePage implements OnInit {
   amount = '';
   source = '';
   receivedAt = this.getTodayDate();
+  tempReceivedAt = this.getTodayDate();
   jars: Budget[] = [];
   recentIncomes: IncomeItem[] = [];
+  isLoadingIncomes = false;
+  isLoadingJars = false;
+  isDatePickerOpen = false;
   isEditOpen = false;
   editId: number | null = null;
   editSource = '';
@@ -62,8 +67,15 @@ export class IncomePage implements OnInit {
     return symbolByCurrency[this.currency];
   }
 
+  get receivedAtDisplay(): string {
+    return this.formatDateWithWeekday(this.receivedAt);
+  }
+
   loadJars(): void {
-    this.budgetService.list().subscribe((jars) => {
+    this.isLoadingJars = true;
+    this.budgetService.list().pipe(finalize(() => {
+      this.isLoadingJars = false;
+    })).subscribe((jars) => {
       this.jars = jars;
       if (!this.jarId && jars.length > 0) {
         this.jarId = jars[0].id;
@@ -101,6 +113,27 @@ export class IncomePage implements OnInit {
       });
   }
 
+  openDatePicker(): void {
+    this.tempReceivedAt = this.receivedAt || this.getTodayDate();
+    this.isDatePickerOpen = true;
+  }
+
+  closeDatePicker(): void {
+    this.isDatePickerOpen = false;
+  }
+
+  onDateValueChange(event: CustomEvent): void {
+    const value = event.detail?.value;
+    if (typeof value === 'string' && value.length > 0) {
+      this.tempReceivedAt = this.normalizeDateValue(value);
+    }
+  }
+
+  confirmDatePicker(): void {
+    this.receivedAt = this.normalizeDateValue(this.tempReceivedAt || this.getTodayDate());
+    this.closeDatePicker();
+  }
+
   onAmountInput(event: CustomEvent): void {
     this.amount = formatVndAmountInput(event.detail?.value);
   }
@@ -109,8 +142,33 @@ export class IncomePage implements OnInit {
     return new Date().toISOString().split('T')[0];
   }
 
+  private normalizeDateValue(value: string): string {
+    return value.split('T')[0];
+  }
+
+  private formatDateWithWeekday(value: string): string {
+    if (!value) {
+      return '';
+    }
+
+    const date = new Date(`${value}T00:00:00`);
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+
+    return new Intl.DateTimeFormat('en-US', {
+      weekday: 'short',
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    }).format(date);
+  }
+
   loadIncomes(): void {
-    this.incomeService.list().subscribe((response: unknown) => {
+    this.isLoadingIncomes = true;
+    this.incomeService.list().pipe(finalize(() => {
+      this.isLoadingIncomes = false;
+    })).subscribe((response: unknown) => {
       const paginated = response as PaginatedIncomeResponse;
       this.recentIncomes = (paginated.data || []).slice(0, 8);
     });

@@ -18,6 +18,10 @@ export class NoteService {
     return this.api.get<Note[]>('notes');
   }
 
+  reminderCount() {
+    return this.api.get<{ count: number }>('notes/reminders/count');
+  }
+
   create(payload: { title: string; body?: string; reminder_date?: string }) {
     return this.api.post<Note>('notes', payload);
   }

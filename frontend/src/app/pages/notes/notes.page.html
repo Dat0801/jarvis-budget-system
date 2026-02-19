@@ -47,6 +47,11 @@
 
   <!-- Notes List -->
   <div class="note-list">
+    <div class="loading-state" *ngIf="isLoadingNotes">
+      <ion-spinner name="crescent"></ion-spinner>
+      <span>Loading notes...</span>
+    </div>
+
     <div class="note-card" *ngFor="let note of notes">
       <div class="note-header">
         <span class="note-badge" [class]="getStatusBadge(note).class">
@@ -66,7 +71,7 @@
       </div>
     </div>
 
-    <div class="empty-state" *ngIf="notes.length === 0">
+    <div class="empty-state" *ngIf="!isLoadingNotes && notes.length === 0">
       <div class="empty-title">No notes yet</div>
       <div class="empty-subtitle">{{ selectedTab === 'all' ? 'Add your first financial note to get started.' : 'No notes in this category.' }}</div>
     </div>

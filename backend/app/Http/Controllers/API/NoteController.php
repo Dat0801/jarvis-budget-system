@@ -13,6 +13,19 @@ class NoteController extends Controller
         return response()->json($request->user()->notes()->latest()->get());
     }
 
+    public function reminderCount(Request $request)
+    {
+        $count = $request->user()
+            ->notes()
+            ->whereNotNull('reminder_date')
+            ->where(function ($query) {
+                $query->whereNull('is_completed')->orWhere('is_completed', false);
+            })
+            ->count();
+
+        return response()->json(['count' => $count]);
+    }
+
     public function store(Request $request)
     {
         $data = $request->validate([
