@@ -31,28 +31,21 @@ class ExpenseController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'jar_id' => 'required|integer|exists:jars,id',
+            'jar_id' => 'nullable|integer|exists:jars,id',
             'amount' => 'required|numeric|min:0.01',
-            'category' => 'nullable|string|max:255',
+            'category' => 'required_without:jar_id|nullable|string|max:255',
             'note' => 'nullable|string',
             'spent_at' => 'nullable|date',
         ]);
 
-        $jar = Jar::query()
-            ->where('id', $data['jar_id'])
-            ->where('user_id', $request->user()->id)
-            ->firstOrFail();
-
-        if ($data['amount'] > $jar->balance) {
-            return response()->json(['message' => 'Expense exceeds budget balance'], 422);
-        }
+        $jar = $this->resolveJarForExpense($request, $data);
 
         $expense = DB::transaction(function () use ($request, $data, $jar) {
             $expense = Expense::create([
                 'user_id' => $request->user()->id,
                 'jar_id' => $jar->id,
                 'amount' => $data['amount'],
-                'category' => $data['category'] ?? null,
+                'category' => $data['category'] ?? $jar->category ?? $jar->name,
                 'note' => $data['note'] ?? null,
                 'spent_at' => $data['spent_at'] ?? null,
             ]);
@@ -83,32 +76,23 @@ class ExpenseController extends Controller
             $newJarId = (int) ($data['jar_id'] ?? $expense->jar_id);
             $newAmount = (float) ($data['amount'] ?? $expense->amount);
 
+            $oldJar = Jar::query()
+                ->where('id', $expense->jar_id)
+                ->where('user_id', $request->user()->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
             $newJar = Jar::query()
                 ->where('id', $newJarId)
                 ->where('user_id', $request->user()->id)
+                ->lockForUpdate()
                 ->firstOrFail();
 
-            $oldJar = Jar::query()->lockForUpdate()->findOrFail($expense->jar_id);
-            $newJar = Jar::query()->lockForUpdate()->findOrFail($newJarId);
-
             if ($oldJar->id === $newJar->id) {
-                $available = $oldJar->balance + $expense->amount;
-                if ($newAmount > $available) {
-                    throw ValidationException::withMessages([
-                        'amount' => ['Expense exceeds budget balance'],
-                    ]);
-                }
-
                 $oldJar->update([
-                    'balance' => $available - $newAmount,
+                    'balance' => ($oldJar->balance + $expense->amount) - $newAmount,
                 ]);
             } else {
-                if ($newAmount > $newJar->balance) {
-                    throw ValidationException::withMessages([
-                        'amount' => ['Expense exceeds budget balance'],
-                    ]);
-                }
-
                 $oldJar->update([
                     'balance' => $oldJar->balance + $expense->amount,
                 ]);
@@ -147,5 +131,34 @@ class ExpenseController extends Controller
         if ($expense->user_id !== $request->user()->id) {
             abort(403, 'Unauthorized');
         }
+    }
+
+    private function resolveJarForExpense(Request $request, array $data): Jar
+    {
+        if (!empty($data['jar_id'])) {
+            return Jar::query()
+                ->where('id', $data['jar_id'])
+                ->where('user_id', $request->user()->id)
+                ->firstOrFail();
+        }
+
+        $category = mb_strtolower(trim((string) ($data['category'] ?? '')));
+
+        $jar = Jar::query()
+            ->where('user_id', $request->user()->id)
+            ->where(function ($query) use ($category) {
+                $query
+                    ->whereRaw("LOWER(COALESCE(category, '')) = ?", [$category])
+                    ->orWhereRaw('LOWER(name) = ?', [$category]);
+            })
+            ->first();
+
+        if (!$jar) {
+            throw ValidationException::withMessages([
+                'category' => ['No budget found for selected category'],
+            ]);
+        }
+
+        return $jar;
     }
 }

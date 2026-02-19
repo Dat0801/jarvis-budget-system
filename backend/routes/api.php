@@ -41,6 +41,7 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/categories/tree', [CategoryController::class, 'tree']);
 
     Route::get('/notes', [NoteController::class, 'index']);
+    Route::get('/notes/reminders/count', [NoteController::class, 'reminderCount']);
     Route::post('/notes', [NoteController::class, 'store']);
     Route::patch('/notes/{note}', [NoteController::class, 'update']);
     Route::delete('/notes/{note}', [NoteController::class, 'destroy']);

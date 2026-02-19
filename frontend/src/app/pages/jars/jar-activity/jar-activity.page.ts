@@ -3,6 +3,7 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { IonicModule } from '@ionic/angular';
 import { Budget, BudgetService, Transaction } from '../../../services/budget.service';
+import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-jar-activity',
@@ -14,6 +15,7 @@ import { Budget, BudgetService, Transaction } from '../../../services/budget.ser
 export class JarActivityPage implements OnInit {
   jar: Budget | null = null;
   transactions: Transaction[] = [];
+  isLoadingTransactions = false;
   jarId: number | null = null;
 
   constructor(
@@ -39,7 +41,10 @@ export class JarActivityPage implements OnInit {
 
   loadTransactions(): void {
     if (!this.jarId) return;
-    this.budgetService.getTransactions(this.jarId).subscribe((response) => {
+    this.isLoadingTransactions = true;
+    this.budgetService.getTransactions(this.jarId).pipe(finalize(() => {
+      this.isLoadingTransactions = false;
+    })).subscribe((response) => {
       const transactions = response.data || [];
       this.transactions = transactions.sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()

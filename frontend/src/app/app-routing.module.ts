@@ -13,8 +13,8 @@ const routes: Routes = [
   },
   {
     path: 'income',
-    canActivate: [AuthGuard],
-    loadChildren: () => import('./pages/income/income.module').then(m => m.IncomePageModule)
+    redirectTo: '/expense',
+    pathMatch: 'full'
   },
   {
     path: 'expense',

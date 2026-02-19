@@ -1,124 +1,130 @@
-<ion-header class="app-header transaction-header" [translucent]="true">
+<ion-header class="transaction-header" [translucent]="true">
   <ion-toolbar>
     <ion-buttons slot="start">
-      <ion-back-button defaultHref="/" icon="close"></ion-back-button>
+      <ion-back-button defaultHref="/tabs/transactions"></ion-back-button>
     </ion-buttons>
     <ion-title>Add Transaction</ion-title>
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="transaction-page app-content" [fullscreen]="false">
-  <form class="page-shell" (ngSubmit)="submit()">
-    <div class="segment-wrap">
-      <ion-segment [value]="segmentValue" (ionChange)="onSegmentChange($event)">
-        <ion-segment-button value="income">
-          <ion-label>Income</ion-label>
-        </ion-segment-button>
-        <ion-segment-button value="expense">
-          <ion-label>Expense</ion-label>
-        </ion-segment-button>
-      </ion-segment>
-    </div>
+<ion-content class="transaction-page" [fullscreen]="true">
+  <form class="transaction-form" (ngSubmit)="submit()">
+    <ion-segment class="transaction-tabs" [value]="segmentValue" (ionChange)="onSegmentChange($event)">
+      <ion-segment-button value="expense">
+        <ion-label>Expense</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="income">
+        <ion-label>Income</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="debtLoan">
+        <ion-label>Debt/Loan</ion-label>
+      </ion-segment-button>
+    </ion-segment>
 
-    <ion-item lines="none" class="currency-picker-item">
-      <ion-label>Currency</ion-label>
-      <ion-select [(ngModel)]="currency" name="currency" interface="popover">
-        <ion-select-option *ngFor="let option of currencyOptions" [value]="option">
-          {{ option }}
-        </ion-select-option>
-      </ion-select>
-    </ion-item>
-
-    <div class="amount-block">
-      <div class="amount-label">AMOUNT</div>
-      <div class="amount-input-row">
-        <div class="currency">{{ currencySymbol }}</div>
-        <ion-input
-          type="text"
-          inputmode="numeric"
-          placeholder="0"
-          [(ngModel)]="amount"
-          (ionInput)="onAmountInput($event)"
-          name="amount"
-          required
-        ></ion-input>
-      </div>
-    </div>
-
-    <ion-card class="section-card">
-      <div class="section-title">Select Jar</div>
-      <ion-item lines="none" class="select-item">
-        <ion-select [(ngModel)]="jarId" name="jarId" interface="popover" required>
-          <ion-select-option *ngFor="let jar of jars" [value]="jar.id">
-            {{ jar.name }}
-          </ion-select-option>
-        </ion-select>
-      </ion-item>
-
-      <div class="warning" *ngIf="showInsufficientBalance">
-        <ion-icon name="alert-circle"></ion-icon>
-        <div class="warning-text">
-          <div class="warning-title">Insufficient Balance</div>
-          <div>This expense exceeds the current budget balance ({{ remainingBalanceText }} left).</div>
+    <ion-list lines="full" class="form-list">
+      <ion-item>
+        <ion-label position="stacked">Amount</ion-label>
+        <div class="amount-inline">
+          <ion-select class="amount-currency-select" [(ngModel)]="currency" name="currency" interface="popover">
+            <ion-select-option *ngFor="let option of currencyOptions" [value]="option">
+              {{ option }}
+            </ion-select-option>
+          </ion-select>
+          <ion-input
+            type="text"
+            inputmode="numeric"
+            placeholder="0"
+            [(ngModel)]="amount"
+            (ngModelChange)="onAmountChange($event)"
+            (ionBlur)="onAmountBlur()"
+            name="amount"
+            required
+          ></ion-input>
         </div>
-      </div>
-
-      <div class="field">
-        <div class="field-label">DATE</div>
-        <ion-item lines="none" class="date-item">
-          <ion-icon slot="start" name="calendar-outline"></ion-icon>
-          <ion-input type="date" [(ngModel)]="spentAt" name="spentAt"></ion-input>
-          <ion-icon slot="end" name="calendar-outline"></ion-icon>
-        </ion-item>
-      </div>
-
-      <div class="field">
-        <div class="field-label">NOTES</div>
-        <ion-item lines="none" class="notes-item">
-          <ion-textarea
-            auto-grow="true"
-            placeholder="What was this for?"
-            [(ngModel)]="note"
-            name="note"
-          ></ion-textarea>
-        </ion-item>
-      </div>
-    </ion-card>
-
-    <ion-card class="receipt-card">
-      <ion-item lines="none" button detail="true">
-        <ion-icon slot="start" name="receipt-outline"></ion-icon>
-        <ion-label>Attach Receipt</ion-label>
       </ion-item>
-    </ion-card>
 
-    <ion-button expand="block" class="save-button" type="submit" [disabled]="!jars.length">
-      <ion-icon slot="start" name="checkmark-circle"></ion-icon>
-      Save Transaction
+      <ion-item
+        *ngIf="showCategorySelector"
+        button
+        detail="false"
+        class="category-select-item"
+        [class.is-selected]="!!selectedExpenseCategoryLabel"
+        (click)="openCategorySelector()"
+      >
+        <ion-label>
+          <div class="field-title">Category</div>
+          <div class="field-value">{{ selectedExpenseCategoryLabel || 'Select category' }}</div>
+        </ion-label>
+        <ion-icon slot="end" name="chevron-forward-outline"></ion-icon>
+      </ion-item>
+
+
+      <ion-item button detail="false" class="date-select-item" (click)="openDatePicker()">
+        <ion-label>
+          <div class="field-title">Date</div>
+          <div class="field-value">{{ activeDateDisplay }}</div>
+        </ion-label>
+        <ion-icon slot="end" name="chevron-forward-outline"></ion-icon>
+      </ion-item>
+
+      <ion-item *ngIf="!isIncomeTab">
+        <ion-label position="stacked">Notes</ion-label>
+        <ion-textarea
+          auto-grow="true"
+          placeholder="What was this for?"
+          [(ngModel)]="note"
+          name="note"
+        ></ion-textarea>
+      </ion-item>
+
+      <ion-item *ngIf="isIncomeTab">
+        <ion-label position="stacked">Source</ion-label>
+        <ion-textarea
+          auto-grow="true"
+          placeholder="Where did this come from?"
+          [(ngModel)]="source"
+          name="source"
+        ></ion-textarea>
+      </ion-item>
+    </ion-list>
+
+    <div class="loading-state" *ngIf="isLoadingCategories && showCategorySelector">
+      <ion-spinner name="crescent"></ion-spinner>
+      <span>Loading categories...</span>
+    </div>
+
+
+    <ion-button expand="block" class="save-button" type="submit" [disabled]="isSaveDisabled">
+      <ion-spinner slot="start" name="crescent" *ngIf="isSaving"></ion-spinner>
+      <ion-icon slot="start" name="checkmark-circle" *ngIf="!isSaving"></ion-icon>
+      {{ isSaving ? 'Saving...' : 'Save Transaction' }}
     </ion-button>
-
-    <ion-card class="history-card" *ngIf="recentExpenses.length > 0">
-      <ion-card-header>
-        <ion-card-title>Recent Expenses</ion-card-title>
-      </ion-card-header>
-      <ion-list lines="full">
-        <ion-item-sliding *ngFor="let expense of recentExpenses">
-          <ion-item>
-            <ion-label>
-              <h3>{{ expense.category || 'Expense' }}</h3>
-              <p>{{ expense.jar?.name || 'Unknown Budget' }} • {{ expense.spent_at || 'No date' }}</p>
-            </ion-label>
-            <ion-note slot="end" color="danger">{{ formatCurrency(expense.amount) }}</ion-note>
-          </ion-item>
-          <ion-item-options side="end">
-            <ion-item-option color="primary" (click)="openEditExpense(expense)">Edit</ion-item-option>
-            <ion-item-option color="danger" (click)="deleteExpense(expense.id)">Delete</ion-item-option>
-          </ion-item-options>
-        </ion-item-sliding>
-      </ion-list>
-    </ion-card>
   </form>
 </ion-content>
+
+<ion-modal class="date-picker-modal-card" [isOpen]="isDatePickerOpen" (didDismiss)="closeDatePicker()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-buttons slot="start">
+          <ion-button (click)="closeDatePicker()">Cancel</ion-button>
+        </ion-buttons>
+        <ion-title>Select Date</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="confirmDatePicker()">Done</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content [fullscreen]="true">
+      <ion-datetime
+        locale="en-US"
+        presentation="date"
+        [value]="activeTempDate"
+        (ionChange)="onDateValueChange($event)"
+      ></ion-datetime>
+    </ion-content>
+  </ng-template>
+</ion-modal>
 
 <ion-modal [isOpen]="isEditOpen" (didDismiss)="closeEditExpense()">
   <ng-template>

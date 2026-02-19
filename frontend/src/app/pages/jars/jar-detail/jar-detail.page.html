@@ -19,49 +19,55 @@
 
 <ion-content class="jar-detail-page" fullscreen="true">
   <div class="page-inner">
-    <section class="balance-card">
-      <div class="budget-category-row">
-        <div class="jar-icon-large">
-          <ion-icon name="basket-outline"></ion-icon>
+    <ng-container *ngIf="!isLoadingJar; else jarLoading">
+      <section class="balance-card">
+        <div class="budget-category-row">
+          <div class="jar-icon-large">
+            <ion-icon name="basket-outline"></ion-icon>
+          </div>
+          <div class="budget-category-name">{{ jar?.category || jar?.name }}</div>
         </div>
-        <div class="budget-category-name">{{ jar?.category || jar?.name }}</div>
+
+        <div class="progress-section">
+          <div class="progress-top-info">
+            <div class="progress-stat spent">
+              <div class="progress-label">Spent</div>
+              <div class="progress-value">{{ formatCurrency(getSpentAmount()) }}</div>
+            </div>
+            <div class="progress-stat left" [class.progress-stat--overspent]="isOverspent()">
+              <div class="progress-label">{{ isOverspent() ? 'Overspent' : 'Left' }}</div>
+              <div class="progress-value">{{ formatCurrency(isOverspent() ? getOverspentAmount() : getLeftAmount()) }}</div>
+            </div>
+          </div>
+
+          <div class="progress-bar">
+            <div class="progress-fill" [style.width.%]="getSpentPercentage()"></div>
+          </div>
+
+          <div class="progress-date">
+            <div class="progress-date-main">
+              <ion-icon name="calendar-outline"></ion-icon>
+              <span>{{ getBudgetDateRangeDisplay() }}</span>
+            </div>
+            <div class="progress-days-left">{{ getBudgetDaysLeft() }} days left</div>
+          </div>
+        </div>
+      </section>
+    </ng-container>
+    <ng-template #jarLoading>
+      <div class="loading-state">
+        <ion-spinner name="crescent"></ion-spinner>
+        <span>Loading budget...</span>
       </div>
-
-      <div class="progress-section">
-        <div class="progress-top-info">
-          <div class="progress-stat spent">
-            <div class="progress-label">Spent</div>
-            <div class="progress-value">{{ formatCurrency(getLeftAmount()) }}</div>
-          </div>
-          <div class="progress-stat left">
-            <div class="progress-label">Left</div>
-            <div class="progress-value">{{ formatCurrency(getSpentAmount()) }}</div>
-          </div>
-        </div>
-
-        <div class="progress-bar">
-          <div class="progress-fill" [style.width.%]="getSpentPercentage()"></div>
-        </div>
-
-        <div class="progress-date">
-          <div class="progress-date-main">
-            <ion-icon name="calendar-outline"></ion-icon>
-            <span>{{ getBudgetDateRangeDisplay() }}</span>
-          </div>
-          <div class="progress-days-left">{{ getBudgetDaysLeft() }} days left</div>
-        </div>
-      </div>
-    </section>
-
-    <section class="transactions-list-action">
-      <ion-button expand="block" fill="outline" class="transactions-list-btn" (click)="seeAllTransactions()">
-        <ion-icon name="list-outline" slot="start"></ion-icon>
-        Transactions list
-      </ion-button>
-    </section>
+    </ng-template>
 
     <!-- Recent Activity Section -->
-    <section class="activity-section" *ngIf="transactions.length > 0">
+    <div class="loading-state" *ngIf="isLoadingTransactions">
+      <ion-spinner name="crescent"></ion-spinner>
+      <span>Loading transactions...</span>
+    </div>
+
+    <section class="activity-section" *ngIf="!isLoadingTransactions && transactions.length > 0">
       <div class="section-header">
         <h3 class="section-title">Recent Activity</h3>
         <a href="#" class="see-all-link" (click)="seeAllTransactions(); $event.preventDefault()">See All</a>

@@ -27,35 +27,30 @@ class StatsController extends Controller
         $startDate = $month->copy()->startOfMonth();
         $endDate = $month->copy()->endOfMonth();
 
-        // Get total expenses for the month
-        $totalExpenses = Expense::where('user_id', $user->id)
-            ->whereBetween('spent_at', [$startDate, $endDate])
-            ->sum('amount');
+        $expenseBaseQuery = Expense::query()
+            ->where('expenses.user_id', $user->id)
+            ->whereBetween('spent_at', [$startDate, $endDate]);
 
-        // Get expenses grouped by budget
-        $expensesByBudget = Expense::where('user_id', $user->id)
-            ->whereBetween('spent_at', [$startDate, $endDate])
-            ->with('jar')
+        $totalExpenses = (float) (clone $expenseBaseQuery)->sum('amount');
+
+        $expensesByBudget = (clone $expenseBaseQuery)
+            ->leftJoin('jars', 'jars.id', '=', 'expenses.jar_id')
+            ->groupBy('expenses.jar_id', 'jars.name', 'jars.color')
+            ->selectRaw('expenses.jar_id as budget_id, COALESCE(jars.name, ?) as budget_name, COALESCE(jars.color, ?) as budget_color, SUM(expenses.amount) as amount', ['Unknown', '#667eea'])
+            ->orderByDesc('amount')
             ->get()
-            ->groupBy('jar_id')
-            ->map(function ($expenses, $jarId) {
-                $jar = $expenses->first()->jar;
+            ->map(function ($row) use ($totalExpenses) {
+                $amount = (float) $row->amount;
+
                 return [
-                    'budget_id' => $jarId,
-                    'budget_name' => $jar?->name ?? 'Unknown',
-                    'budget_color' => $jar?->color ?? '#667eea',
-                    'amount' => $expenses->sum('amount'),
-                    'percentage' => 0, // Will be calculated below
+                    'budget_id' => $row->budget_id,
+                    'budget_name' => $row->budget_name,
+                    'budget_color' => $row->budget_color,
+                    'amount' => round($amount, 2),
+                    'percentage' => $totalExpenses > 0 ? round(($amount / $totalExpenses) * 100, 2) : 0,
                 ];
             })
             ->values();
-
-        // Calculate percentages
-        if ($totalExpenses > 0) {
-            $expensesByBudget->each(function ($item) use ($totalExpenses) {
-                $item['percentage'] = round(($item['amount'] / $totalExpenses) * 100, 2);
-            });
-        }
 
         return response()->json([
             'month' => $month->format('Y-m'),
@@ -70,28 +65,37 @@ class StatsController extends Controller
     public function getIncomeVsExpenses()
     {
         $user = Auth::user();
+
+        $startMonth = Carbon::now()->subMonths(5)->startOfMonth();
+        $endMonth = Carbon::now()->endOfMonth();
+
+        $incomeByMonth = Income::query()
+            ->where('user_id', $user->id)
+            ->whereBetween('received_at', [$startMonth, $endMonth])
+            ->whereNotNull('received_at')
+            ->selectRaw("DATE_FORMAT(received_at, '%Y-%m') as ym, SUM(amount) as total")
+            ->groupBy('ym')
+            ->pluck('total', 'ym');
+
+        $expenseByMonth = Expense::query()
+            ->where('user_id', $user->id)
+            ->whereBetween('spent_at', [$startMonth, $endMonth])
+            ->whereNotNull('spent_at')
+            ->selectRaw("DATE_FORMAT(spent_at, '%Y-%m') as ym, SUM(amount) as total")
+            ->groupBy('ym')
+            ->pluck('total', 'ym');
+
         $months = [];
         $incomes = [];
         $expenses = [];
 
-        // Get data for the last 6 months
-        for ($i = 5; $i >= 0; $i--) {
-            $date = Carbon::now()->subMonths($i);
-            $startDate = $date->copy()->startOfMonth();
-            $endDate = $date->copy()->endOfMonth();
-
-            $months[] = $date->format('M');
-
-            $totalIncome = Income::where('user_id', $user->id)
-                ->whereBetween('received_at', [$startDate, $endDate])
-                ->sum('amount');
-
-            $totalExpense = Expense::where('user_id', $user->id)
-                ->whereBetween('spent_at', [$startDate, $endDate])
-                ->sum('amount');
-
-            $incomes[] = round($totalIncome, 2);
-            $expenses[] = round($totalExpense, 2);
+        $cursor = $startMonth->copy();
+        while ($cursor->lessThanOrEqualTo($endMonth)) {
+            $key = $cursor->format('Y-m');
+            $months[] = $cursor->format('M');
+            $incomes[] = round((float) ($incomeByMonth[$key] ?? 0), 2);
+            $expenses[] = round((float) ($expenseByMonth[$key] ?? 0), 2);
+            $cursor->addMonthNoOverflow();
         }
 
         return response()->json([

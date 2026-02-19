@@ -13,7 +13,7 @@ export class IncomeService {
     return this.api.get(`incomes/${id}`);
   }
 
-  create(payload: { jar_id: number; amount: number; source?: string; received_at?: string }) {
+  create(payload: { jar_id?: number; amount: number; category?: string; source?: string; received_at?: string }) {
     return this.api.post('incomes', payload);
   }
 

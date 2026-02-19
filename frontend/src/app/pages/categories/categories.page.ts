@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 import { IonicModule } from '@ionic/angular';
 import { CategoryService, CategoryTreeNode, CategoryType } from '../../services/category.service';
 
@@ -12,20 +13,46 @@ type CategoryTab = 'expense' | 'income' | 'debtLoan';
   templateUrl: './categories.page.html',
   styleUrls: ['./categories.page.scss'],
 })
-export class CategoriesPage {
+export class CategoriesPage implements OnInit {
   activeTab: CategoryTab = 'expense';
   categories: CategoryTreeNode[] = [];
   isLoading = false;
   loadError = '';
+  isSelectMode = false;
+  private returnUrl = '/expense';
   private readonly expandedCategoryIds = new Set<number>();
 
-  constructor(private categoryService: CategoryService) {
-    this.fetchCategories();
+  constructor(
+    private categoryService: CategoryService,
+    private route: ActivatedRoute,
+    private router: Router
+  ) {}
+
+  ngOnInit(): void {
+    this.route.queryParamMap.subscribe((params) => {
+      this.isSelectMode = params.get('selectMode') === '1';
+
+      const typeParam = params.get('type');
+      if (typeParam === 'income') {
+        this.activeTab = 'income';
+      } else if (typeParam === 'debtLoan') {
+        this.activeTab = 'debtLoan';
+      } else {
+        this.activeTab = 'expense';
+      }
+
+      this.returnUrl = params.get('returnUrl') || '/expense';
+      this.fetchCategories();
+    });
   }
 
   selectTab(tab: CategoryTab): void {
     this.activeTab = tab;
     this.fetchCategories();
+  }
+
+  get backHref(): string {
+    return this.isSelectMode ? this.returnUrl : '/tabs/settings';
   }
 
   isExpanded(categoryId: number): boolean {
@@ -39,6 +66,23 @@ export class CategoriesPage {
     }
 
     this.expandedCategoryIds.add(categoryId);
+  }
+
+  onCategoryClick(categoryId: number): void {
+    if (!this.isSelectMode) {
+      this.toggleCategory(categoryId);
+      return;
+    }
+
+    this.selectCategory(`category:${categoryId}`);
+  }
+
+  onSubCategoryClick(subCategoryId: number): void {
+    if (!this.isSelectMode) {
+      return;
+    }
+
+    this.selectCategory(`sub:${subCategoryId}`);
   }
 
   getCurrentTabLabel(): string {
@@ -88,5 +132,11 @@ export class CategoriesPage {
     }
 
     return 'expense';
+  }
+
+  private selectCategory(selectedCategory: string): void {
+    this.router.navigate([this.returnUrl], {
+      queryParams: { selectedCategory },
+    });
   }
 }

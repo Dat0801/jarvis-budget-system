@@ -6,7 +6,9 @@ import { Router } from '@angular/router';
 import { Budget, BudgetService } from '../../services/budget.service';
 import { CategoryService, CategoryTreeNode } from '../../services/category.service';
 import { FabService } from '../../services/fab.service';
+import { ExpenseService } from '../../services/expense.service';
 import { formatVndAmountInput, parseVndAmount } from '../../utils/vnd-amount.util';
+import { catchError, finalize, forkJoin, of } from 'rxjs';
 
 type BudgetPeriod = 'week' | 'month' | 'quarter' | 'year';
 
@@ -27,9 +29,11 @@ interface BudgetCategoryOption {
 })
 export class JarsPage implements OnInit {
   jars: Budget[] = [];
+  expensesByCategory: Record<string, number> = {};
   totalSaved = 0;
   totalSavedMain = '0';
   totalSavedCents = '00';
+  isLoadingJars = false;
   isCreateJarOpen = false;
   selectedBudgetCategoryValue = '';
   budgetAmount = '';
@@ -47,6 +51,7 @@ export class JarsPage implements OnInit {
 
   constructor(
     private budgetService: BudgetService,
+    private expenseService: ExpenseService,
     private categoryService: CategoryService,
     private fabService: FabService,
     private router: Router
@@ -68,8 +73,15 @@ export class JarsPage implements OnInit {
   }
 
   loadJars(): void {
-    this.budgetService.list().subscribe((jars) => {
-      this.jars = jars;
+    this.isLoadingJars = true;
+    forkJoin({
+      jars: this.budgetService.list().pipe(catchError(() => of([]))),
+      expensesResponse: this.expenseService.list().pipe(catchError(() => of([]))),
+    }).pipe(finalize(() => {
+      this.isLoadingJars = false;
+    })).subscribe(({ jars, expensesResponse }) => {
+      this.jars = Array.isArray(jars) ? jars : [];
+      this.expensesByCategory = this.buildExpensesByCategory(expensesResponse);
       this.updateTotals();
     });
   }
@@ -164,7 +176,7 @@ export class JarsPage implements OnInit {
       return embeddedTarget;
     }
     const override = this.targetOverrides.find((item) => name.includes(item.match));
-    return override?.target ?? 10000;
+    return override?.target ?? 0;
   }
 
   getJarDescription(jar: Budget): string {
@@ -172,18 +184,56 @@ export class JarsPage implements OnInit {
   }
 
   getJarProgress(jar: Budget): number {
-    const balance = this.parseBalance(jar.balance);
-    const target = this.getJarTarget(jar);
-    if (!target) {
+    const target = this.getJarBudgetLimit(jar);
+    const spent = this.getJarSpent(jar);
+    if (target <= 0) {
       return 0;
     }
-    return Math.min(100, Math.round((balance / target) * 100));
+    return Math.min(100, Math.round((spent / target) * 100));
   }
 
   getJarRemaining(jar: Budget): number {
-    const balance = this.parseBalance(jar.balance);
-    const target = this.getJarTarget(jar);
-    return Math.max(0, target - balance);
+    const target = this.getJarBudgetLimit(jar);
+    const spent = this.getJarSpent(jar);
+    return Math.max(0, target - spent);
+  }
+
+  getJarOverspent(jar: Budget): number {
+    const target = this.getJarBudgetLimit(jar);
+    const spent = this.getJarSpent(jar);
+    return Math.max(0, spent - target);
+  }
+
+  isJarOverspent(jar: Budget): boolean {
+    return this.getJarOverspent(jar) > 0;
+  }
+
+  getJarSpent(jar: Budget): number {
+    const categoryKey = this.toCategoryKey(jar.category || jar.name);
+    if (!categoryKey) {
+      return 0;
+    }
+    return this.expensesByCategory[categoryKey] || 0;
+  }
+
+  getJarDisplayAmount(jar: Budget): number {
+    return this.getJarBudgetLimit(jar);
+  }
+
+  private getJarBudgetLimit(jar: Budget): number {
+    const explicitTarget = this.getJarTarget(jar);
+    if (explicitTarget > 0) {
+      return explicitTarget;
+    }
+
+    const targetFromApi = Number(jar.target);
+    if (Number.isFinite(targetFromApi) && targetFromApi > 0) {
+      return targetFromApi;
+    }
+
+    const currentBalance = this.parseBalance(jar.balance);
+    const spent = this.getJarSpent(jar);
+    return Math.max(0, currentBalance + spent);
   }
 
   getJarIcon(jar: Budget): string {
@@ -281,9 +331,40 @@ export class JarsPage implements OnInit {
     return Number.isFinite(parsed) ? parsed : 0;
   }
 
+  private buildExpensesByCategory(expensesResponse: any): Record<string, number> {
+    const expenses = this.extractExpenseList(expensesResponse);
+
+    return expenses.reduce((accumulator: Record<string, number>, expense: any) => {
+      const categoryKey = this.toCategoryKey(expense?.category);
+      if (!categoryKey) {
+        return accumulator;
+      }
+
+      const amount = Number(expense?.amount) || 0;
+      accumulator[categoryKey] = (accumulator[categoryKey] || 0) + Math.abs(amount);
+      return accumulator;
+    }, {});
+  }
+
+  private extractExpenseList(expensesResponse: any): any[] {
+    if (Array.isArray(expensesResponse)) {
+      return expensesResponse;
+    }
+
+    if (Array.isArray(expensesResponse?.data)) {
+      return expensesResponse.data;
+    }
+
+    return [];
+  }
+
+  private toCategoryKey(value?: string | null): string {
+    return (value || '').trim().toLowerCase();
+  }
+
   private updateTotals(): void {
     this.totalSaved = this.jars.reduce(
-      (sum, jar) => sum + this.parseBalance(jar.balance),
+      (sum, jar) => sum + this.getJarBudgetLimit(jar),
       0
     );
     const formatted = this.formatCurrency(this.totalSaved, true);

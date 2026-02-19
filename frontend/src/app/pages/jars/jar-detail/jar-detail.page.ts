@@ -3,6 +3,7 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AlertController, IonicModule } from '@ionic/angular';
+import { finalize } from 'rxjs';
 import { Budget, BudgetService, Transaction } from '../../../services/budget.service';
 import { CategoryService, CategoryTreeNode } from '../../../services/category.service';
 import { formatVndAmountInput, parseVndAmount } from '../../../utils/vnd-amount.util';
@@ -34,6 +35,8 @@ export interface JarDetail extends Budget {
 export class JarDetailPage implements OnInit {
   jar: JarDetail | null = null;
   transactions: Transaction[] = [];
+  isLoadingJar = false;
+  isLoadingTransactions = false;
   isAddMoneyOpen = false;
   isEditJarOpen = false;
   addAmount = '';
@@ -65,7 +68,10 @@ export class JarDetailPage implements OnInit {
 
   loadJarDetail(): void {
     if (!this.jarId) return;
-    this.budgetService.detail(this.jarId).subscribe((jar: JarDetail) => {
+    this.isLoadingJar = true;
+    this.budgetService.detail(this.jarId).pipe(finalize(() => {
+      this.isLoadingJar = false;
+    })).subscribe((jar: JarDetail) => {
       this.jar = jar;
       this.selectedBudgetCategoryValue = this.getCategoryValueFromJar(jar);
       this.editBudgetAmount = formatVndAmountInput(this.parseAmount(jar.balance));
@@ -77,7 +83,10 @@ export class JarDetailPage implements OnInit {
 
   loadTransactions(): void {
     if (!this.jarId) return;
-    this.budgetService.getTransactions(this.jarId).subscribe((response) => {
+    this.isLoadingTransactions = true;
+    this.budgetService.getTransactions(this.jarId).pipe(finalize(() => {
+      this.isLoadingTransactions = false;
+    })).subscribe((response) => {
       const transactions = response.data || [];
       this.transactions = transactions.sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -86,10 +95,21 @@ export class JarDetailPage implements OnInit {
   }
 
   getSpentAmount(): number {
+    const budgetCategoryKey = this.getBudgetCategoryKey();
+    if (!budgetCategoryKey) {
+      return 0;
+    }
+
     return this.transactions.reduce((sum, transaction) => {
       if (transaction.type !== 'expense') {
         return sum;
       }
+
+      const transactionCategoryKey = this.toCategoryKey(transaction.category);
+      if (transactionCategoryKey !== budgetCategoryKey) {
+        return sum;
+      }
+
       return sum + this.parseAmount(transaction.amount);
     }, 0);
   }
@@ -98,17 +118,31 @@ export class JarDetailPage implements OnInit {
     if (!this.jar) {
       return 0;
     }
-    return Math.max(this.parseAmount(this.jar.balance), 0);
+
+    const budgetLimit = this.getBudgetLimitAmount();
+    const spent = this.getSpentAmount();
+    return Math.max(budgetLimit - spent, 0);
+  }
+
+  getOverspentAmount(): number {
+    const budgetLimit = this.getBudgetLimitAmount();
+    const spent = this.getSpentAmount();
+    return Math.max(spent - budgetLimit, 0);
+  }
+
+  isOverspent(): boolean {
+    return this.getOverspentAmount() > 0;
   }
 
   getSpentPercentage(): number {
     const spent = this.getSpentAmount();
-    const left = this.getLeftAmount();
-    const total = spent + left;
-    if (total <= 0) {
+    const budgetLimit = this.getBudgetLimitAmount();
+
+    if (budgetLimit <= 0) {
       return 0;
     }
-    return Math.round((spent / total) * 100);
+
+    return Math.min(100, Math.round((spent / budgetLimit) * 100));
   }
 
   formatCurrency(value: string | number): string {
@@ -357,6 +391,29 @@ export class JarDetailPage implements OnInit {
     const normalized = raw.replace(/[^0-9.-]+/g, '');
     const parsed = Number.parseFloat(normalized);
     return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  private getBudgetLimitAmount(): number {
+    if (!this.jar) {
+      return 0;
+    }
+
+    const explicitTarget = Number(this.jar.target);
+    if (Number.isFinite(explicitTarget) && explicitTarget > 0) {
+      return explicitTarget;
+    }
+
+    const currentBalance = this.parseAmount(this.jar.balance);
+    const spent = this.getSpentAmount();
+    return Math.max(0, currentBalance + spent);
+  }
+
+  private getBudgetCategoryKey(): string {
+    return this.toCategoryKey(this.jar?.category || this.jar?.name);
+  }
+
+  private toCategoryKey(value?: string | null): string {
+    return (value || '').trim().toLowerCase();
   }
 
   private getCycleStartDate(): Date {

@@ -42,7 +42,7 @@
       <div class="section-title">My Wallets</div>
     </div>
 
-    <div class="wallet-list" *ngIf="jars.length > 0; else emptyWallets">
+    <div class="wallet-list" *ngIf="!isLoadingDashboard && jars.length > 0; else walletState">
       <div class="wallet-card" *ngFor="let jar of jars; let i = index">
         <div class="wallet-head">
           <div class="wallet-icon" [class.alt]="i % 2 === 1">
@@ -56,8 +56,12 @@
         </div>
       </div>
     </div>
-    <ng-template #emptyWallets>
-      <div class="empty-card">No wallets yet.</div>
+    <ng-template #walletState>
+      <div class="loading-state" *ngIf="isLoadingDashboard">
+        <ion-spinner name="crescent"></ion-spinner>
+        <span>Loading wallets...</span>
+      </div>
+      <div class="empty-card" *ngIf="!isLoadingDashboard">No wallets yet.</div>
     </ng-template>
 
     <div class="section-header">
@@ -83,7 +87,12 @@
       </button>
     </div>
 
-    <div class="top-spending-grid">
+    <div class="loading-state" *ngIf="isLoadingDashboard">
+      <ion-spinner name="crescent"></ion-spinner>
+      <span>Loading spending summary...</span>
+    </div>
+
+    <div class="top-spending-grid" *ngIf="!isLoadingDashboard">
       <div class="spending-card" *ngIf="selectedSpendingTab === 'week'; else monthSpending">
         <div class="spending-label">This week</div>
         <div class="spending-title">{{ weeklyTopSpending.title }}</div>
@@ -103,7 +112,7 @@
       <div class="section-title">Report this month</div>
     </div>
 
-    <div class="report-card">
+    <div class="report-card" *ngIf="!isLoadingDashboard; else reportLoading">
       <div class="report-chart-line">
         <svg viewBox="0 0 300 160" preserveAspectRatio="none">
           <g class="grid-lines">
@@ -137,13 +146,24 @@
         <span *ngFor="let label of reportLabels">{{ label }}</span>
       </div>
     </div>
+    <ng-template #reportLoading>
+      <div class="loading-state">
+        <ion-spinner name="crescent"></ion-spinner>
+        <span>Loading report...</span>
+      </div>
+    </ng-template>
 
     <div class="section-header">
       <div class="section-title">Recent transactions</div>
       <div class="tx-count">{{ filteredTransactions.length }}</div>
     </div>
 
-    <div class="transaction-list" *ngIf="filteredTransactions.length > 0; else emptyTransactions">
+    <div class="loading-state" *ngIf="isLoadingDashboard">
+      <ion-spinner name="crescent"></ion-spinner>
+      <span>Loading transactions...</span>
+    </div>
+
+    <div class="transaction-list" *ngIf="!isLoadingDashboard && filteredTransactions.length > 0; else emptyTransactions">
       <div class="transaction-card" *ngFor="let tx of filteredTransactions; trackBy: trackByTransactionId">
         <div class="tx-icon" [class.income]="tx.type === 'income'" [class.expense]="tx.type === 'expense'">
           <ion-icon [name]="tx.icon"></ion-icon>
@@ -158,7 +178,7 @@
       </div>
     </div>
     <ng-template #emptyTransactions>
-      <div class="empty-card">No transactions match your search.</div>
+      <div class="empty-card" *ngIf="!isLoadingDashboard">No transactions match your search.</div>
     </ng-template>
   </div>
 

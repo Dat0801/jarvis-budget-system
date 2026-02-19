@@ -29,7 +29,12 @@
 
     <div class="section-title">ACTIVE BUDGETS</div>
 
-    <section class="jars-list">
+    <div class="loading-state" *ngIf="isLoadingJars">
+      <ion-spinner name="crescent"></ion-spinner>
+      <span>Loading budgets...</span>
+    </div>
+
+    <section class="jars-list" *ngIf="!isLoadingJars">
       <article class="jar-card" *ngFor="let jar of jars" (click)="navigateToJar(jar.id)">
         <div class="jar-icon" [ngClass]="getJarIconClass(jar)">
           <ion-icon [name]="getJarIcon(jar)"></ion-icon>
@@ -40,8 +45,15 @@
               <div class="jar-title">{{ jar.name }}</div>
             </div>
             <div class="jar-amount-group">
-              <div class="jar-amount">{{ formatCurrency(jar.balance) }}</div>
-              <div class="jar-left">Left {{ getJarRemaining(jar) | number:'1.0-0' }}</div>
+              <div class="jar-amount">{{ formatCurrency(getJarDisplayAmount(jar)) }}</div>
+              <div class="jar-left" [class.jar-left--overspent]="isJarOverspent(jar)">
+                <ng-container *ngIf="isJarOverspent(jar); else leftLabel">
+                  Overspent {{ getJarOverspent(jar) | number:'1.0-0' }}
+                </ng-container>
+                <ng-template #leftLabel>
+                  Left {{ getJarRemaining(jar) | number:'1.0-0' }}
+                </ng-template>
+              </div>
             </div>
           </div>
           <div class="jar-bottom-row">

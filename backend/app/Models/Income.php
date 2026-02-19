@@ -10,6 +10,7 @@ class Income extends Model
         'user_id',
         'jar_id',
         'amount',
+        'category',
         'source',
         'received_at',
     ];

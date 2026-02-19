@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 import { Note, NoteService } from '../../services/note.service';
 import { FabService } from '../../services/fab.service';
+import { finalize, take } from 'rxjs';
 
 @Component({
   selector: 'app-notes',
@@ -22,6 +23,7 @@ export class NotesPage implements OnInit {
   newBody = '';
   newReminderDate = '';
   isSubmitting = false;
+  isLoadingNotes = false;
 
   constructor(private noteService: NoteService, private fabService: FabService) {}
 
@@ -38,7 +40,13 @@ export class NotesPage implements OnInit {
   }
 
   loadNotes(): void {
-    this.noteService.list().subscribe((data) => {
+    this.isLoadingNotes = true;
+    this.noteService.list().pipe(
+      take(1),
+      finalize(() => {
+        this.isLoadingNotes = false;
+      })
+    ).subscribe((data) => {
       this.allNotes = data;
       this.filterNotes();
     });
@@ -115,9 +123,10 @@ export class NotesPage implements OnInit {
       body: this.newBody.trim() || undefined,
       reminder_date: this.newReminderDate || undefined,
     }).subscribe({
-      next: () => {
+      next: (createdNote) => {
+        this.allNotes = [createdNote, ...this.allNotes];
+        this.filterNotes();
         this.closeNewNoteModal();
-        this.loadNotes();
       },
       error: () => {
         this.isSubmitting = false;
@@ -126,12 +135,25 @@ export class NotesPage implements OnInit {
   }
 
   toggleCompleted(note: Note): void {
+    const previous = note.is_completed;
+
     this.noteService.update(note.id, {
       is_completed: !note.is_completed,
-    }).subscribe(() => this.loadNotes());
+    }).pipe(take(1)).subscribe({
+      next: (updatedNote) => {
+        this.allNotes = this.allNotes.map((item) => item.id === note.id ? { ...item, ...updatedNote } : item);
+        this.filterNotes();
+      },
+      error: () => {
+        note.is_completed = previous;
+      }
+    });
   }
 
   deleteNote(note: Note): void {
-    this.noteService.remove(note.id).subscribe(() => this.loadNotes());
+    this.noteService.remove(note.id).pipe(take(1)).subscribe(() => {
+      this.allNotes = this.allNotes.filter((item) => item.id !== note.id);
+      this.filterNotes();
+    });
   }
 }
