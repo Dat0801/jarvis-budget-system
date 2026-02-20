@@ -8,6 +8,7 @@ use App\Models\Income;
 use App\Models\MonthlyReport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class StatsController extends Controller
@@ -69,20 +70,23 @@ class StatsController extends Controller
         $startMonth = Carbon::now()->subMonths(5)->startOfMonth();
         $endMonth = Carbon::now()->endOfMonth();
 
+        $incomeYearMonthExpr = $this->getYearMonthExpressionForColumn('received_at');
+        $expenseYearMonthExpr = $this->getYearMonthExpressionForColumn('spent_at');
+
         $incomeByMonth = Income::query()
             ->where('user_id', $user->id)
             ->whereBetween('received_at', [$startMonth, $endMonth])
             ->whereNotNull('received_at')
-            ->selectRaw("DATE_FORMAT(received_at, '%Y-%m') as ym, SUM(amount) as total")
-            ->groupBy('ym')
+            ->selectRaw("{$incomeYearMonthExpr} as ym, SUM(amount) as total")
+            ->groupByRaw($incomeYearMonthExpr)
             ->pluck('total', 'ym');
 
         $expenseByMonth = Expense::query()
             ->where('user_id', $user->id)
             ->whereBetween('spent_at', [$startMonth, $endMonth])
             ->whereNotNull('spent_at')
-            ->selectRaw("DATE_FORMAT(spent_at, '%Y-%m') as ym, SUM(amount) as total")
-            ->groupBy('ym')
+            ->selectRaw("{$expenseYearMonthExpr} as ym, SUM(amount) as total")
+            ->groupByRaw($expenseYearMonthExpr)
             ->pluck('total', 'ym');
 
         $months = [];
@@ -146,5 +150,20 @@ class StatsController extends Controller
             ->paginate(12);
 
         return response()->json($reports);
+    }
+
+    private function getYearMonthExpressionForColumn(string $column): string
+    {
+        $driver = DB::connection()->getDriverName();
+
+        if ($driver === 'pgsql') {
+            return "TO_CHAR({$column}, 'YYYY-MM')";
+        }
+
+        if ($driver === 'sqlite') {
+            return "strftime('%Y-%m', {$column})";
+        }
+
+        return "DATE_FORMAT({$column}, '%Y-%m')";
     }
 }

@@ -4,6 +4,9 @@ import { BudgetService, Budget } from '../services/budget.service';
 import { ExpenseService } from '../services/expense.service';
 import { IncomeService } from '../services/income.service';
 import { MonthlyReport, StatsService } from '../services/stats.service';
+import { FabService } from '../services/fab.service';
+import { Router } from '@angular/router';
+import { formatCurrencyAmount, getStoredCurrencyCode } from '../utils/currency.util';
 
 interface ExpenseItem {
   id: number;
@@ -40,15 +43,26 @@ interface TransactionGroup {
   items: TransactionItem[];
 }
 
+interface MonthTab {
+  key: string;
+  label: string;
+  year: number;
+  month: number;
+}
+
 @Component({
-  selector: 'app-tab2',
-  templateUrl: 'tab2.page.html',
-  styleUrls: ['tab2.page.scss'],
+  selector: 'app-transactions',
+  templateUrl: 'transactions.page.html',
+  styleUrls: ['transactions.page.scss'],
   standalone: false,
 })
-export class Tab2Page implements OnInit {
+export class TransactionsPage implements OnInit {
+  private readonly fabOwner = 'transactions-page';
   jars: Budget[] = [];
   groupedTransactions: TransactionGroup[] = [];
+  allTransactions: TransactionItem[] = [];
+  monthTabs: MonthTab[] = [];
+  selectedMonthKey = '';
   monthlyReports: MonthlyReport[] = [];
   isReportsModalOpen = false;
 
@@ -64,7 +78,9 @@ export class Tab2Page implements OnInit {
     private budgetService: BudgetService,
     private expenseService: ExpenseService,
     private incomeService: IncomeService,
-    private statsService: StatsService
+    private statsService: StatsService,
+    private fabService: FabService,
+    private router: Router
   ) {}
 
   ngOnInit() {
@@ -72,7 +88,12 @@ export class Tab2Page implements OnInit {
   }
 
   ionViewWillEnter(): void {
+    this.fabService.showFab(() => this.router.navigateByUrl('/expense'), 'add', this.fabOwner);
     this.loadTransactions();
+  }
+
+  ionViewDidLeave(): void {
+    this.fabService.hideFab(this.fabOwner);
   }
 
   loadTransactions(): void {
@@ -99,7 +120,9 @@ export class Tab2Page implements OnInit {
           return {
             id: `expense-${item.id}`,
             title: item.note || item.category || 'Expense',
-            subtitle: `${item.category || jarById[Number(item.jar_id)] || 'Expense'} • ${this.formatDate(date)} • ${this.formatTime(date)}`,
+            subtitle: `${item.category || jarById[Number(item.jar_id)] || 'Expense'} • ${this.formatDate(
+              date
+            )} • ${this.formatTime(date)}`,
             amount: Math.abs(Number(item.amount) || 0),
             type: 'expense' as const,
             icon: this.getExpenseIcon(item),
@@ -126,8 +149,18 @@ export class Tab2Page implements OnInit {
           (first, second) => second.date.getTime() - first.date.getTime()
         );
 
+        this.allTransactions = allTransactions;
         this.calculateMonthlySummary(allTransactions);
-        this.groupedTransactions = this.groupByDate(allTransactions);
+        this.buildMonthTabs();
+        if (this.monthTabs.length > 0) {
+          if (!this.selectedMonthKey) {
+            const now = new Date();
+            this.selectedMonthKey = this.getMonthKey(now);
+          }
+          this.applySelectedMonth();
+        } else {
+          this.groupedTransactions = [];
+        }
         this.isLoading = false;
       },
       error: () => {
@@ -135,6 +168,16 @@ export class Tab2Page implements OnInit {
         this.isLoading = false;
       },
     });
+  }
+
+  onMonthChange(event: CustomEvent): void {
+    const nextMonthKey = (event.detail?.value || '').toString();
+    this.selectedMonthKey = nextMonthKey;
+    this.applySelectedMonth();
+  }
+
+  trackByMonth(_index: number, tab: MonthTab): string {
+    return tab.key;
   }
 
   trackByGroup(_index: number, group: TransactionGroup): string {
@@ -158,12 +201,7 @@ export class Tab2Page implements OnInit {
   }
 
   formatCurrency(value: number): string {
-    const formatted = new Intl.NumberFormat('vi-VN', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
-
-    return `${formatted} đ`;
+    return formatCurrencyAmount(value, getStoredCurrencyCode());
   }
 
   formatSignedCurrency(value: number): string {
@@ -222,6 +260,93 @@ export class Tab2Page implements OnInit {
     this.monthDeltaPercent = Number(delta.toFixed(1));
   }
 
+  private buildMonthTabs(): void {
+    this.monthTabs = [];
+
+    const now = new Date();
+    const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
+    const monthsBack = 24;
+    const firstMonth = new Date(thisMonth.getFullYear(), thisMonth.getMonth() - (monthsBack - 1), 1);
+
+    const tabs: MonthTab[] = [];
+    let cursor = new Date(firstMonth.getFullYear(), firstMonth.getMonth(), 1);
+
+    while (cursor.getTime() <= thisMonth.getTime()) {
+      const isThisMonth =
+        cursor.getFullYear() === thisMonth.getFullYear() &&
+        cursor.getMonth() === thisMonth.getMonth();
+      const isLastMonth =
+        cursor.getFullYear() === lastMonth.getFullYear() &&
+        cursor.getMonth() === lastMonth.getMonth();
+
+      const label = isThisMonth
+        ? 'This month'
+        : isLastMonth
+          ? 'Last month'
+          : this.formatOlderMonthLabel(cursor);
+
+      tabs.push({
+        key: this.getMonthKey(cursor),
+        label,
+        year: cursor.getFullYear(),
+        month: cursor.getMonth(),
+      });
+
+      cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
+    }
+
+    this.monthTabs = tabs;
+  }
+
+  private applySelectedMonth(): void {
+    const activeTab = this.monthTabs.find((tab) => tab.key === this.selectedMonthKey);
+    if (!activeTab) {
+      this.groupedTransactions = [];
+      this.inflowTotal = 0;
+      this.outflowTotal = 0;
+      this.totalBalance = 0;
+      return;
+    }
+
+    const selectedTransactions = this.allTransactions.filter((transaction) => {
+      const transactionDate = transaction.date;
+      return (
+        transactionDate.getFullYear() === activeTab.year &&
+        transactionDate.getMonth() === activeTab.month
+      );
+    });
+
+    let monthInflow = 0;
+    let monthOutflow = 0;
+
+    selectedTransactions.forEach((transaction) => {
+      if (transaction.type === 'income') {
+        monthInflow += transaction.amount;
+      } else {
+        monthOutflow += transaction.amount;
+      }
+    });
+
+    this.inflowTotal = monthInflow;
+    this.outflowTotal = monthOutflow;
+    this.totalBalance = monthInflow - monthOutflow;
+
+    this.groupedTransactions = this.groupByDate(selectedTransactions);
+  }
+
+  private getMonthKey(date: Date): string {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+  }
+
+  private formatOlderMonthLabel(date: Date): string {
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      year: 'numeric',
+    });
+  }
+
   private groupByDate(transactions: TransactionItem[]): TransactionGroup[] {
     const groups = transactions.reduce<Record<string, TransactionItem[]>>((accumulator, transaction) => {
       const key = this.formatGroupLabel(transaction.date);
@@ -253,71 +378,64 @@ export class Tab2Page implements OnInit {
       .toUpperCase();
   }
 
-  private formatTime(date: Date): string {
-    return date.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true,
-    });
-  }
-
-  private formatDate(date: Date): string {
-    return date.toLocaleDateString('vi-VN', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
-  }
-
-  private getExpenseIcon(item: ExpenseItem): string {
-    const text = `${item.category || ''} ${item.note || ''}`.toLowerCase();
-
-    if (text.includes('grocery') || text.includes('food') || text.includes('market')) {
-      return 'cart-outline';
-    }
-    if (text.includes('transport') || text.includes('uber') || text.includes('car')) {
-      return 'car-outline';
-    }
-    if (text.includes('dining') || text.includes('coffee') || text.includes('restaurant')) {
-      return 'restaurant-outline';
-    }
-    if (text.includes('health') || text.includes('gym') || text.includes('fitness')) {
-      return 'barbell-outline';
-    }
-    if (text.includes('housing') || text.includes('rent') || text.includes('home')) {
-      return 'home-outline';
+  private extractList<T>(response: any): T[] {
+    if (!response) {
+      return [];
     }
 
-    return 'wallet-outline';
-  }
-
-  private extractList<T>(response: unknown): T[] {
     if (Array.isArray(response)) {
-      return response as T[];
+      return response;
     }
 
-    if (
-      typeof response === 'object' &&
-      response !== null &&
-      'data' in response &&
-      Array.isArray((response as { data?: unknown }).data)
-    ) {
-      return (response as { data: T[] }).data;
+    if (Array.isArray(response.data)) {
+      return response.data;
     }
 
     return [];
   }
 
-  private parseDate(value: string | undefined): Date {
+  private parseDate(value: string | Date | null | undefined): Date {
     if (!value) {
       return new Date();
     }
-
+    if (value instanceof Date) {
+      return value;
+    }
     const parsed = new Date(value);
     if (Number.isNaN(parsed.getTime())) {
       return new Date();
     }
-
     return parsed;
+  }
+
+  private formatDate(date: Date): string {
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  private formatTime(date: Date): string {
+    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  private getExpenseIcon(item: ExpenseItem): string {
+    const category = (item.category || '').toLowerCase();
+    if (category.includes('food') || category.includes('drink') || category.includes('coffee')) {
+      return 'fast-food-outline';
+    }
+    if (category.includes('travel') || category.includes('taxi') || category.includes('flight')) {
+      return 'airplane-outline';
+    }
+    if (category.includes('rent') || category.includes('home')) {
+      return 'home-outline';
+    }
+    if (category.includes('shopping') || category.includes('market')) {
+      return 'cart-outline';
+    }
+    if (category.includes('health') || category.includes('hospital')) {
+      return 'medkit-outline';
+    }
+    if (category.includes('education') || category.includes('school')) {
+      return 'school-outline';
+    }
+    return 'card-outline';
   }
 }

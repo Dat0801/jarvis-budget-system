@@ -7,6 +7,7 @@ import { finalize } from 'rxjs';
 import { Budget, BudgetService, Transaction } from '../../../services/budget.service';
 import { CategoryService, CategoryTreeNode } from '../../../services/category.service';
 import { formatVndAmountInput, parseVndAmount } from '../../../utils/vnd-amount.util';
+import { formatCurrencyAmount, getStoredCurrencyCode } from '../../../utils/currency.util';
 
 type BudgetPeriod = 'week' | 'month' | 'quarter' | 'year';
 
@@ -60,6 +61,29 @@ export class JarDetailPage implements OnInit {
 
   ngOnInit(): void {
     this.jarId = Number(this.route.snapshot.paramMap.get('id'));
+
+    this.route.queryParamMap.subscribe((params) => {
+      const selectedCategory = params.get('selectedCategory');
+      const returnMode = params.get('returnMode');
+
+      if (selectedCategory) {
+        this.selectedBudgetCategoryValue = selectedCategory;
+      }
+
+      if (returnMode === 'editBudget') {
+        this.isEditJarOpen = true;
+      }
+
+      if (selectedCategory || returnMode) {
+        this.router.navigate([], {
+          relativeTo: this.route,
+          queryParams: { selectedCategory: null, returnMode: null },
+          queryParamsHandling: 'merge',
+          replaceUrl: true,
+        });
+      }
+    });
+
     this.loadBudgetCategories();
     if (this.jarId) {
       this.loadJarDetail();
@@ -146,10 +170,7 @@ export class JarDetailPage implements OnInit {
   }
 
   formatCurrency(value: string | number): string {
-    return new Intl.NumberFormat('vi-VN', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(this.parseAmount(value));
+    return formatCurrencyAmount(this.parseAmount(value), getStoredCurrencyCode());
   }
 
   getBudgetCycleDisplay(): string {
@@ -302,6 +323,21 @@ export class JarDetailPage implements OnInit {
 
   get selectedPeriodLabel(): string {
     return this.getPeriodOptionLabel(this.editBudgetPeriod);
+  }
+
+  openCategorySelector(): void {
+    if (!this.jarId) {
+      return;
+    }
+
+    this.router.navigate(['/tabs/categories'], {
+      queryParams: {
+        selectMode: '1',
+        type: 'expense',
+        returnUrl: `/tabs/budgets/${this.jarId}`,
+        returnMode: 'editBudget',
+      },
+    });
   }
 
   get budgetCategoryOptions(): BudgetCategoryOption[] {

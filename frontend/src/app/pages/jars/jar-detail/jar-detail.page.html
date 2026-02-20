@@ -90,7 +90,7 @@
               class="sign"
               >+</span
             >
-            ₫{{ formatCurrency(transaction.amount) }}
+            {{ formatCurrency(transaction.amount) }}
           </div>
         </article>
       </div>
@@ -107,7 +107,7 @@
         <div class="insights-grid">
           <div class="insight-item">
             <div class="insight-label">AVG. DAILY SPEND</div>
-            <div class="insight-value">₫{{ formatCurrency(jar?.avgDailySpend || 0) }}</div>
+            <div class="insight-value">{{ formatCurrency(jar?.avgDailySpend || 0) }}</div>
           </div>
           <div class="insight-item">
             <div class="insight-label">CYCLE REMAINING</div>
@@ -142,7 +142,7 @@
         <div class="amount-block">
           <div class="amount-label">AMOUNT</div>
           <div class="amount-input-row">
-            <div class="currency">₫</div>
+            <div class="currency">VNĐ</div>
             <ion-input
               type="text"
               inputmode="numeric"
@@ -186,22 +186,15 @@
 
           <div class="field">
             <div class="field-label">CATEGORY</div>
-            <ion-item lines="none" class="text-item">
-              <ion-select
-                interface="action-sheet"
-                [interfaceOptions]="categorySelectInterfaceOptions"
-                placeholder="Select category or sub category"
-                [(ngModel)]="selectedBudgetCategoryValue"
-                name="selectedBudgetCategoryValue"
-                required
-              >
-                <ion-select-option
-                  *ngFor="let option of budgetCategoryOptions"
-                  [value]="option.value"
-                >
-                  {{ option.treeLabel }}
-                </ion-select-option>
-              </ion-select>
+            <ion-item
+              lines="none"
+              class="text-item"
+              button
+              detail="false"
+              (click)="openCategorySelector()"
+            >
+              <ion-label>{{ selectedBudgetCategoryLabel || 'Select category' }}</ion-label>
+              <ion-icon slot="end" name="chevron-forward-outline"></ion-icon>
             </ion-item>
           </div>
 
@@ -209,7 +202,7 @@
             <div class="field-label">AMOUNT</div>
             <div class="amount-block">
               <div class="amount-input-row">
-                <div class="currency">₫</div>
+                <div class="currency">VNĐ</div>
                 <ion-input
                   type="text"
                   inputmode="numeric"

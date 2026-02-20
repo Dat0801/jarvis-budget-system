@@ -12,10 +12,10 @@
     <ion-segment-button value="expense">
       <ion-label>Expense</ion-label>
     </ion-segment-button>
-    <ion-segment-button value="income">
+    <ion-segment-button *ngIf="!restrictToExpense" value="income">
       <ion-label>Income</ion-label>
     </ion-segment-button>
-    <ion-segment-button value="debtLoan">
+    <ion-segment-button *ngIf="!restrictToExpense" value="debtLoan">
       <ion-label>Debt/Loan</ion-label>
     </ion-segment-button>
   </ion-segment>

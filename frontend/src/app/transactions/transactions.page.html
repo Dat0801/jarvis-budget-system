@@ -1,0 +1,115 @@
+<ion-header [translucent]="true" class="activity-header">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button fill="clear" routerLink="/tabs/dashboard" aria-label="Back to Home">
+        <ion-icon name="chevron-back-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Transactions</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="activity-page" [fullscreen]="true">
+  <div class="page-inner">
+    <div class="loading-state" *ngIf="isLoading">
+      <ion-spinner name="crescent"></ion-spinner>
+      <span>Loading transactions...</span>
+    </div>
+
+    <div class="error-state" *ngIf="error">
+      <ion-icon name="alert-circle-outline"></ion-icon>
+      <p>{{ error }}</p>
+    </div>
+
+    <section class="month-tabs" *ngIf="!isLoading && !error && monthTabs.length > 0">
+      <div class="summary-card month-summary">
+        <div class="balance-header">
+          <p class="balance-label">Balance</p>
+          <h2 class="balance-value">{{ formatSignedCurrency(totalBalance) }}</h2>
+        </div>
+
+        <ion-segment [value]="selectedMonthKey" scrollable="true" (ionChange)="onMonthChange($event)">
+          <ion-segment-button *ngFor="let tab of monthTabs; trackBy: trackByMonth" [value]="tab.key">
+            <ion-label>{{ tab.label }}</ion-label>
+          </ion-segment-button>
+        </ion-segment>
+
+        <div class="month-summary-rows">
+          <div class="summary-row">
+            <span class="summary-row-label">Inflow</span>
+            <span class="summary-row-value summary-row-value-inflow">
+              {{ formatCurrency(inflowTotal) }}
+            </span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-row-label">Outflow</span>
+            <span class="summary-row-value summary-row-value-outflow">
+              {{ formatCurrency(outflowTotal) }}
+            </span>
+          </div>
+          <div class="summary-row summary-row-net">
+            <span class="summary-row-label">Net</span>
+            <span class="summary-row-value summary-row-value-net">
+              {{ formatSignedCurrency(totalBalance) }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="transaction-section" *ngIf="!isLoading && !error && groupedTransactions.length > 0">
+      <ng-container *ngFor="let group of groupedTransactions; trackBy: trackByGroup">
+        <div class="section-header-row">
+          <h3>{{ group.label }}</h3>
+        </div>
+
+        <div class="section-list">
+          <article class="activity-item" *ngFor="let transaction of group.items; trackBy: trackByTransaction">
+            <div class="activity-icon" [class.icon-success]="transaction.type === 'income'" [class.icon-danger]="transaction.type === 'expense'">
+              <ion-icon [name]="transaction.icon"></ion-icon>
+            </div>
+
+            <div class="activity-info">
+              <div class="activity-title">{{ transaction.title }}</div>
+              <div class="activity-date">{{ transaction.subtitle }}</div>
+            </div>
+
+            <div class="activity-amount" [class.amount-success]="transaction.type === 'income'" [class.amount-danger]="transaction.type === 'expense'">
+              <span class="sign">{{ getAmountPrefix(transaction.type) }}</span>{{ formatCurrency(transaction.amount) }}
+            </div>
+          </article>
+        </div>
+      </ng-container>
+    </section>
+
+    <div class="empty-state" *ngIf="!isLoading && !error && groupedTransactions.length === 0">
+      <ion-icon name="inbox-outline"></ion-icon>
+      <h3>No transactions yet</h3>
+      <p>Create your first income or expense to see it here.</p>
+    </div>
+  </div>
+</ion-content>
+
+<ion-modal [isOpen]="isReportsModalOpen" (didDismiss)="closeReportsModal()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>Monthly Reports</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closeReportsModal()">Close</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content>
+      <ion-list lines="full">
+        <ion-item *ngFor="let report of monthlyReports">
+          <ion-label>
+            <h3>{{ formatReportMonth(report.month) }}</h3>
+            <p>Income: {{ formatCurrency(+report.total_income) }}</p>
+            <p>Expenses: {{ formatCurrency(+report.total_expenses) }}</p>
+          </ion-label>
+        </ion-item>
+      </ion-list>
+    </ion-content>
+  </ng-template>
+</ion-modal>

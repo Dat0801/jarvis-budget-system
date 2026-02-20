@@ -19,7 +19,9 @@ export class CategoriesPage implements OnInit {
   isLoading = false;
   loadError = '';
   isSelectMode = false;
+  restrictToExpense = false;
   private returnUrl = '/expense';
+  private returnMode = '';
   private readonly expandedCategoryIds = new Set<number>();
 
   constructor(
@@ -42,11 +44,18 @@ export class CategoriesPage implements OnInit {
       }
 
       this.returnUrl = params.get('returnUrl') || '/expense';
+      this.returnMode = params.get('returnMode') || '';
+      this.restrictToExpense =
+        this.isSelectMode && this.returnUrl.startsWith('/tabs/budgets');
       this.fetchCategories();
     });
   }
 
   selectTab(tab: CategoryTab): void {
+    if (this.restrictToExpense && tab !== 'expense') {
+      return;
+    }
+
     this.activeTab = tab;
     this.fetchCategories();
   }
@@ -135,8 +144,14 @@ export class CategoriesPage implements OnInit {
   }
 
   private selectCategory(selectedCategory: string): void {
-    this.router.navigate([this.returnUrl], {
-      queryParams: { selectedCategory },
+    const urlTree = this.router.createUrlTree([this.returnUrl], {
+      queryParams: {
+        selectedCategory,
+        ...(this.returnMode ? { returnMode: this.returnMode } : {}),
+      },
     });
+
+    const url = this.router.serializeUrl(urlTree);
+    window.location.href = url;
   }
 }

@@ -32,22 +32,29 @@ class IncomeController extends Controller
         $data = $request->validate([
             'jar_id' => 'nullable|integer|exists:jars,id',
             'amount' => 'required|numeric|min:0.01',
-            'category' => 'required_without:jar_id|nullable|string|max:255',
+            'category' => 'required|nullable|string|max:255',
             'source' => 'nullable|string|max:255',
             'received_at' => 'nullable|date',
         ]);
 
-        $jar = $this->resolveJarForIncome($request, $data);
+        $walletId = $this->resolveWalletId($request, $data['jar_id'] ?? null);
 
-        $income = DB::transaction(function () use ($request, $data, $jar) {
+        $income = DB::transaction(function () use ($request, $data, $walletId) {
             $income = Income::create([
                 'user_id' => $request->user()->id,
-                'jar_id' => $jar->id,
+                'jar_id' => $walletId,
                 'amount' => $data['amount'],
-                'category' => $data['category'] ?? $jar->category ?? $jar->name,
+                'category' => $data['category'],
                 'source' => $data['source'] ?? null,
                 'received_at' => $data['received_at'] ?? null,
             ]);
+
+            $jar = Jar::query()
+                ->where('id', $walletId)
+                ->where('user_id', $request->user()->id)
+                ->where('wallet_type', Jar::TYPE_WALLET)
+                ->lockForUpdate()
+                ->firstOrFail();
 
             $jar->update([
                 'balance' => $jar->balance + $data['amount'],
@@ -64,26 +71,92 @@ class IncomeController extends Controller
         $this->authorize($request, $income);
 
         $data = $request->validate([
+            'jar_id' => 'sometimes|nullable|integer|exists:jars,id',
+            'amount' => 'sometimes|required|numeric|min:0.01',
             'category' => 'sometimes|nullable|string|max:255',
             'source' => 'sometimes|nullable|string|max:255',
             'received_at' => 'sometimes|nullable|date',
         ]);
 
-        $income->update($data);
+        $updatedIncome = DB::transaction(function () use ($request, $income, $data) {
+            $newJarId = $data['jar_id'] ?? $income->jar_id;
+            $newAmount = (float) ($data['amount'] ?? $income->amount);
+            $oldJarId = $income->jar_id;
 
-        return response()->json($income);
+            // Handle jar balance updates if jar_id changes or amount changes
+            if ($oldJarId !== null && $newJarId !== null) {
+                $oldJar = Jar::query()
+                    ->where('id', $oldJarId)
+                    ->where('user_id', $request->user()->id)
+                    ->where('wallet_type', Jar::TYPE_WALLET)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                $newJar = Jar::query()
+                    ->where('id', $newJarId)
+                    ->where('user_id', $request->user()->id)
+                    ->where('wallet_type', Jar::TYPE_WALLET)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                if ($oldJar->id === $newJar->id) {
+                    $oldJar->update([
+                        'balance' => ($oldJar->balance - $income->amount) + $newAmount,
+                    ]);
+                } else {
+                    $oldJar->update([
+                        'balance' => $oldJar->balance - $income->amount,
+                    ]);
+
+                    $newJar->update([
+                        'balance' => $newJar->balance + $newAmount,
+                    ]);
+                }
+            } elseif ($oldJarId !== null && $newJarId === null) {
+                // Moving from budget to no budget
+                $oldJar = Jar::query()
+                    ->where('id', $oldJarId)
+                    ->where('user_id', $request->user()->id)
+                    ->where('wallet_type', Jar::TYPE_WALLET)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                $oldJar->update([
+                    'balance' => $oldJar->balance - $income->amount,
+                ]);
+            } elseif ($oldJarId === null && $newJarId !== null) {
+                // Moving from no budget to budget
+                $newJar = Jar::query()
+                    ->where('id', $newJarId)
+                    ->where('user_id', $request->user()->id)
+                    ->where('wallet_type', Jar::TYPE_WALLET)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                $newJar->update([
+                    'balance' => $newJar->balance + $newAmount,
+                ]);
+            }
+
+            $income->update($data);
+
+            return $income->fresh();
+        });
+
+        return response()->json($updatedIncome);
     }
 
     public function destroy(Request $request, Income $income)
     {
         $this->authorize($request, $income);
 
-        $jar = $income->jar;
-        
-        DB::transaction(function () use ($income, $jar) {
-            $jar->update([
-                'balance' => $jar->balance - $income->amount,
-            ]);
+        DB::transaction(function () use ($income) {
+            if ($income->jar_id !== null) {
+                $jar = $income->jar;
+                $jar->update([
+                    'balance' => $jar->balance - $income->amount,
+                ]);
+            }
             $income->delete();
         });
 
@@ -97,39 +170,34 @@ class IncomeController extends Controller
         }
     }
 
-    private function resolveJarForIncome(Request $request, array $data): Jar
+    private function resolveWalletId(Request $request, ?int $walletId): int
     {
-        if (!empty($data['jar_id'])) {
-            return Jar::query()
-                ->where('id', $data['jar_id'])
-                ->where('user_id', $request->user()->id)
-                ->firstOrFail();
+        if ($walletId) {
+            return $walletId;
         }
 
-        $category = mb_strtolower(trim((string) ($data['category'] ?? '')));
-
-        if ($category === '') {
-            abort(422, 'Category is required for income');
-        }
-
-        $jar = Jar::query()
+        $cashWallet = Jar::query()
             ->where('user_id', $request->user()->id)
-            ->where(function ($query) use ($category) {
-                $query
-                    ->whereRaw("LOWER(COALESCE(category, '')) = ?", [$category])
-                    ->orWhereRaw('LOWER(name) = ?', [$category]);
-            })
+            ->where('wallet_type', Jar::TYPE_WALLET)
+            ->where('name', 'Cash')
             ->first();
 
-        if (!$jar) {
-            $jar = Jar::create([
-                'user_id' => $request->user()->id,
-                'name' => $data['category'],
-                'category' => $data['category'],
-                'balance' => 0,
-            ]);
+        if ($cashWallet) {
+            return $cashWallet->id;
         }
 
-        return $jar;
+        $wallet = $request->user()->jars()->create([
+            'name' => 'Cash',
+            'category' => null,
+            'description' => null,
+            'balance' => 0,
+            'budget_date' => null,
+            'repeat_this_budget' => false,
+            'wallet_type' => Jar::TYPE_WALLET,
+            'currency_unit' => 'VND',
+            'notifications_enabled' => false,
+        ]);
+
+        return $wallet->id;
     }
 }

@@ -9,11 +9,11 @@ const routes: Routes = [
     children: [
       {
         path: 'dashboard',
-        loadChildren: () => import('../pages/dashboard/dashboard.module').then(m => m.DashboardPageModule)
+        loadChildren: () => import('../home/home.module').then(m => m.HomePageModule)
       },
       {
         path: 'transactions',
-        loadChildren: () => import('../tab2/tab2.module').then(m => m.Tab2PageModule)
+        loadChildren: () => import('../transactions/transactions.module').then(m => m.TransactionsPageModule)
       },
       {
         path: 'stats',
@@ -30,11 +30,15 @@ const routes: Routes = [
       },
       {
         path: 'settings',
-        loadChildren: () => import('../tab3/tab3.module').then(m => m.Tab3PageModule)
+        loadChildren: () => import('../settings/settings.module').then(m => m.SettingsPageModule)
       },
       {
         path: 'categories',
         loadChildren: () => import('../pages/categories/categories.module').then(m => m.CategoriesPageModule)
+      },
+      {
+        path: 'wallets',
+        loadChildren: () => import('../pages/wallets/wallets.module').then(m => m.WalletsPageModule)
       },
       {
         path: '',

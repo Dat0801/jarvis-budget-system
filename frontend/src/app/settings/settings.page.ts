@@ -3,19 +3,20 @@ import { Router } from '@angular/router';
 import { AlertController, ToastController } from '@ionic/angular';
 import { AuthService } from '../services/auth.service';
 import { AccountService } from '../services/account.service';
+import { CurrencyCode, getCurrencyDisplay, normalizeCurrencyCode } from '../utils/currency.util';
 
 @Component({
-  selector: 'app-tab3',
-  templateUrl: 'tab3.page.html',
-  styleUrls: ['tab3.page.scss'],
+  selector: 'app-settings',
+  templateUrl: 'settings.page.html',
+  styleUrls: ['settings.page.scss'],
   standalone: false,
 })
-export class Tab3Page implements OnInit {
+export class SettingsPage implements OnInit {
   userName: string = 'Minh';
   userEmail: string = 'minh@jarvis.finance';
   darkMode: boolean = false;
   selectedLanguage: string = 'English';
-  selectedCurrency: string = 'VND (₫)';
+  selectedCurrency: CurrencyCode = 'VND';
   isEditProfileOpen = false;
   isChangePasswordOpen = false;
   editName = '';
@@ -37,6 +38,10 @@ export class Tab3Page implements OnInit {
     this.loadPreferences();
   }
 
+  get selectedCurrencyLabel(): string {
+    return `${this.selectedCurrency} (${getCurrencyDisplay(this.selectedCurrency)})`;
+  }
+
   loadUserData() {
     this.authService.me().subscribe({
       next: (user) => {
@@ -55,14 +60,13 @@ export class Tab3Page implements OnInit {
   }
 
   loadPreferences() {
-    // Load preferences from local storage or settings service
     const savedDarkMode = localStorage.getItem('darkMode');
     const savedLanguage = localStorage.getItem('language');
     const savedCurrency = localStorage.getItem('currency');
 
     this.darkMode = savedDarkMode ? JSON.parse(savedDarkMode) : false;
     this.selectedLanguage = savedLanguage || 'English';
-    this.selectedCurrency = savedCurrency || 'VND (₫)';
+    this.selectedCurrency = normalizeCurrencyCode(savedCurrency);
     this.applyDarkMode(this.darkMode);
   }
 
@@ -195,36 +199,36 @@ export class Tab3Page implements OnInit {
           name: 'currency',
           type: 'radio',
           label: 'USD ($)',
-          value: 'USD ($)',
-          checked: this.selectedCurrency === 'USD ($)'
+          value: 'USD',
+          checked: this.selectedCurrency === 'USD'
         },
         {
           name: 'currency',
           type: 'radio',
           label: 'EUR (€)',
-          value: 'EUR (€)',
-          checked: this.selectedCurrency === 'EUR (€)'
+          value: 'EUR',
+          checked: this.selectedCurrency === 'EUR'
         },
         {
           name: 'currency',
           type: 'radio',
-          label: 'VND (₫)',
-          value: 'VND (₫)',
-          checked: this.selectedCurrency === 'VND (₫)'
+          label: 'VND (VNĐ)',
+          value: 'VND',
+          checked: this.selectedCurrency === 'VND'
         },
         {
           name: 'currency',
           type: 'radio',
           label: 'GBP (£)',
-          value: 'GBP (£)',
-          checked: this.selectedCurrency === 'GBP (£)'
+          value: 'GBP',
+          checked: this.selectedCurrency === 'GBP'
         },
         {
           name: 'currency',
           type: 'radio',
           label: 'JPY (¥)',
-          value: 'JPY (¥)',
-          checked: this.selectedCurrency === 'JPY (¥)'
+          value: 'JPY',
+          checked: this.selectedCurrency === 'JPY'
         }
       ],
       buttons: [
@@ -234,9 +238,9 @@ export class Tab3Page implements OnInit {
         },
         {
           text: 'OK',
-          handler: (data) => {
-            this.selectedCurrency = data;
-            localStorage.setItem('currency', data);
+          handler: (data: string) => {
+            this.selectedCurrency = normalizeCurrencyCode(data);
+            localStorage.setItem('currency', this.selectedCurrency);
             this.showToast('Currency changed successfully');
           }
         }
@@ -269,13 +273,8 @@ export class Tab3Page implements OnInit {
     await alert.present();
   }
 
-  async openHelpCenter() {
-    const alert = await this.alertController.create({
-      header: 'Help Center',
-      message: 'For support, email support@jarvis.finance. Include your account email and issue details for faster assistance.',
-      buttons: ['OK'],
-    });
-    await alert.present();
+  openHelpCenter() {
+    this.router.navigate(['/tabs/notes']);
   }
 
   async openAbout() {
@@ -289,6 +288,10 @@ export class Tab3Page implements OnInit {
 
   openCategories() {
     this.router.navigate(['/tabs/categories']);
+  }
+
+  openWallets() {
+    this.router.navigate(['/tabs/wallets']);
   }
 
   async logout() {
@@ -308,8 +311,7 @@ export class Tab3Page implements OnInit {
               next: () => {
                 this.router.navigate(['/auth/login']);
               },
-              error: (err) => {
-                console.error('Logout error:', err);
+              error: () => {
                 this.router.navigate(['/auth/login']);
               }
             });
@@ -322,9 +324,9 @@ export class Tab3Page implements OnInit {
 
   private async showToast(message: string) {
     const toast = await this.toastController.create({
-      message: message,
+      message,
       duration: 2000,
-      position: 'bottom'
+      position: 'bottom',
     });
     await toast.present();
   }
