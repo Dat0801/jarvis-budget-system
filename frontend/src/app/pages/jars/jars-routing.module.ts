@@ -1,7 +1,7 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { JarsPage } from './jars.page';
-import { JarDetailPage } from './jar-detail/jar-detail.page';
+import { JarActivityPage } from './jar-activity/jar-activity.page';
 
 const routes: Routes = [
   {
@@ -10,11 +10,12 @@ const routes: Routes = [
   },
   {
     path: ':id',
-    component: JarDetailPage,
+    component: JarActivityPage,
   },
   {
     path: ':id/activity',
-    loadComponent: () => import('./jar-activity/jar-activity.page').then(m => m.JarActivityPage),
+    redirectTo: ':id',
+    pathMatch: 'full',
   },
 ];
 

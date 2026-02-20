@@ -129,7 +129,7 @@ export class JarActivityPage implements OnInit {
   }
 
   goBack(): void {
-    this.router.navigate(['/tabs/budgets', this.jarId]);
+    this.router.navigate(['/tabs/budgets']);
   }
 
   private buildMonthTabs(): void {

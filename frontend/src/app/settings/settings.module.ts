@@ -2,10 +2,10 @@ import { IonicModule } from '@ionic/angular';
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { Tab3Page } from './tab3.page';
+import { SettingsPage } from './settings.page';
 import { RouterModule } from '@angular/router';
 
-import { Tab3PageRoutingModule } from './tab3-routing.module';
+import { SettingsPageRoutingModule } from './settings-routing.module';
 
 @NgModule({
   imports: [
@@ -14,8 +14,9 @@ import { Tab3PageRoutingModule } from './tab3-routing.module';
     FormsModule,
     ReactiveFormsModule,
     RouterModule,
-    Tab3PageRoutingModule
+    SettingsPageRoutingModule
   ],
-  declarations: [Tab3Page]
+  declarations: [SettingsPage]
 })
-export class Tab3PageModule {}
+export class SettingsPageModule {}
+

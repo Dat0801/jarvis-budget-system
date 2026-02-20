@@ -6,12 +6,12 @@ import { AccountService } from '../services/account.service';
 import { CurrencyCode, getCurrencyDisplay, normalizeCurrencyCode } from '../utils/currency.util';
 
 @Component({
-  selector: 'app-tab3',
-  templateUrl: 'tab3.page.html',
-  styleUrls: ['tab3.page.scss'],
+  selector: 'app-settings',
+  templateUrl: 'settings.page.html',
+  styleUrls: ['settings.page.scss'],
   standalone: false,
 })
-export class Tab3Page implements OnInit {
+export class SettingsPage implements OnInit {
   userName: string = 'Minh';
   userEmail: string = 'minh@jarvis.finance';
   darkMode: boolean = false;
@@ -60,7 +60,6 @@ export class Tab3Page implements OnInit {
   }
 
   loadPreferences() {
-    // Load preferences from local storage or settings service
     const savedDarkMode = localStorage.getItem('darkMode');
     const savedLanguage = localStorage.getItem('language');
     const savedCurrency = localStorage.getItem('currency');
@@ -274,13 +273,8 @@ export class Tab3Page implements OnInit {
     await alert.present();
   }
 
-  async openHelpCenter() {
-    const alert = await this.alertController.create({
-      header: 'Help Center',
-      message: 'For support, email support@jarvis.finance. Include your account email and issue details for faster assistance.',
-      buttons: ['OK'],
-    });
-    await alert.present();
+  openHelpCenter() {
+    this.router.navigate(['/tabs/notes']);
   }
 
   async openAbout() {
@@ -317,8 +311,7 @@ export class Tab3Page implements OnInit {
               next: () => {
                 this.router.navigate(['/auth/login']);
               },
-              error: (err) => {
-                console.error('Logout error:', err);
+              error: () => {
                 this.router.navigate(['/auth/login']);
               }
             });
@@ -331,9 +324,9 @@ export class Tab3Page implements OnInit {
 
   private async showToast(message: string) {
     const toast = await this.toastController.create({
-      message: message,
+      message,
       duration: 2000,
-      position: 'bottom'
+      position: 'bottom',
     });
     await toast.present();
   }

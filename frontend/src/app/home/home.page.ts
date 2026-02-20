@@ -5,16 +5,16 @@ import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 import { catchError, finalize, forkJoin, of } from 'rxjs';
-import { Wallet, WalletService } from '../../services/wallet.service';
-import { ExpenseService } from '../../services/expense.service';
-import { IncomeService } from '../../services/income.service';
-import { NoteService } from '../../services/note.service';
-import { IncomeVsExpenses, StatsService } from '../../services/stats.service';
+import { Wallet, WalletService } from '../services/wallet.service';
+import { ExpenseService } from '../services/expense.service';
+import { IncomeService } from '../services/income.service';
+import { NoteService } from '../services/note.service';
+import { IncomeVsExpenses, StatsService } from '../services/stats.service';
 import {
   CurrencyCode,
   formatCurrencyAmount,
   getStoredCurrencyCode,
-} from '../../utils/currency.util';
+} from '../utils/currency.util';
 
 interface Transaction {
   id: number;
@@ -35,13 +35,13 @@ interface TopSpending {
 }
 
 @Component({
-  selector: 'app-dashboard',
+  selector: 'app-home',
   standalone: true,
   imports: [CommonModule, FormsModule, IonicModule, RouterModule],
-  templateUrl: './dashboard.page.html',
-  styleUrls: ['./dashboard.page.scss'],
+  templateUrl: './home.page.html',
+  styleUrls: ['./home.page.scss'],
 })
-export class DashboardPage implements OnInit {
+export class HomePage implements OnInit {
   jars: Wallet[] = [];
   totalWalletBalance = 0;
   selectedCurrencyCode: CurrencyCode = 'VND';
@@ -122,8 +122,8 @@ export class DashboardPage implements OnInit {
     this.router.navigate(['/tabs/wallets']);
   }
 
-  openWalletDetail(jarId: number): void {
-    this.router.navigate(['/tabs/budgets', jarId, 'activity']);
+  openWalletDetail(): void {
+    this.router.navigate(['/tabs/transactions']);
   }
 
   private loadDashboardData(): void {
@@ -134,58 +134,62 @@ export class DashboardPage implements OnInit {
       incomesResponse: this.incomeService.list().pipe(catchError(() => of([]))),
       reminders: this.noteService.reminderCount().pipe(catchError(() => of({ count: 0 }))),
       incomeVsExpenses: this.statsService.getIncomeVsExpenses().pipe(catchError(() => of(null))),
-    }).pipe(finalize(() => {
-      this.isLoadingDashboard = false;
-    })).subscribe(({ jars, expensesResponse, incomesResponse, reminders, incomeVsExpenses }) => {
-      this.notificationCount = Number(reminders?.count) || 0;
-      this.jars = Array.isArray(jars) ? jars : [];
+    })
+      .pipe(
+        finalize(() => {
+          this.isLoadingDashboard = false;
+        })
+      )
+      .subscribe(({ jars, expensesResponse, incomesResponse, reminders, incomeVsExpenses }) => {
+        this.notificationCount = Number(reminders?.count) || 0;
+        this.jars = Array.isArray(jars) ? jars : [];
 
-      const expenses = this.extractList(expensesResponse).map((expense: any) => {
-        const transactionDate = this.parseDate(expense.spent_at || expense.created_at);
-        return {
-          id: Number(expense.id),
-          jarId: expense.jar_id ?? null,
-          jarName: expense?.jar?.name || 'Wallet',
-          title: expense.category || 'Expense',
-          note: expense.note || '',
-          timeLabel: this.formatDateLabel(transactionDate),
-          date: transactionDate,
-          amount: -Math.abs(Number(expense.amount) || 0),
-          type: 'expense' as const,
-          icon: 'arrow-up-outline',
-        };
+        const expenses = this.extractList(expensesResponse).map((expense: any) => {
+          const transactionDate = this.parseDate(expense.spent_at || expense.created_at);
+          return {
+            id: Number(expense.id),
+            jarId: expense.jar_id ?? null,
+            jarName: expense?.jar?.name || 'Wallet',
+            title: expense.category || 'Expense',
+            note: expense.note || '',
+            timeLabel: this.formatDateLabel(transactionDate),
+            date: transactionDate,
+            amount: -Math.abs(Number(expense.amount) || 0),
+            type: 'expense' as const,
+            icon: 'arrow-up-outline',
+          };
+        });
+
+        const incomes = this.extractList(incomesResponse).map((income: any) => {
+          const transactionDate = this.parseDate(income.received_at || income.created_at);
+          return {
+            id: Number(income.id),
+            jarId: income.jar_id ?? null,
+            jarName: income?.jar?.name || 'Wallet',
+            title: income.source || 'Income',
+            note: '',
+            timeLabel: this.formatDateLabel(transactionDate),
+            date: transactionDate,
+            amount: Math.abs(Number(income.amount) || 0),
+            type: 'income' as const,
+            icon: 'arrow-down-outline',
+          };
+        });
+
+        this.allTransactions = [...expenses, ...incomes].sort(
+          (first, second) => second.date.getTime() - first.date.getTime()
+        );
+
+        this.totalWalletBalance = this.jars.reduce(
+          (sum, jar) => sum + this.parseAmount(jar.balance),
+          0
+        );
+
+        this.calculateMonthlyTotals();
+        this.calculateTopSpending(expenses);
+        this.buildIncomeExpenseChart(incomeVsExpenses);
+        this.applyTransactionSearch();
       });
-
-      const incomes = this.extractList(incomesResponse).map((income: any) => {
-        const transactionDate = this.parseDate(income.received_at || income.created_at);
-        return {
-          id: Number(income.id),
-          jarId: income.jar_id ?? null,
-          jarName: income?.jar?.name || 'Wallet',
-          title: income.source || 'Income',
-          note: '',
-          timeLabel: this.formatDateLabel(transactionDate),
-          date: transactionDate,
-          amount: Math.abs(Number(income.amount) || 0),
-          type: 'income' as const,
-          icon: 'arrow-down-outline',
-        };
-      });
-
-      this.allTransactions = [...expenses, ...incomes].sort(
-        (first, second) => second.date.getTime() - first.date.getTime()
-      );
-
-      this.totalWalletBalance = this.jars.reduce(
-        (sum, jar) => sum + this.parseAmount(jar.balance),
-        0
-      );
-
-      this.calculateMonthlyTotals();
-      this.calculateTopSpending(expenses);
-      this.buildIncomeExpenseChart(incomeVsExpenses);
-      this.applyTransactionSearch();
-    });
   }
 
   private calculateMonthlyTotals(): void {
@@ -208,9 +212,10 @@ export class DashboardPage implements OnInit {
       .filter((transaction) => transaction.type === 'expense')
       .reduce((sum, transaction) => sum + Math.abs(transaction.amount), 0);
 
-    this.monthlyTransactionTotal = currentMonthTransactions
-      .reduce((sum, transaction) => sum + Math.abs(transaction.amount), 0);
-
+    this.monthlyTransactionTotal = currentMonthTransactions.reduce(
+      (sum, transaction) => sum + Math.abs(transaction.amount),
+      0
+    );
   }
 
   private calculateTopSpending(expenses: Transaction[]): void {
@@ -259,7 +264,8 @@ export class DashboardPage implements OnInit {
       ? data?.expenses.slice(-6)
       : [this.monthlyExpenseTotal];
 
-    this.reportLabels = labels.length ? labels : [fallbackLabel];
+    this.reportLabels = labels;
+
     const normalizedIncome = this.normalizeSeriesLength(income, this.reportLabels.length);
     const normalizedExpenses = this.normalizeSeriesLength(expenses, this.reportLabels.length);
 
