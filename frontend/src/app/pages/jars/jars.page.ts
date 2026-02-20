@@ -2,13 +2,14 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Budget, BudgetService } from '../../services/budget.service';
 import { CategoryService, CategoryTreeNode } from '../../services/category.service';
 import { FabService } from '../../services/fab.service';
 import { ExpenseService } from '../../services/expense.service';
 import { formatVndAmountInput, parseVndAmount } from '../../utils/vnd-amount.util';
 import { catchError, finalize, forkJoin, of } from 'rxjs';
+import { formatCurrencyAmount, getStoredCurrencyCode } from '../../utils/currency.util';
 
 type BudgetPeriod = 'week' | 'month' | 'quarter' | 'year';
 
@@ -28,6 +29,7 @@ interface BudgetCategoryOption {
   styleUrls: ['./jars.page.scss'],
 })
 export class JarsPage implements OnInit {
+  private readonly fabOwner = 'jars-budgets';
   jars: Budget[] = [];
   expensesByCategory: Record<string, number> = {};
   totalSaved = 0;
@@ -54,22 +56,45 @@ export class JarsPage implements OnInit {
     private expenseService: ExpenseService,
     private categoryService: CategoryService,
     private fabService: FabService,
+    private route: ActivatedRoute,
     private router: Router
   ) {}
 
   ngOnInit(): void {
+    this.route.queryParamMap.subscribe((params) => {
+      const selectedCategory = params.get('selectedCategory');
+      const returnMode = params.get('returnMode');
+
+      if (selectedCategory) {
+        this.selectedBudgetCategoryValue = selectedCategory;
+      }
+
+      if (returnMode === 'createBudget') {
+        this.isCreateJarOpen = true;
+      }
+
+      if (selectedCategory || returnMode) {
+        this.router.navigate([], {
+          relativeTo: this.route,
+          queryParams: { selectedCategory: null, returnMode: null },
+          queryParamsHandling: 'merge',
+          replaceUrl: true,
+        });
+      }
+    });
+
     this.loadBudgetCategories();
     this.loadJars();
   }
 
   ionViewWillEnter(): void {
     // Show the global FAB with the openCreateJar action
-    this.fabService.showFab(() => this.openCreateJar(), 'add');
+    this.fabService.showFab(() => this.openCreateJar(), 'add', this.fabOwner);
   }
 
   ionViewDidLeave(): void {
     // Hide the global FAB when leaving this page
-    this.fabService.hideFab();
+    this.fabService.hideFab(this.fabOwner);
   }
 
   loadJars(): void {
@@ -157,6 +182,17 @@ export class JarsPage implements OnInit {
     }
 
     return selected.subCategoryName || selected.categoryName;
+  }
+
+  openCategorySelector(): void {
+    this.router.navigate(['/tabs/categories'], {
+      queryParams: {
+        selectMode: '1',
+        type: 'expense',
+        returnUrl: '/tabs/budgets',
+        returnMode: 'createBudget',
+      },
+    });
   }
 
   get selectedPeriodLabel(): string {
@@ -266,13 +302,7 @@ export class JarsPage implements OnInit {
 
   formatCurrency(value: number | string, withCents = false): string {
     const amount = typeof value === 'string' ? this.parseBalance(value) : value;
-    const formatter = new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    });
-    return formatter.format(amount);
+    return formatCurrencyAmount(amount, getStoredCurrencyCode(), withCents);
   }
 
   navigateToJar(jarId: number): void {
@@ -367,10 +397,8 @@ export class JarsPage implements OnInit {
       (sum, jar) => sum + this.getJarBudgetLimit(jar),
       0
     );
-    const formatted = this.formatCurrency(this.totalSaved, true);
-    const [main, cents] = formatted.split('.');
-    this.totalSavedMain = main || '0';
-    this.totalSavedCents = cents || '00';
+    this.totalSavedMain = this.formatCurrency(this.totalSaved, true);
+    this.totalSavedCents = '';
   }
 
   private getSelectedPeriodStartDate(): string {

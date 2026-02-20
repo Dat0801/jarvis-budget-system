@@ -1,6 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { FabService, FabConfig } from './services/fab.service';
 import { Observable } from 'rxjs';
+import { addIcons } from 'ionicons';
+import { add } from 'ionicons/icons';
 
 @Component({
   selector: 'app-root',
@@ -12,6 +14,7 @@ export class AppComponent implements OnInit {
   fabConfig$: Observable<FabConfig>;
 
   constructor(private fabService: FabService) {
+    addIcons({ add });
     this.fabConfig$ = this.fabService.fabConfig$;
   }
 

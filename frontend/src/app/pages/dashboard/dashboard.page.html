@@ -30,31 +30,37 @@
         <div class="small-label">Total Balance</div>
         <ion-icon name="wallet-outline"></ion-icon>
       </div>
-      <div class="total-value">{{ totalWalletBalance | currency:selectedCurrencyCode:'symbol':'1.0-0' }}</div>
+      <div class="total-value">{{ formatCurrency(totalWalletBalance) }}</div>
 
       <div class="month-inline-summary">
         <span>{{ monthLabel }}</span>
-        <span>{{ monthlyTransactionTotal | currency:selectedCurrencyCode:'symbol':'1.0-0' }} transactions</span>
+        <span>{{ totalTransaction }} transactions</span>
       </div>
     </div>
 
     <div class="section-header">
       <div class="section-title">My Wallets</div>
+      <button type="button" class="section-link" (click)="openWallets()">See All</button>
     </div>
 
     <div class="wallet-list" *ngIf="!isLoadingDashboard && jars.length > 0; else walletState">
-      <div class="wallet-card" *ngFor="let jar of jars; let i = index">
+      <button
+        type="button"
+        class="wallet-card"
+        *ngFor="let jar of jars; let i = index; trackBy: trackByWalletId"
+        (click)="openWalletDetail(jar.id)"
+      >
         <div class="wallet-head">
           <div class="wallet-icon" [class.alt]="i % 2 === 1">
             <ion-icon [name]="i % 2 === 0 ? 'wallet-outline' : 'card-outline'"></ion-icon>
           </div>
           <div class="wallet-name">{{ jar.name }}</div>
         </div>
-        <div class="wallet-balance">{{ jar.balance | currency:selectedCurrencyCode:'symbol':'1.0-0' }}</div>
+        <div class="wallet-balance">{{ formatCurrency(jar.balance) }}</div>
         <div class="wallet-progress">
           <span [style.width.%]="getWalletProgress(jar)"></span>
         </div>
-      </div>
+      </button>
     </div>
     <ng-template #walletState>
       <div class="loading-state" *ngIf="isLoadingDashboard">
@@ -96,14 +102,14 @@
       <div class="spending-card" *ngIf="selectedSpendingTab === 'week'; else monthSpending">
         <div class="spending-label">This week</div>
         <div class="spending-title">{{ weeklyTopSpending.title }}</div>
-        <div class="spending-value">{{ weeklyTopSpending.amount | currency:selectedCurrencyCode:'symbol':'1.0-0' }}</div>
+        <div class="spending-value">{{ formatCurrency(weeklyTopSpending.amount) }}</div>
       </div>
 
       <ng-template #monthSpending>
         <div class="spending-card">
           <div class="spending-label">This month</div>
           <div class="spending-title">{{ monthlyTopSpending.title }}</div>
-          <div class="spending-value">{{ monthlyTopSpending.amount | currency:selectedCurrencyCode:'symbol':'1.0-0' }}</div>
+          <div class="spending-value">{{ formatCurrency(monthlyTopSpending.amount) }}</div>
         </div>
       </ng-template>
     </div>
@@ -133,12 +139,12 @@
         <div class="legend-item">
           <span class="legend-dot income"></span>
           <span>Income</span>
-          <strong>{{ monthlyIncomeTotal | currency:selectedCurrencyCode:'symbol':'1.0-0' }}</strong>
+          <strong>{{ formatCurrency(monthlyIncomeTotal) }}</strong>
         </div>
         <div class="legend-item">
           <span class="legend-dot expense"></span>
           <span>Expense</span>
-          <strong>{{ monthlyExpenseTotal | currency:selectedCurrencyCode:'symbol':'1.0-0' }}</strong>
+          <strong>{{ formatCurrency(monthlyExpenseTotal) }}</strong>
         </div>
       </div>
 
@@ -173,7 +179,7 @@
           <div class="tx-sub">{{ tx.jarName }} • {{ tx.timeLabel }}</div>
         </div>
         <div class="tx-amount" [class.income]="tx.type === 'income'" [class.expense]="tx.type === 'expense'">
-          {{ tx.amount | currency:selectedCurrencyCode:'symbol':'1.0-0' }}
+          {{ formatCurrency(tx.amount) }}
         </div>
       </div>
     </div>

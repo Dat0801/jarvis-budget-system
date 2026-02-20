@@ -5,11 +5,16 @@ import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 import { catchError, finalize, forkJoin, of } from 'rxjs';
-import { Budget } from '../../services/budget.service';
+import { Wallet, WalletService } from '../../services/wallet.service';
 import { ExpenseService } from '../../services/expense.service';
 import { IncomeService } from '../../services/income.service';
 import { NoteService } from '../../services/note.service';
 import { IncomeVsExpenses, StatsService } from '../../services/stats.service';
+import {
+  CurrencyCode,
+  formatCurrencyAmount,
+  getStoredCurrencyCode,
+} from '../../utils/currency.util';
 
 interface Transaction {
   id: number;
@@ -37,9 +42,9 @@ interface TopSpending {
   styleUrls: ['./dashboard.page.scss'],
 })
 export class DashboardPage implements OnInit {
-  jars: Budget[] = [];
+  jars: Wallet[] = [];
   totalWalletBalance = 0;
-  selectedCurrencyCode = 'VND';
+  selectedCurrencyCode: CurrencyCode = 'VND';
   allTransactions: Transaction[] = [];
   filteredTransactions: Transaction[] = [];
   searchTerm = '';
@@ -47,6 +52,7 @@ export class DashboardPage implements OnInit {
   isLoadingDashboard = false;
 
   monthLabel = '';
+  totalTransaction = 0;
   monthlyTransactionTotal = 0;
   monthlyIncomeTotal = 0;
   monthlyExpenseTotal = 0;
@@ -64,6 +70,7 @@ export class DashboardPage implements OnInit {
 
   constructor(
     private router: Router,
+    private walletService: WalletService,
     private expenseService: ExpenseService,
     private incomeService: IncomeService,
     private noteService: NoteService,
@@ -94,7 +101,7 @@ export class DashboardPage implements OnInit {
     this.selectedSpendingTab = tab;
   }
 
-  getWalletProgress(jar: Budget): number {
+  getWalletProgress(jar: Wallet): number {
     const balance = Number(jar.balance);
     const total = Math.abs(this.totalWalletBalance);
     if (!total || Number.isNaN(balance)) {
@@ -107,17 +114,31 @@ export class DashboardPage implements OnInit {
     return transaction.id;
   }
 
+  trackByWalletId(_index: number, jar: Wallet): number {
+    return jar.id;
+  }
+
+  openWallets(): void {
+    this.router.navigate(['/tabs/wallets']);
+  }
+
+  openWalletDetail(jarId: number): void {
+    this.router.navigate(['/tabs/budgets', jarId, 'activity']);
+  }
+
   private loadDashboardData(): void {
     this.isLoadingDashboard = true;
     forkJoin({
+      jars: this.walletService.list().pipe(catchError(() => of([]))),
       expensesResponse: this.expenseService.list().pipe(catchError(() => of([]))),
       incomesResponse: this.incomeService.list().pipe(catchError(() => of([]))),
       reminders: this.noteService.reminderCount().pipe(catchError(() => of({ count: 0 }))),
       incomeVsExpenses: this.statsService.getIncomeVsExpenses().pipe(catchError(() => of(null))),
     }).pipe(finalize(() => {
       this.isLoadingDashboard = false;
-    })).subscribe(({ expensesResponse, incomesResponse, reminders, incomeVsExpenses }) => {
+    })).subscribe(({ jars, expensesResponse, incomesResponse, reminders, incomeVsExpenses }) => {
       this.notificationCount = Number(reminders?.count) || 0;
+      this.jars = Array.isArray(jars) ? jars : [];
 
       const expenses = this.extractList(expensesResponse).map((expense: any) => {
         const transactionDate = this.parseDate(expense.spent_at || expense.created_at);
@@ -155,19 +176,10 @@ export class DashboardPage implements OnInit {
         (first, second) => second.date.getTime() - first.date.getTime()
       );
 
-      this.totalWalletBalance = this.allTransactions.reduce(
-        (sum, transaction) => sum + transaction.amount,
+      this.totalWalletBalance = this.jars.reduce(
+        (sum, jar) => sum + this.parseAmount(jar.balance),
         0
       );
-      this.jars = [
-        {
-          id: 0,
-          name: 'Cash',
-          balance: this.totalWalletBalance.toFixed(2),
-          description: null,
-          category: null,
-        },
-      ];
 
       this.calculateMonthlyTotals();
       this.calculateTopSpending(expenses);
@@ -185,6 +197,8 @@ export class DashboardPage implements OnInit {
       const txDate = transaction.date;
       return txDate.getFullYear() === currentYear && txDate.getMonth() === currentMonth;
     });
+
+    this.totalTransaction = currentMonthTransactions.length;
 
     this.monthlyIncomeTotal = currentMonthTransactions
       .filter((transaction) => transaction.type === 'income')
@@ -356,16 +370,19 @@ export class DashboardPage implements OnInit {
     return parsed;
   }
 
+  private parseAmount(value: string | number | null | undefined): number {
+    const raw = value?.toString() || '0';
+    const normalized = raw.replace(/[^0-9.-]+/g, '');
+    const parsed = Number.parseFloat(normalized);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  formatCurrency(value: string | number | null | undefined): string {
+    return formatCurrencyAmount(this.parseAmount(value), this.selectedCurrencyCode);
+  }
+
   private loadCurrencyPreference(): void {
-    const savedCurrency = localStorage.getItem('currency');
-
-    if (!savedCurrency) {
-      this.selectedCurrencyCode = 'VND';
-      return;
-    }
-
-    const [currencyCode] = savedCurrency.split(' ');
-    this.selectedCurrencyCode = currencyCode || 'VND';
+    this.selectedCurrencyCode = getStoredCurrencyCode();
   }
 
   private formatDateLabel(transactionDate: Date): string {

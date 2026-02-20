@@ -62,7 +62,12 @@
     <ion-item button detail (click)="changeCurrency()" class="setting-item">
       <ion-icon name="cash" slot="start" color="primary"></ion-icon>
       <ion-label>Currency</ion-label>
-      <ion-note slot="end">{{ selectedCurrency }}</ion-note>
+      <ion-note slot="end">{{ selectedCurrencyLabel }}</ion-note>
+    </ion-item>
+
+    <ion-item button detail (click)="openWallets()" class="setting-item">
+      <ion-icon name="wallet" slot="start" color="primary"></ion-icon>
+      <ion-label>My Wallets</ion-label>
     </ion-item>
 
     <ion-item button detail (click)="openCategories()" class="setting-item">

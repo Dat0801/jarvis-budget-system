@@ -6,6 +6,7 @@ use App\Http\Controllers\API\CategoryController;
 use App\Http\Controllers\API\ExpenseController;
 use App\Http\Controllers\API\IncomeController;
 use App\Http\Controllers\API\JarController;
+use App\Http\Controllers\API\WalletController;
 use App\Http\Controllers\API\NoteController;
 use App\Http\Controllers\API\StatsController;
 use Illuminate\Support\Facades\Route;
@@ -25,6 +26,9 @@ Route::middleware('auth:api')->group(function () {
     Route::post('/budgets/{jar}/add-money', [JarController::class, 'addMoney']);
     Route::patch('/budgets/{jar}', [JarController::class, 'update']);
     Route::delete('/budgets/{jar}', [JarController::class, 'destroy']);
+
+    Route::get('/wallets', [WalletController::class, 'index']);
+    Route::post('/wallets', [WalletController::class, 'store']);
 
     Route::get('/incomes', [IncomeController::class, 'index']);
     Route::post('/incomes', [IncomeController::class, 'store']);

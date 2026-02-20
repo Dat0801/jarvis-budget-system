@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Models\Jar;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -23,6 +24,18 @@ class AuthController extends Controller
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
             'role' => 'user',
+        ]);
+
+        $user->jars()->create([
+            'name' => 'Cash',
+            'category' => null,
+            'description' => null,
+            'balance' => 0,
+            'budget_date' => null,
+            'repeat_this_budget' => false,
+            'wallet_type' => Jar::TYPE_WALLET,
+            'currency_unit' => 'VND',
+            'notifications_enabled' => false,
         ]);
 
         $token = JWTAuth::fromUser($user);

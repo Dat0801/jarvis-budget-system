@@ -58,6 +58,15 @@
         <ion-icon slot="end" name="chevron-forward-outline"></ion-icon>
       </ion-item>
 
+      <ion-item>
+        <ion-label position="stacked">Wallet</ion-label>
+        <ion-select [(ngModel)]="jarId" name="jarId" interface="popover">
+          <ion-select-option *ngFor="let wallet of wallets" [value]="wallet.id">
+            {{ wallet.name }}
+          </ion-select-option>
+        </ion-select>
+      </ion-item>
+
 
       <ion-item button detail="false" class="date-select-item" (click)="openDatePicker()">
         <ion-label>
@@ -150,10 +159,10 @@
           ></ion-input>
         </ion-item>
         <ion-item>
-          <ion-label position="stacked">Budget</ion-label>
+          <ion-label position="stacked">Wallet</ion-label>
           <ion-select [(ngModel)]="editJarId" name="editJarId" interface="popover" required>
-            <ion-select-option *ngFor="let jar of jars" [value]="jar.id">
-              {{ jar.name }}
+            <ion-select-option *ngFor="let wallet of wallets" [value]="wallet.id">
+              {{ wallet.name }}
             </ion-select-option>
           </ion-select>
         </ion-item>

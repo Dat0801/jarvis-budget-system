@@ -37,6 +37,10 @@ const routes: Routes = [
         loadChildren: () => import('../pages/categories/categories.module').then(m => m.CategoriesPageModule)
       },
       {
+        path: 'wallets',
+        loadChildren: () => import('../pages/wallets/wallets.module').then(m => m.WalletsPageModule)
+      },
+      {
         path: '',
         redirectTo: '/tabs/dashboard',
         pathMatch: 'full'

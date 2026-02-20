@@ -4,6 +4,14 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { IonicModule } from '@ionic/angular';
 import { Budget, BudgetService, Transaction } from '../../../services/budget.service';
 import { finalize } from 'rxjs';
+import { formatCurrencyAmount, getStoredCurrencyCode } from '../../../utils/currency.util';
+
+interface MonthTab {
+  key: string;
+  label: string;
+  year: number;
+  month: number;
+}
 
 @Component({
   selector: 'app-jar-activity',
@@ -15,6 +23,11 @@ import { finalize } from 'rxjs';
 export class JarActivityPage implements OnInit {
   jar: Budget | null = null;
   transactions: Transaction[] = [];
+  monthTabs: MonthTab[] = [];
+  selectedMonthKey = '';
+  filteredTransactions: Transaction[] = [];
+  inflowTransactions: Transaction[] = [];
+  outflowTransactions: Transaction[] = [];
   isLoadingTransactions = false;
   jarId: number | null = null;
 
@@ -47,9 +60,29 @@ export class JarActivityPage implements OnInit {
     })).subscribe((response) => {
       const transactions = response.data || [];
       this.transactions = transactions.sort(
-        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        (a, b) => this.resolveTransactionDate(b).getTime() - this.resolveTransactionDate(a).getTime()
       );
+
+      this.buildMonthTabs();
+      if (!this.selectedMonthKey) {
+        this.selectedMonthKey = this.getMonthKey(new Date());
+      }
+      this.applySelectedMonth();
     });
+  }
+
+  onMonthChange(event: CustomEvent): void {
+    const nextMonthKey = (event.detail?.value || '').toString();
+    this.selectedMonthKey = nextMonthKey;
+    this.applySelectedMonth();
+  }
+
+  trackByMonth(_index: number, tab: MonthTab): string {
+    return tab.key;
+  }
+
+  trackByTransaction(_index: number, transaction: Transaction): number {
+    return transaction.id;
   }
 
   getTransactionIcon(transaction: Transaction): string {
@@ -82,16 +115,104 @@ export class JarActivityPage implements OnInit {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   }
 
+  getTransactionTime(transaction: Transaction): string {
+    return this.resolveTransactionDate(transaction).toLocaleTimeString('vi-VN', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
+
   formatCurrency(value: string | number): string {
     const normalized = value.toString().replace(/[^0-9.-]+/g, '');
     const amount = Number.parseFloat(normalized);
-    return new Intl.NumberFormat('vi-VN', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(Number.isFinite(amount) ? amount : 0);
+    return formatCurrencyAmount(Number.isFinite(amount) ? amount : 0, getStoredCurrencyCode());
   }
 
   goBack(): void {
     this.router.navigate(['/tabs/budgets', this.jarId]);
+  }
+
+  private buildMonthTabs(): void {
+    const now = new Date();
+    const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
+    const tabs: MonthTab[] = [
+      {
+        key: this.getMonthKey(thisMonth),
+        label: 'This month',
+        year: thisMonth.getFullYear(),
+        month: thisMonth.getMonth(),
+      },
+      {
+        key: this.getMonthKey(lastMonth),
+        label: 'Last month',
+        year: lastMonth.getFullYear(),
+        month: lastMonth.getMonth(),
+      },
+    ];
+
+    let oldestTransactionMonth: Date | null = null;
+    if (this.transactions.length > 0) {
+      const oldestTransaction = this.transactions[this.transactions.length - 1];
+      const oldestDate = this.resolveTransactionDate(oldestTransaction);
+      oldestTransactionMonth = new Date(oldestDate.getFullYear(), oldestDate.getMonth(), 1);
+    }
+
+    if (oldestTransactionMonth && oldestTransactionMonth.getTime() < lastMonth.getTime()) {
+      let cursor = new Date(lastMonth.getFullYear(), lastMonth.getMonth() - 1, 1);
+
+      while (cursor.getTime() >= oldestTransactionMonth.getTime()) {
+        tabs.push({
+          key: this.getMonthKey(cursor),
+          label: this.formatOlderMonthLabel(cursor),
+          year: cursor.getFullYear(),
+          month: cursor.getMonth(),
+        });
+
+        cursor = new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1);
+      }
+    }
+
+    this.monthTabs = tabs;
+  }
+
+  private applySelectedMonth(): void {
+    const activeTab = this.monthTabs.find((tab) => tab.key === this.selectedMonthKey);
+    if (!activeTab) {
+      this.filteredTransactions = [];
+      this.inflowTransactions = [];
+      this.outflowTransactions = [];
+      return;
+    }
+
+    const selectedTransactions = this.transactions.filter((transaction) => {
+      const transactionDate = this.resolveTransactionDate(transaction);
+      return (
+        transactionDate.getFullYear() === activeTab.year
+        && transactionDate.getMonth() === activeTab.month
+      );
+    });
+
+    this.filteredTransactions = selectedTransactions;
+    this.inflowTransactions = selectedTransactions.filter((transaction) => transaction.type === 'income');
+    this.outflowTransactions = selectedTransactions.filter((transaction) => transaction.type === 'expense');
+  }
+
+  private resolveTransactionDate(transaction: Transaction): Date {
+    const rawDate = transaction.received_at || transaction.spent_at || transaction.created_at;
+    const parsed = new Date(rawDate);
+    return Number.isNaN(parsed.getTime()) ? new Date(transaction.created_at) : parsed;
+  }
+
+  private getMonthKey(date: Date): string {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+  }
+
+  private formatOlderMonthLabel(date: Date): string {
+    return date.toLocaleDateString('vi-VN', {
+      month: '2-digit',
+      year: 'numeric',
+    });
   }
 }

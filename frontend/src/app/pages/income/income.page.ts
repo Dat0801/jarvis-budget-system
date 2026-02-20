@@ -7,6 +7,7 @@ import { IncomeService } from '../../services/income.service';
 import { Budget, BudgetService } from '../../services/budget.service';
 import { formatVndAmountInput, parseVndAmount } from '../../utils/vnd-amount.util';
 import { finalize } from 'rxjs';
+import { formatCurrencyAmount, getStoredCurrencyCode, normalizeCurrencyCode } from '../../utils/currency.util';
 
 interface IncomeItem {
   id: number;
@@ -53,6 +54,11 @@ export class IncomePage implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    const savedCurrency = normalizeCurrencyCode(getStoredCurrencyCode());
+    if (this.currencyOptions.some((option) => option === savedCurrency)) {
+      this.currency = savedCurrency as (typeof this.currencyOptions)[number];
+    }
+
     this.receivedAt = this.receivedAt || this.getTodayDate();
     this.loadJars();
     this.loadIncomes();
@@ -61,7 +67,7 @@ export class IncomePage implements OnInit {
   get currencySymbol(): string {
     const symbolByCurrency: Record<(typeof this.currencyOptions)[number], string> = {
       USD: '$',
-      VND: '₫',
+      VND: 'VNĐ',
       EUR: '€',
     };
     return symbolByCurrency[this.currency];
@@ -212,12 +218,8 @@ export class IncomePage implements OnInit {
   formatCurrency(value: string): string {
     const amount = Number.parseFloat(value);
     if (Number.isNaN(amount)) {
-      return '₫0';
+      return formatCurrencyAmount(0, getStoredCurrencyCode());
     }
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND',
-      maximumFractionDigits: 0,
-    }).format(amount);
+    return formatCurrencyAmount(amount, getStoredCurrencyCode());
   }
 }

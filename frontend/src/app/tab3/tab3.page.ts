@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { AlertController, ToastController } from '@ionic/angular';
 import { AuthService } from '../services/auth.service';
 import { AccountService } from '../services/account.service';
+import { CurrencyCode, getCurrencyDisplay, normalizeCurrencyCode } from '../utils/currency.util';
 
 @Component({
   selector: 'app-tab3',
@@ -15,7 +16,7 @@ export class Tab3Page implements OnInit {
   userEmail: string = 'minh@jarvis.finance';
   darkMode: boolean = false;
   selectedLanguage: string = 'English';
-  selectedCurrency: string = 'VND (₫)';
+  selectedCurrency: CurrencyCode = 'VND';
   isEditProfileOpen = false;
   isChangePasswordOpen = false;
   editName = '';
@@ -35,6 +36,10 @@ export class Tab3Page implements OnInit {
   ngOnInit() {
     this.loadUserData();
     this.loadPreferences();
+  }
+
+  get selectedCurrencyLabel(): string {
+    return `${this.selectedCurrency} (${getCurrencyDisplay(this.selectedCurrency)})`;
   }
 
   loadUserData() {
@@ -62,7 +67,7 @@ export class Tab3Page implements OnInit {
 
     this.darkMode = savedDarkMode ? JSON.parse(savedDarkMode) : false;
     this.selectedLanguage = savedLanguage || 'English';
-    this.selectedCurrency = savedCurrency || 'VND (₫)';
+    this.selectedCurrency = normalizeCurrencyCode(savedCurrency);
     this.applyDarkMode(this.darkMode);
   }
 
@@ -195,36 +200,36 @@ export class Tab3Page implements OnInit {
           name: 'currency',
           type: 'radio',
           label: 'USD ($)',
-          value: 'USD ($)',
-          checked: this.selectedCurrency === 'USD ($)'
+          value: 'USD',
+          checked: this.selectedCurrency === 'USD'
         },
         {
           name: 'currency',
           type: 'radio',
           label: 'EUR (€)',
-          value: 'EUR (€)',
-          checked: this.selectedCurrency === 'EUR (€)'
+          value: 'EUR',
+          checked: this.selectedCurrency === 'EUR'
         },
         {
           name: 'currency',
           type: 'radio',
-          label: 'VND (₫)',
-          value: 'VND (₫)',
-          checked: this.selectedCurrency === 'VND (₫)'
+          label: 'VND (VNĐ)',
+          value: 'VND',
+          checked: this.selectedCurrency === 'VND'
         },
         {
           name: 'currency',
           type: 'radio',
           label: 'GBP (£)',
-          value: 'GBP (£)',
-          checked: this.selectedCurrency === 'GBP (£)'
+          value: 'GBP',
+          checked: this.selectedCurrency === 'GBP'
         },
         {
           name: 'currency',
           type: 'radio',
           label: 'JPY (¥)',
-          value: 'JPY (¥)',
-          checked: this.selectedCurrency === 'JPY (¥)'
+          value: 'JPY',
+          checked: this.selectedCurrency === 'JPY'
         }
       ],
       buttons: [
@@ -234,9 +239,9 @@ export class Tab3Page implements OnInit {
         },
         {
           text: 'OK',
-          handler: (data) => {
-            this.selectedCurrency = data;
-            localStorage.setItem('currency', data);
+          handler: (data: string) => {
+            this.selectedCurrency = normalizeCurrencyCode(data);
+            localStorage.setItem('currency', this.selectedCurrency);
             this.showToast('Currency changed successfully');
           }
         }
@@ -289,6 +294,10 @@ export class Tab3Page implements OnInit {
 
   openCategories() {
     this.router.navigate(['/tabs/categories']);
+  }
+
+  openWallets() {
+    this.router.navigate(['/tabs/wallets']);
   }
 
   async logout() {

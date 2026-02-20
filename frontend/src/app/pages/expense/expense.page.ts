@@ -5,10 +5,11 @@ import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 import { ExpenseService } from '../../services/expense.service';
 import { IncomeService } from '../../services/income.service';
-import { Budget, BudgetService } from '../../services/budget.service';
+import { Wallet, WalletService } from '../../services/wallet.service';
 import { CategoryService, CategoryTreeNode, CategoryType } from '../../services/category.service';
 import { formatVndAmountInput, parseVndAmount } from '../../utils/vnd-amount.util';
 import { finalize } from 'rxjs';
+import { formatCurrencyAmount, getStoredCurrencyCode, normalizeCurrencyCode } from '../../utils/currency.util';
 
 interface ExpenseItem {
   id: number;
@@ -52,7 +53,7 @@ export class ExpensePage implements OnInit {
   tempSpentAt = this.getTodayDate();
   receivedAt = this.getTodayDate();
   tempReceivedAt = this.getTodayDate();
-  jars: Budget[] = [];
+  wallets: Wallet[] = [];
   expenseCategories: CategoryTreeNode[] = [];
   recentExpenses: ExpenseItem[] = [];
   isLoadingExpenses = false;
@@ -71,13 +72,18 @@ export class ExpensePage implements OnInit {
   constructor(
     private expenseService: ExpenseService,
     private incomeService: IncomeService,
-    private budgetService: BudgetService,
+    private walletService: WalletService,
     private categoryService: CategoryService,
     private route: ActivatedRoute,
     private router: Router
   ) {}
 
   ngOnInit(): void {
+    const savedCurrency = normalizeCurrencyCode(getStoredCurrencyCode());
+    if (this.currencyOptions.some((option) => option === savedCurrency)) {
+      this.currency = savedCurrency as (typeof this.currencyOptions)[number];
+    }
+
     this.spentAt = this.spentAt || this.getTodayDate();
     this.receivedAt = this.receivedAt || this.getTodayDate();
     this.loadCategories();
@@ -101,19 +107,17 @@ export class ExpensePage implements OnInit {
         replaceUrl: true,
       });
     });
-    this.loadJars();
+    this.loadWallets();
     this.loadExpenses();
   }
 
-  loadJars(): void {
+  loadWallets(): void {
     this.isLoadingJars = true;
-    this.budgetService.list().pipe(finalize(() => {
+    this.walletService.list().pipe(finalize(() => {
       this.isLoadingJars = false;
     })).subscribe((jars) => {
-      this.jars = jars;
-      if (!this.jarId && jars.length > 0) {
-        this.jarId = jars[0].id;
-      }
+      this.wallets = jars;
+      this.setDefaultWalletId();
     });
   }
 
@@ -178,7 +182,7 @@ export class ExpensePage implements OnInit {
   get currencySymbol(): string {
     const symbolByCurrency: Record<(typeof this.currencyOptions)[number], string> = {
       USD: '$',
-      VND: '₫',
+      VND: 'VNĐ',
       EUR: '€',
     };
     return symbolByCurrency[this.currency];
@@ -244,6 +248,7 @@ export class ExpensePage implements OnInit {
       this.isSaving = true;
       this.incomeService
         .create({
+          jar_id: this.jarId || undefined,
           amount: parsedAmount,
           category: selectedCategory,
           source: this.source || undefined,
@@ -267,6 +272,7 @@ export class ExpensePage implements OnInit {
     this.isSaving = true;
     this.expenseService
       .create({
+        jar_id: this.jarId || undefined,
         amount: parsedAmount,
         category: selectedCategory,
         note: this.note || undefined,
@@ -359,7 +365,7 @@ export class ExpensePage implements OnInit {
     this.receivedAt = this.getTodayDate();
     this.tempSpentAt = this.spentAt;
     this.tempReceivedAt = this.receivedAt;
-    this.jarId = null;
+    this.setDefaultWalletId();
   }
 
   private formatDateWithWeekday(value: string): string {
@@ -433,7 +439,7 @@ export class ExpensePage implements OnInit {
     }).subscribe(() => {
       this.closeEditExpense();
       this.loadExpenses();
-      this.loadJars();
+      this.loadWallets();
     });
   }
 
@@ -444,19 +450,32 @@ export class ExpensePage implements OnInit {
   deleteExpense(id: number): void {
     this.expenseService.remove(id).subscribe(() => {
       this.loadExpenses();
-      this.loadJars();
+      this.loadWallets();
     });
+  }
+
+  private setDefaultWalletId(): void {
+    if (this.jarId && this.wallets.some((wallet) => wallet.id === this.jarId)) {
+      return;
+    }
+
+    const cashWallet = this.wallets.find(
+      (wallet) => wallet.name.trim().toLowerCase() === 'cash'
+    );
+
+    if (cashWallet) {
+      this.jarId = cashWallet.id;
+      return;
+    }
+
+    this.jarId = this.wallets.length > 0 ? this.wallets[0].id : null;
   }
 
   formatCurrency(value: string): string {
     const amount = Number.parseFloat(value);
     if (Number.isNaN(amount)) {
-      return '₫0';
+      return formatCurrencyAmount(0, getStoredCurrencyCode());
     }
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND',
-      maximumFractionDigits: 0,
-    }).format(amount);
+    return formatCurrencyAmount(amount, getStoredCurrencyCode());
   }
 }

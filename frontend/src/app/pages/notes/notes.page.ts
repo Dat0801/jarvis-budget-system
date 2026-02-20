@@ -14,6 +14,7 @@ import { finalize, take } from 'rxjs';
   styleUrls: ['./notes.page.scss'],
 })
 export class NotesPage implements OnInit {
+  private readonly fabOwner = 'notes';
   notes: Note[] = [];
   allNotes: Note[] = [];
   selectedTab: 'all' | 'reminders' | 'archived' = 'all';
@@ -32,11 +33,11 @@ export class NotesPage implements OnInit {
   }
 
   ionViewWillEnter(): void {
-    this.fabService.showFab(() => this.openNewNoteModal(), 'add');
+    this.fabService.showFab(() => this.openNewNoteModal(), 'add', this.fabOwner);
   }
 
   ionViewDidLeave(): void {
-    this.fabService.hideFab();
+    this.fabService.hideFab(this.fabOwner);
   }
 
   loadNotes(): void {

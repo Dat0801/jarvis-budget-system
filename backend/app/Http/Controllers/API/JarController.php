@@ -13,12 +13,18 @@ class JarController extends Controller
 {
     public function index(Request $request)
     {
-        return response()->json($request->user()->jars()->latest()->get());
+        return response()->json(
+            $request->user()
+                ->jars()
+                ->where('wallet_type', Jar::TYPE_BUDGET)
+                ->latest()
+                ->get()
+        );
     }
 
     public function show(Request $request, Jar $jar)
     {
-        $this->authorizeJar($request, $jar);
+        $this->authorizeJarAccess($request, $jar);
 
         return response()->json($jar);
     }
@@ -45,6 +51,9 @@ class JarController extends Controller
             'balance' => $resolvedBalance,
             'budget_date' => $data['budget_date'] ?? null,
             'repeat_this_budget' => $data['repeat_this_budget'] ?? false,
+            'wallet_type' => Jar::TYPE_BUDGET,
+            'currency_unit' => 'VND',
+            'notifications_enabled' => false,
         ]);
 
         return response()->json($jar, 201);
@@ -52,7 +61,7 @@ class JarController extends Controller
 
     public function update(Request $request, Jar $jar)
     {
-        $this->authorizeJar($request, $jar);
+        $this->authorizeBudgetJar($request, $jar);
 
         $data = $request->validate([
             'name' => 'sometimes|required|string|max:255',
@@ -80,7 +89,7 @@ class JarController extends Controller
 
     public function destroy(Request $request, Jar $jar)
     {
-        $this->authorizeJar($request, $jar);
+        $this->authorizeBudgetJar($request, $jar);
         $jar->delete();
 
         return response()->json(['message' => 'Budget deleted']);
@@ -88,7 +97,7 @@ class JarController extends Controller
 
     public function getTransactions(Request $request, Jar $jar)
     {
-        $this->authorizeJar($request, $jar);
+        $this->authorizeJarAccess($request, $jar);
 
         $page = max((int) $request->query('page', 1), 1);
         $perPage = min(max((int) $request->query('per_page', 20), 1), 100);
@@ -124,7 +133,7 @@ class JarController extends Controller
 
     public function addMoney(Request $request, Jar $jar)
     {
-        $this->authorizeJar($request, $jar);
+        $this->authorizeBudgetJar($request, $jar);
 
         $data = $request->validate([
             'amount' => 'required|numeric|min:0.01',
@@ -137,9 +146,16 @@ class JarController extends Controller
         return response()->json($jar);
     }
 
-    private function authorizeJar(Request $request, Jar $jar): void
+    private function authorizeJarAccess(Request $request, Jar $jar): void
     {
         if ($jar->user_id !== $request->user()->id) {
+            abort(403, 'Unauthorized');
+        }
+    }
+
+    private function authorizeBudgetJar(Request $request, Jar $jar): void
+    {
+        if ($jar->user_id !== $request->user()->id || $jar->wallet_type !== Jar::TYPE_BUDGET) {
             abort(403, 'Unauthorized');
         }
     }

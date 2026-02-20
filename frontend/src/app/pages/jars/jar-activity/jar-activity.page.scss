@@ -23,9 +23,52 @@ ion-content.activity-page {
   padding: 20px 18px 100px;
 }
 
-.activity-list {
+.month-tabs {
+  margin-bottom: 12px;
+
+  ion-segment {
+    --background: #ffffff;
+    border: 1px solid #eef1f6;
+    border-radius: 12px;
+    padding: 4px;
+  }
+
+  ion-segment-button {
+    min-width: 90px;
+    --border-radius: 8px;
+    --indicator-color: #e9f0ff;
+    --color-checked: #155eef;
+    --color: #667085;
+    font-size: 12px;
+    font-weight: 600;
+  }
+}
+
+.transaction-section {
   display: grid;
-  gap: 12px;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.section-header-row h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #101828;
+}
+
+.section-list {
+  display: grid;
+  gap: 10px;
+}
+
+.section-empty {
+  background: #ffffff;
+  border: 1px solid #eef1f6;
+  border-radius: 12px;
+  padding: 12px;
+  color: #667085;
+  font-size: 13px;
 }
 
 .activity-item {

@@ -4,6 +4,9 @@ import { BudgetService, Budget } from '../services/budget.service';
 import { ExpenseService } from '../services/expense.service';
 import { IncomeService } from '../services/income.service';
 import { MonthlyReport, StatsService } from '../services/stats.service';
+import { FabService } from '../services/fab.service';
+import { Router } from '@angular/router';
+import { formatCurrencyAmount, getStoredCurrencyCode } from '../utils/currency.util';
 
 interface ExpenseItem {
   id: number;
@@ -47,6 +50,7 @@ interface TransactionGroup {
   standalone: false,
 })
 export class Tab2Page implements OnInit {
+  private readonly fabOwner = 'tab2-transactions';
   jars: Budget[] = [];
   groupedTransactions: TransactionGroup[] = [];
   monthlyReports: MonthlyReport[] = [];
@@ -64,7 +68,9 @@ export class Tab2Page implements OnInit {
     private budgetService: BudgetService,
     private expenseService: ExpenseService,
     private incomeService: IncomeService,
-    private statsService: StatsService
+    private statsService: StatsService,
+    private fabService: FabService,
+    private router: Router
   ) {}
 
   ngOnInit() {
@@ -72,7 +78,12 @@ export class Tab2Page implements OnInit {
   }
 
   ionViewWillEnter(): void {
+    this.fabService.showFab(() => this.router.navigateByUrl('/expense'), 'add', this.fabOwner);
     this.loadTransactions();
+  }
+
+  ionViewDidLeave(): void {
+    this.fabService.hideFab(this.fabOwner);
   }
 
   loadTransactions(): void {
@@ -158,12 +169,7 @@ export class Tab2Page implements OnInit {
   }
 
   formatCurrency(value: number): string {
-    const formatted = new Intl.NumberFormat('vi-VN', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
-
-    return `${formatted} đ`;
+    return formatCurrencyAmount(value, getStoredCurrencyCode());
   }
 
   formatSignedCurrency(value: number): string {

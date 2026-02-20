@@ -15,13 +15,20 @@ class Jar extends Model
         'color',
         'budget_date',
         'repeat_this_budget',
+        'wallet_type',
+        'currency_unit',
+        'notifications_enabled',
     ];
 
     protected $casts = [
         'balance' => 'decimal:2',
         'budget_date' => 'date',
         'repeat_this_budget' => 'boolean',
+        'notifications_enabled' => 'boolean',
     ];
+
+    public const TYPE_BUDGET = 'budget';
+    public const TYPE_WALLET = 'wallet';
 
     public function user()
     {

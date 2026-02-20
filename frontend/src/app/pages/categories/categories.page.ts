@@ -20,6 +20,7 @@ export class CategoriesPage implements OnInit {
   loadError = '';
   isSelectMode = false;
   private returnUrl = '/expense';
+  private returnMode = '';
   private readonly expandedCategoryIds = new Set<number>();
 
   constructor(
@@ -42,6 +43,7 @@ export class CategoriesPage implements OnInit {
       }
 
       this.returnUrl = params.get('returnUrl') || '/expense';
+      this.returnMode = params.get('returnMode') || '';
       this.fetchCategories();
     });
   }
@@ -136,7 +138,10 @@ export class CategoriesPage implements OnInit {
 
   private selectCategory(selectedCategory: string): void {
     this.router.navigate([this.returnUrl], {
-      queryParams: { selectedCategory },
+      queryParams: {
+        selectedCategory,
+        ...(this.returnMode ? { returnMode: this.returnMode } : {}),
+      },
     });
   }
 }
