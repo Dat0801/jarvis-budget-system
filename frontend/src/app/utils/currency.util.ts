@@ -20,7 +20,7 @@ export function getStoredCurrencyCode(): CurrencyCode {
 
 export function getCurrencyDisplay(code: CurrencyCode): string {
   if (code === 'VND') {
-    return 'VNĐ';
+    return 'đ';
   }
 
   return code;
@@ -36,7 +36,7 @@ export function formatCurrencyAmount(value: number, code: CurrencyCode, includeF
       maximumFractionDigits,
     }).format(value);
 
-    return `${formatted} VNĐ`;
+    return `${formatted} đ`;
   }
 
   return new Intl.NumberFormat('en-US', {

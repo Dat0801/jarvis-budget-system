@@ -182,7 +182,7 @@ export class ExpensePage implements OnInit {
   get currencySymbol(): string {
     const symbolByCurrency: Record<(typeof this.currencyOptions)[number], string> = {
       USD: '$',
-      VND: 'VNĐ',
+      VND: 'đ',
       EUR: '€',
     };
     return symbolByCurrency[this.currency];

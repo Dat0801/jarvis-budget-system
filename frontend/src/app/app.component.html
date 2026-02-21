@@ -1,7 +1,6 @@
 <ion-app>
   <ion-router-outlet></ion-router-outlet>
 
-  <!-- Global FAB Button -->
   <ng-container *ngIf="fabConfig$ | async as config">
     <ion-fab
       *ngIf="config.show"

@@ -15,13 +15,21 @@
 <ion-content class="jars-page" fullscreen="true">
   <div class="page-inner">
     <section class="total-card">
-      <div class="total-label">TOTAL SAVED</div>
-      <div class="total-amount">
-        <span class="value">{{ formatCurrency(totalSaved, true) }}</span>
-      </div>
-      <div class="total-trend">
-        <ion-icon name="trending-up-outline"></ion-icon>
-        <span>+12.5% from last month</span>
+      <div class="total-label">OVERSPENT</div>
+      <div class="total-overspent">{{ formatCurrency(totalOverspent) }}</div>
+      <div class="total-summary-row">
+        <div class="summary-item">
+          <div class="summary-value">{{ formatCompactAmount(totalSaved) }}</div>
+          <div class="summary-label">Total budgets</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-value">{{ formatCompactAmount(totalSpent) }}</div>
+          <div class="summary-label">Total spent</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-value">{{ daysLeftToEndOfMonth }} days</div>
+          <div class="summary-label">End of month</div>
+        </div>
       </div>
     </section>
 
@@ -43,13 +51,13 @@
               <div class="jar-title">{{ jar.name }}</div>
             </div>
             <div class="jar-amount-group">
-              <div class="jar-amount">{{ formatCurrency(getJarDisplayAmount(jar)) }}</div>
+              <div class="jar-amount">{{ formatCompactAmount(getJarDisplayAmount(jar)) }}</div>
               <div class="jar-left" [class.jar-left--overspent]="isJarOverspent(jar)">
                 <ng-container *ngIf="isJarOverspent(jar); else leftLabel">
                   Overspent {{ formatCurrency(getJarOverspent(jar)) }}
                 </ng-container>
                 <ng-template #leftLabel>
-                  Left {{ formatCurrency(getJarRemaining(jar)) }}
+                  Left {{ formatCompactAmount(getJarRemaining(jar)) }}
                 </ng-template>
               </div>
             </div>
@@ -109,7 +117,7 @@
             <div class="field-label">AMOUNT</div>
             <div class="amount-block">
               <div class="amount-input-row">
-                <div class="currency">VNĐ</div>
+                <div class="currency">đ</div>
                 <ion-input
                   type="text"
                   inputmode="numeric"
