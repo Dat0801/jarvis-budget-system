@@ -26,8 +26,14 @@ export class LoginPage {
         this.isLoading = false;
         this.router.navigate(['/tabs/dashboard']);
       },
-      error: () => {
+      error: (error) => {
         this.isLoading = false;
+        console.error('Login request failed', {
+          email: this.email,
+          status: error?.status,
+          message: error?.error?.message ?? error?.message,
+          error,
+        });
       },
     });
   }
