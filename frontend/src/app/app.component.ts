@@ -3,6 +3,8 @@ import { FabService, FabConfig } from './services/fab.service';
 import { Observable } from 'rxjs';
 import { addIcons } from 'ionicons';
 import { add } from 'ionicons/icons';
+import { NavigationEnd, Router } from '@angular/router';
+import { filter } from 'rxjs/operators';
 
 @Component({
   selector: 'app-root',
@@ -13,18 +15,39 @@ import { add } from 'ionicons/icons';
 export class AppComponent implements OnInit {
   fabConfig$: Observable<FabConfig>;
 
-  constructor(private fabService: FabService) {
+  constructor(private fabService: FabService, private router: Router) {
     addIcons({ add });
     this.fabConfig$ = this.fabService.fabConfig$;
   }
 
   ngOnInit() {
-    // FAB will be controlled by individual pages
+    this.router.events
+      .pipe(filter((event) => event instanceof NavigationEnd))
+      .subscribe(() => {
+        this.sanitizeInteractionLayers();
+      });
+
+    this.sanitizeInteractionLayers();
   }
 
   onFabClick(config: FabConfig) {
     if (config.action) {
       config.action();
     }
+  }
+
+  private sanitizeInteractionLayers() {
+    const backdrops = Array.from(document.querySelectorAll('ion-backdrop'));
+    backdrops.forEach((backdrop) => {
+      const hasOverlayParent = backdrop.closest('ion-modal, ion-alert, ion-action-sheet, ion-popover, ion-loading');
+      if (!hasOverlayParent) {
+        backdrop.remove();
+      }
+    });
+
+    const outlets = Array.from(document.querySelectorAll<HTMLElement>('ion-router-outlet'));
+    outlets.forEach((outlet) => {
+      outlet.style.pointerEvents = 'auto';
+    });
   }
 }

@@ -1,3 +1,21 @@
+ion-tabs {
+	position: relative;
+}
+
+ion-router-outlet {
+	position: relative;
+	pointer-events: auto !important;
+	z-index: 1;
+}
+
+ion-router-outlet > * {
+	pointer-events: auto !important;
+}
+
+ion-router-outlet > .ion-page {
+	pointer-events: auto !important;
+}
+
 ion-tab-bar {
 	--background: #ffffff;
 	--border: transparent;
@@ -5,6 +23,7 @@ ion-tab-bar {
 	padding: 10px 12px 12px;
 	height: 72px;
 	position: relative;
+	z-index: 3;
 	overflow: visible;
 }
 

@@ -1,8 +1,16 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
-import { AlertController, ToastController } from '@ionic/angular';
+import {
+  ActionSheetController,
+  AlertController,
+  LoadingController,
+  ModalController,
+  PopoverController,
+  ToastController,
+} from '@ionic/angular';
 import { AuthService } from '../services/auth.service';
 import { AccountService } from '../services/account.service';
+import { FabService } from '../services/fab.service';
 import { CurrencyCode, getCurrencyDisplay, normalizeCurrencyCode } from '../utils/currency.util';
 
 @Component({
@@ -29,13 +37,53 @@ export class SettingsPage implements OnInit {
     private router: Router,
     private authService: AuthService,
     private accountService: AccountService,
+    private fabService: FabService,
     private alertController: AlertController,
+    private modalController: ModalController,
+    private actionSheetController: ActionSheetController,
+    private popoverController: PopoverController,
+    private loadingController: LoadingController,
     private toastController: ToastController
   ) {}
 
   ngOnInit() {
+    this.fabService.hideFab();
     this.loadUserData();
     this.loadPreferences();
+  }
+
+  async ionViewWillEnter() {
+    await this.dismissStaleOverlays();
+    this.removeOrphanBackdrops();
+    this.fabService.hideFab();
+  }
+
+  private async dismissStaleOverlays() {
+    await Promise.all([
+      this.dismissAllFromController(this.modalController),
+      this.dismissAllFromController(this.alertController),
+      this.dismissAllFromController(this.actionSheetController),
+      this.dismissAllFromController(this.popoverController),
+      this.dismissAllFromController(this.loadingController),
+    ]);
+  }
+
+  private async dismissAllFromController(controller: { getTop: () => Promise<any> }) {
+    let overlay = await controller.getTop();
+    while (overlay) {
+      await overlay.dismiss();
+      overlay = await controller.getTop();
+    }
+  }
+
+  private removeOrphanBackdrops() {
+    const backdrops = Array.from(document.querySelectorAll('ion-backdrop'));
+    backdrops.forEach((backdrop) => {
+      const hasOverlayParent = backdrop.closest('ion-modal, ion-alert, ion-action-sheet, ion-popover, ion-loading');
+      if (!hasOverlayParent) {
+        backdrop.remove();
+      }
+    });
   }
 
   get selectedCurrencyLabel(): string {
@@ -212,7 +260,7 @@ export class SettingsPage implements OnInit {
         {
           name: 'currency',
           type: 'radio',
-          label: 'VND (VNĐ)',
+          label: 'VND (đ)',
           value: 'VND',
           checked: this.selectedCurrency === 'VND'
         },

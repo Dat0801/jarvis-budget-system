@@ -33,8 +33,7 @@ export class JarsPage implements OnInit {
   jars: Budget[] = [];
   expensesByCategory: Record<string, number> = {};
   totalSaved = 0;
-  totalSavedMain = '0';
-  totalSavedCents = '00';
+  totalSpent = 0;
   isLoadingJars = false;
   isCreateJarOpen = false;
   selectedBudgetCategoryValue = '';
@@ -261,6 +260,16 @@ export class JarsPage implements OnInit {
     return this.getJarBudgetLimit(jar);
   }
 
+  get totalOverspent(): number {
+    return this.jars.reduce((sum, jar) => sum + this.getJarOverspent(jar), 0);
+  }
+
+  get daysLeftToEndOfMonth(): number {
+    const today = new Date();
+    const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    return Math.max(0, endOfMonth.getDate() - today.getDate());
+  }
+
   private getJarBudgetLimit(jar: Budget): number {
     const explicitTarget = this.getJarTarget(jar);
     if (explicitTarget > 0) {
@@ -273,8 +282,7 @@ export class JarsPage implements OnInit {
     }
 
     const currentBalance = this.parseBalance(jar.balance);
-    const spent = this.getJarSpent(jar);
-    return Math.max(0, currentBalance + spent);
+    return Math.max(0, currentBalance);
   }
 
   getJarIcon(jar: Budget): string {
@@ -308,6 +316,21 @@ export class JarsPage implements OnInit {
   formatCurrency(value: number | string, withCents = false): string {
     const amount = typeof value === 'string' ? this.parseBalance(value) : value;
     return formatCurrencyAmount(amount, getStoredCurrencyCode(), withCents);
+  }
+
+  formatCompactAmount(value: number | string): string {
+    const amount = typeof value === 'string' ? this.parseBalance(value) : value;
+    const absAmount = Math.abs(amount);
+
+    if (absAmount >= 1_000_000) {
+      return `${this.formatCompactValue(amount / 1_000_000)}M`;
+    }
+
+    if (absAmount >= 1_000) {
+      return `${this.formatCompactValue(amount / 1_000)}K`;
+    }
+
+    return `${Math.round(amount)}`;
   }
 
   navigateToJar(jarId: number): void {
@@ -402,8 +425,10 @@ export class JarsPage implements OnInit {
       (sum, jar) => sum + this.getJarBudgetLimit(jar),
       0
     );
-    this.totalSavedMain = this.formatCurrency(this.totalSaved, true);
-    this.totalSavedCents = '';
+    this.totalSpent = this.jars.reduce(
+      (sum, jar) => sum + this.getJarSpent(jar),
+      0
+    );
   }
 
   private getSelectedPeriodStartDate(): string {
@@ -449,5 +474,10 @@ export class JarsPage implements OnInit {
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
     return `${day}/${month}`;
+  }
+
+  private formatCompactValue(value: number): string {
+    const rounded = Math.round(value * 10) / 10;
+    return Number.isInteger(rounded) ? `${rounded}` : `${rounded}`;
   }
 }

@@ -3,9 +3,10 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AlertController, IonicModule } from '@ionic/angular';
-import { finalize } from 'rxjs';
+import { catchError, finalize, of } from 'rxjs';
 import { Budget, BudgetService, Transaction } from '../../../services/budget.service';
 import { CategoryService, CategoryTreeNode } from '../../../services/category.service';
+import { ExpenseService } from '../../../services/expense.service';
 import { formatVndAmountInput, parseVndAmount } from '../../../utils/vnd-amount.util';
 import { formatCurrencyAmount, getStoredCurrencyCode } from '../../../utils/currency.util';
 
@@ -36,6 +37,7 @@ export interface JarDetail extends Budget {
 export class JarDetailPage implements OnInit {
   jar: JarDetail | null = null;
   transactions: Transaction[] = [];
+  expensesByCategory: Record<string, number> = {};
   isLoadingJar = false;
   isLoadingTransactions = false;
   isAddMoneyOpen = false;
@@ -53,6 +55,7 @@ export class JarDetailPage implements OnInit {
 
   constructor(
     private budgetService: BudgetService,
+    private expenseService: ExpenseService,
     private categoryService: CategoryService,
     private route: ActivatedRoute,
     private router: Router,
@@ -85,6 +88,7 @@ export class JarDetailPage implements OnInit {
     });
 
     this.loadBudgetCategories();
+    this.loadExpenseTotals();
     if (this.jarId) {
       this.loadJarDetail();
     }
@@ -124,7 +128,7 @@ export class JarDetailPage implements OnInit {
       return 0;
     }
 
-    return this.transactions.reduce((sum, transaction) => {
+    const spentFromLinkedTransactions = this.transactions.reduce((sum, transaction) => {
       if (transaction.type !== 'expense') {
         return sum;
       }
@@ -136,6 +140,12 @@ export class JarDetailPage implements OnInit {
 
       return sum + this.parseAmount(transaction.amount);
     }, 0);
+
+    if (spentFromLinkedTransactions > 0) {
+      return spentFromLinkedTransactions;
+    }
+
+    return this.expensesByCategory[budgetCategoryKey] || 0;
   }
 
   getLeftAmount(): number {
@@ -422,6 +432,14 @@ export class JarDetailPage implements OnInit {
     });
   }
 
+  private loadExpenseTotals(): void {
+    this.expenseService.list().pipe(
+      catchError(() => of([]))
+    ).subscribe((response: unknown) => {
+      this.expensesByCategory = this.buildExpensesByCategory(response);
+    });
+  }
+
   private parseAmount(value: string | number): number {
     const raw = value?.toString() ?? '0';
     const normalized = raw.replace(/[^0-9.-]+/g, '');
@@ -440,8 +458,7 @@ export class JarDetailPage implements OnInit {
     }
 
     const currentBalance = this.parseAmount(this.jar.balance);
-    const spent = this.getSpentAmount();
-    return Math.max(0, currentBalance + spent);
+    return Math.max(0, currentBalance);
   }
 
   private getBudgetCategoryKey(): string {
@@ -450,6 +467,33 @@ export class JarDetailPage implements OnInit {
 
   private toCategoryKey(value?: string | null): string {
     return (value || '').trim().toLowerCase();
+  }
+
+  private buildExpensesByCategory(expensesResponse: any): Record<string, number> {
+    const expenses = this.extractExpenseList(expensesResponse);
+
+    return expenses.reduce((accumulator: Record<string, number>, expense: any) => {
+      const categoryKey = this.toCategoryKey(expense?.category);
+      if (!categoryKey) {
+        return accumulator;
+      }
+
+      const amount = Number(expense?.amount) || 0;
+      accumulator[categoryKey] = (accumulator[categoryKey] || 0) + Math.abs(amount);
+      return accumulator;
+    }, {});
+  }
+
+  private extractExpenseList(expensesResponse: any): any[] {
+    if (Array.isArray(expensesResponse)) {
+      return expensesResponse;
+    }
+
+    if (Array.isArray(expensesResponse?.data)) {
+      return expensesResponse.data;
+    }
+
+    return [];
   }
 
   private getCycleStartDate(): Date {

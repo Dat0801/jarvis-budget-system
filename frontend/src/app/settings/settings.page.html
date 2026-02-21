@@ -4,9 +4,6 @@
       <ion-back-button defaultHref="/tabs/dashboard"></ion-back-button>
     </ion-buttons>
     <ion-title>Profile & Settings</ion-title>
-    <ion-buttons slot="end">
-      <ion-menu-button></ion-menu-button>
-    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
@@ -24,12 +21,12 @@
     <h2 class="section-title">ACCOUNT SETTINGS</h2>
     
     <ion-list class="settings-list">
-      <ion-item button detail (click)="openEditProfile()" class="setting-item">
+      <ion-item [button]="true" [detail]="true" (click)="openEditProfile()" class="setting-item">
         <ion-icon name="person-circle" slot="start" color="primary"></ion-icon>
         <ion-label>Edit Profile</ion-label>
       </ion-item>
       
-      <ion-item button detail (click)="openChangePassword()" class="setting-item">
+      <ion-item [button]="true" [detail]="true" (click)="openChangePassword()" class="setting-item">
         <ion-icon name="shield-checkmark" slot="start" color="primary"></ion-icon>
         <ion-label>Change Password</ion-label>
       </ion-item>
@@ -45,7 +42,7 @@
       <ion-toggle slot="end" [(ngModel)]="darkMode" (ionChange)="toggleDarkMode()"></ion-toggle>
     </ion-item>
     
-    <ion-item button detail (click)="changeLanguage()" class="setting-item">
+    <ion-item [button]="true" [detail]="true" (click)="changeLanguage()" class="setting-item">
       <ion-icon name="globe" slot="start" color="primary"></ion-icon>
       <ion-label>Language</ion-label>
       <ion-note slot="end">{{ selectedLanguage }}</ion-note>
@@ -55,23 +52,23 @@
   <div class="settings-section">
     <h2 class="section-title">FINANCIAL</h2>
     
-    <ion-item button detail (click)="changeCurrency()" class="setting-item">
+    <ion-item [button]="true" [detail]="true" (click)="changeCurrency()" class="setting-item">
       <ion-icon name="cash" slot="start" color="primary"></ion-icon>
       <ion-label>Currency</ion-label>
       <ion-note slot="end">{{ selectedCurrencyLabel }}</ion-note>
     </ion-item>
 
-    <ion-item button detail (click)="openWallets()" class="setting-item">
+    <ion-item [button]="true" [detail]="true" (click)="openWallets()" class="setting-item">
       <ion-icon name="wallet" slot="start" color="primary"></ion-icon>
       <ion-label>My Wallets</ion-label>
     </ion-item>
 
-    <ion-item button detail (click)="openCategories()" class="setting-item">
+    <ion-item [button]="true" [detail]="true" (click)="openCategories()" class="setting-item">
       <ion-icon name="pricetags" slot="start" color="primary"></ion-icon>
       <ion-label>Categories</ion-label>
     </ion-item>
     
-    <ion-item button class="setting-item reset-item" (click)="resetJarsData()">
+    <ion-item [button]="true" class="setting-item reset-item" (click)="resetJarsData()">
       <ion-icon name="alert-circle" slot="start" color="danger"></ion-icon>
       <ion-label color="danger">Reset Budgets Data</ion-label>
       <ion-icon name="warning" slot="end" color="danger"></ion-icon>
@@ -82,12 +79,12 @@
     <h2 class="section-title">SUPPORT</h2>
     
     <ion-list class="settings-list">
-      <ion-item button detail (click)="openHelpCenter()" class="setting-item">
+      <ion-item [button]="true" [detail]="true" (click)="openHelpCenter()" class="setting-item">
         <ion-icon name="help-circle" slot="start" color="primary"></ion-icon>
         <ion-label>Help Center</ion-label>
       </ion-item>
       
-      <ion-item button detail (click)="openAbout()" class="setting-item">
+      <ion-item [button]="true" [detail]="true" (click)="openAbout()" class="setting-item">
         <ion-icon name="information-circle" slot="start" color="primary"></ion-icon>
         <ion-label>About Jarvis</ion-label>
       </ion-item>
@@ -104,7 +101,7 @@
   </div>
 </ion-content>
 
-<ion-modal [isOpen]="isEditProfileOpen" (didDismiss)="closeEditProfile()" class="settings-modal">
+<ion-modal *ngIf="isEditProfileOpen" [isOpen]="isEditProfileOpen" (didDismiss)="closeEditProfile()" class="settings-modal">
   <ng-template>
     <ion-header>
       <ion-toolbar>
@@ -130,7 +127,7 @@
   </ng-template>
 </ion-modal>
 
-<ion-modal [isOpen]="isChangePasswordOpen" (didDismiss)="closeChangePassword()" class="settings-modal">
+<ion-modal *ngIf="isChangePasswordOpen" [isOpen]="isChangePasswordOpen" (didDismiss)="closeChangePassword()" class="settings-modal">
   <ng-template>
     <ion-header>
       <ion-toolbar>
