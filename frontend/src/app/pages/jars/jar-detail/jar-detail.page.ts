@@ -3,6 +3,7 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AlertController, IonicModule } from '@ionic/angular';
+import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { catchError, finalize, of } from 'rxjs';
 import { Budget, BudgetService, Transaction } from '../../../services/budget.service';
 import { CategoryService, CategoryTreeNode } from '../../../services/category.service';
@@ -30,7 +31,7 @@ export interface JarDetail extends Budget {
 @Component({
   selector: 'app-jar-detail',
   standalone: true,
-  imports: [CommonModule, FormsModule, IonicModule],
+  imports: [CommonModule, FormsModule, IonicModule, PageHeaderComponent],
   templateUrl: './jar-detail.page.html',
   styleUrls: ['./jar-detail.page.scss'],
 })

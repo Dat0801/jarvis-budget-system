@@ -1,22 +1,23 @@
-<ion-header class="jars-header" translucent="true">
-  <ion-toolbar>
-    <ion-title>My Budgets</ion-title>
-    <ion-buttons slot="end">
-      <ion-button fill="clear" class="icon-button">
-        <ion-icon name="search-outline"></ion-icon>
-      </ion-button>
-      <ion-button fill="clear" class="icon-button avatar-button">
-        <ion-icon name="person-circle-outline"></ion-icon>
-      </ion-button>
-    </ion-buttons>
-  </ion-toolbar>
-</ion-header>
+<app-page-header title="My Budgets" headerClass="jars-header">
+  <ion-buttons slot="end">
+    <ion-button fill="clear" class="icon-button">
+      <ion-icon name="search-outline"></ion-icon>
+    </ion-button>
+    <ion-button fill="clear" class="icon-button avatar-button">
+      <ion-icon name="person-circle-outline"></ion-icon>
+    </ion-button>
+  </ion-buttons>
+</app-page-header>
 
 <ion-content class="jars-page" fullscreen="true">
   <div class="page-inner">
-    <section class="total-card">
-      <div class="total-label">OVERSPENT</div>
-      <div class="total-overspent">{{ formatCurrency(totalOverspent) }}</div>
+    <section class="total-card" [ngClass]="totalHeaderClass">
+      <div class="total-label">
+        {{ totalOverspent > 0 ? 'OVERSPENT' : 'YOU CAN SPEND' }}
+      </div>
+      <div class="total-overspent">
+        {{ formatCurrency(totalOverspent > 0 ? totalOverspent : totalCanSpend) }}
+      </div>
       <div class="total-summary-row">
         <div class="summary-item">
           <div class="summary-value">{{ formatCompactAmount(totalSaved) }}</div>
@@ -68,6 +69,7 @@
           <div class="progress-track">
             <div
               class="progress-fill"
+              [ngClass]="getJarProgressClass(jar)"
               [style.width.%]="getJarProgress(jar)"
             ></div>
           </div>

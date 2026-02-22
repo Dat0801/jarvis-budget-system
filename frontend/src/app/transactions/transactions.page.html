@@ -1,13 +1,10 @@
-<ion-header [translucent]="true" class="activity-header">
-  <ion-toolbar>
-    <ion-buttons slot="start">
-      <ion-button fill="clear" routerLink="/tabs/dashboard" aria-label="Back to Home">
-        <ion-icon name="chevron-back-outline"></ion-icon>
-      </ion-button>
-    </ion-buttons>
-    <ion-title>Transactions</ion-title>
-  </ion-toolbar>
-</ion-header>
+<app-page-header
+  title="Transactions"
+  [translucent]="true"
+  [showBack]="true"
+  backHref="/tabs/dashboard"
+  headerClass="activity-header"
+></app-page-header>
 
 <ion-content class="activity-page" [fullscreen]="true">
   <div class="page-inner">
@@ -64,7 +61,11 @@
         </div>
 
         <div class="section-list">
-          <article class="activity-item" *ngFor="let transaction of group.items; trackBy: trackByTransaction">
+          <article
+            class="activity-item"
+            *ngFor="let transaction of group.items; trackBy: trackByTransaction"
+            (click)="openTransactionDetail(transaction)"
+          >
             <div class="activity-icon" [class.icon-success]="transaction.type === 'income'" [class.icon-danger]="transaction.type === 'expense'">
               <ion-icon [name]="transaction.icon"></ion-icon>
             </div>

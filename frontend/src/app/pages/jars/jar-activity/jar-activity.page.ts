@@ -5,6 +5,7 @@ import { IonicModule } from '@ionic/angular';
 import { Budget, BudgetService, Transaction } from '../../../services/budget.service';
 import { finalize } from 'rxjs';
 import { formatCurrencyAmount, getStoredCurrencyCode } from '../../../utils/currency.util';
+import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 
 interface MonthTab {
   key: string;
@@ -16,7 +17,7 @@ interface MonthTab {
 @Component({
   selector: 'app-jar-activity',
   standalone: true,
-  imports: [CommonModule, IonicModule],
+  imports: [CommonModule, IonicModule, PageHeaderComponent],
   templateUrl: './jar-activity.page.html',
   styleUrls: ['./jar-activity.page.scss'],
 })

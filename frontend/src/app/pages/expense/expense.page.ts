@@ -3,12 +3,13 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
+import { PageHeaderComponent } from '../../shared/page-header/page-header.component';
 import { ExpenseService } from '../../services/expense.service';
 import { IncomeService } from '../../services/income.service';
 import { Wallet, WalletService } from '../../services/wallet.service';
 import { CategoryService, CategoryTreeNode, CategoryType } from '../../services/category.service';
 import { formatVndAmountInput, parseVndAmount } from '../../utils/vnd-amount.util';
-import { finalize } from 'rxjs';
+import { finalize, switchMap } from 'rxjs';
 import { formatCurrencyAmount, getStoredCurrencyCode, normalizeCurrencyCode } from '../../utils/currency.util';
 
 interface ExpenseItem {
@@ -36,7 +37,7 @@ type TransactionTab = 'expense' | 'income' | 'debtLoan';
 @Component({
   selector: 'app-expense',
   standalone: true,
-  imports: [CommonModule, FormsModule, IonicModule],
+  imports: [CommonModule, FormsModule, IonicModule, PageHeaderComponent],
   templateUrl: './expense.page.html',
   styleUrls: ['./expense.page.scss'],
 })
@@ -69,6 +70,11 @@ export class ExpensePage implements OnInit {
   editNote = '';
   editSpentAt = '';
 
+  isEditMode = false;
+  editModeType: 'expense' | 'income' | null = null;
+  editModeId: number | null = null;
+  pendingCategoryName: string | null = null;
+
   constructor(
     private expenseService: ExpenseService,
     private incomeService: IncomeService,
@@ -88,10 +94,31 @@ export class ExpensePage implements OnInit {
     this.receivedAt = this.receivedAt || this.getTodayDate();
     this.loadCategories();
     this.route.queryParamMap.subscribe((params) => {
-      const requestedTab = params.get('tab');
-      if (requestedTab === 'income' || requestedTab === 'expense' || requestedTab === 'debtLoan') {
-        this.segmentValue = requestedTab;
-        this.loadCategories();
+      const mode = params.get('mode');
+      const typeParam = params.get('type');
+      const idParam = params.get('id');
+      const amountParam = params.get('amount');
+
+      if (amountParam) {
+        this.amount = amountParam;
+      }
+
+      if (mode === 'edit' && (typeParam === 'income' || typeParam === 'expense') && idParam) {
+        this.isEditMode = true;
+        this.editModeType = typeParam;
+        this.editModeId = Number(idParam);
+        this.segmentValue = typeParam;
+        this.loadEditTransaction();
+      } else {
+        this.isEditMode = false;
+        this.editModeType = null;
+        this.editModeId = null;
+
+        const requestedTab = params.get('tab');
+        if (requestedTab === 'income' || requestedTab === 'expense' || requestedTab === 'debtLoan') {
+          this.segmentValue = requestedTab;
+          this.loadCategories();
+        }
       }
 
       const selectedCategory = params.get('selectedCategory');
@@ -127,6 +154,7 @@ export class ExpensePage implements OnInit {
       next: (response) => {
         this.expenseCategories = response.data || [];
         this.isLoadingCategories = false;
+        this.applyPendingCategorySelection();
       },
       error: () => {
         this.isLoadingCategories = false;
@@ -239,12 +267,17 @@ export class ExpensePage implements OnInit {
       return;
     }
 
-    if (this.segmentValue === 'income') {
-      const selectedCategory = this.selectedExpenseCategoryLabel;
-      if (!selectedCategory) {
-        return;
-      }
+    const selectedCategory = this.selectedExpenseCategoryLabel;
+    if (!selectedCategory) {
+      return;
+    }
 
+    if (this.isEditMode) {
+      this.submitEditTransaction(parsedAmount, selectedCategory);
+      return;
+    }
+
+    if (this.segmentValue === 'income') {
       this.isSaving = true;
       this.incomeService
         .create({
@@ -254,18 +287,15 @@ export class ExpensePage implements OnInit {
           source: this.source || undefined,
           received_at: this.receivedAt || undefined,
         })
-        .pipe(finalize(() => {
-          this.isSaving = false;
-        }))
+        .pipe(
+          finalize(() => {
+            this.isSaving = false;
+          })
+        )
         .subscribe(() => {
           this.router.navigateByUrl('/tabs/transactions');
         });
 
-      return;
-    }
-
-    const selectedCategory = this.selectedExpenseCategoryLabel;
-    if (!selectedCategory) {
       return;
     }
 
@@ -278,9 +308,11 @@ export class ExpensePage implements OnInit {
         note: this.note || undefined,
         spent_at: this.spentAt || undefined,
       })
-      .pipe(finalize(() => {
-        this.isSaving = false;
-      }))
+      .pipe(
+        finalize(() => {
+          this.isSaving = false;
+        })
+      )
       .subscribe(() => {
         this.router.navigateByUrl('/tabs/transactions');
       });
@@ -291,6 +323,7 @@ export class ExpensePage implements OnInit {
       queryParams: {
         selectMode: '1',
         type: this.segmentValue === 'income' ? 'income' : this.segmentValue === 'debtLoan' ? 'debtLoan' : 'expense',
+        ...(this.amount ? { amount: this.amount } : {}),
         returnUrl: '/expense',
       },
     });
@@ -477,5 +510,110 @@ export class ExpensePage implements OnInit {
       return formatCurrencyAmount(0, getStoredCurrencyCode());
     }
     return formatCurrencyAmount(amount, getStoredCurrencyCode());
+  }
+
+  private loadEditTransaction(): void {
+    if (!this.editModeId || !this.editModeType) {
+      return;
+    }
+
+    if (this.editModeType === 'expense') {
+      this.expenseService.detail(this.editModeId).subscribe((response: unknown) => {
+        const data = response as any;
+        const expense = (data && typeof data === 'object' && 'data' in data ? data.data : data) as ExpenseItem;
+        this.jarId = expense.jar_id || null;
+        this.amount = formatVndAmountInput(expense.amount);
+        this.note = expense.note || '';
+        this.spentAt = this.normalizeDateValue(expense.spent_at || this.getTodayDate());
+        this.pendingCategoryName = expense.category || null;
+        this.applyPendingCategorySelection();
+      });
+      return;
+    }
+
+    this.incomeService.detail(this.editModeId).subscribe((response: unknown) => {
+      const data = response as any;
+      const income = (data && typeof data === 'object' && 'data' in data ? data.data : data) as {
+        id: number;
+        jar_id?: number | null;
+        amount: string;
+        category?: string | null;
+        source?: string | null;
+        received_at?: string | null;
+      };
+      this.jarId = income.jar_id || null;
+        this.amount = formatVndAmountInput(income.amount);
+      this.source = income.source || '';
+        this.receivedAt = this.normalizeDateValue(income.received_at || this.getTodayDate());
+      this.pendingCategoryName = income.category || null;
+      this.applyPendingCategorySelection();
+    });
+  }
+
+  private applyPendingCategorySelection(): void {
+    if (!this.pendingCategoryName) {
+      return;
+    }
+    const normalized = this.pendingCategoryName.trim().toLowerCase();
+    const match = this.expenseCategoryOptions.find((option) => {
+      const label = (option.subCategoryName || option.categoryName).trim().toLowerCase();
+      return label === normalized;
+    });
+    if (match) {
+      this.selectedExpenseCategoryValue = match.value;
+      this.pendingCategoryName = null;
+    }
+  }
+
+  private submitEditTransaction(parsedAmount: number, selectedCategory: string): void {
+    if (!this.editModeId || !this.editModeType) {
+      return;
+    }
+
+    if (this.editModeType === 'income') {
+      this.isSaving = true;
+      const jarId = this.jarId || undefined;
+      const source = this.source || undefined;
+      const receivedAt = this.receivedAt || undefined;
+
+      this.incomeService
+        .remove(this.editModeId)
+        .pipe(
+          switchMap(() =>
+            this.incomeService.create({
+              jar_id: jarId,
+              amount: parsedAmount,
+              category: selectedCategory,
+              source,
+              received_at: receivedAt,
+            })
+          ),
+          finalize(() => {
+            this.isSaving = false;
+          })
+        )
+        .subscribe(() => {
+          this.router.navigateByUrl('/tabs/transactions');
+        });
+      return;
+    }
+
+    this.isSaving = true;
+    this.expenseService
+      .update(this.editModeId, {
+        jar_id: this.jarId || undefined,
+        amount: parsedAmount,
+        category: selectedCategory,
+        note: this.note || undefined,
+        spent_at: this.spentAt || undefined,
+      })
+      .pipe(
+        finalize(() => {
+          this.isSaving = false;
+        })
+      )
+      .subscribe(() => {
+        this.router.navigateByUrl('/tabs/transactions');
+      });
   }
 }

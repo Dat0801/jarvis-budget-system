@@ -1,11 +1,9 @@
-<ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-buttons slot="start">
-      <ion-back-button defaultHref="/tabs/settings"></ion-back-button>
-    </ion-buttons>
-    <ion-title>My Wallets</ion-title>
-  </ion-toolbar>
-</ion-header>
+<app-page-header
+  title="My Wallets"
+  [translucent]="true"
+  [showBack]="true"
+  backHref="/tabs/settings"
+></app-page-header>
 
 <ion-content [fullscreen]="true">
   <ion-list *ngIf="!isLoading" lines="full">

@@ -1,8 +1,18 @@
-.transaction-header ion-toolbar {
-	--background: #f2f2f2;
-	--color: #1f1f1f;
-	--border-color: #d9d9d9;
-	--border-width: 0 0 1px 0;
+.transaction-header {
+	--background: #ffffff;
+	border-bottom: 1px solid #eef1f6;
+
+	ion-title {
+		font-size: 20px;
+		font-weight: 600;
+		color: #101828;
+	}
+
+	ion-back-button {
+		--color: #667085;
+		--padding-start: 8px;
+		--padding-end: 8px;
+	}
 }
 
 .transaction-page {
@@ -145,4 +155,3 @@
 	max-width: 100%;
 	height: 100%;
 }
-

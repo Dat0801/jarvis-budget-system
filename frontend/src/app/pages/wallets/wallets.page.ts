@@ -7,11 +7,12 @@ import { Wallet, WalletService } from '../../services/wallet.service';
 import { FabService } from '../../services/fab.service';
 import { formatVndAmountInput, parseVndAmount } from '../../utils/vnd-amount.util';
 import { formatCurrencyAmount, normalizeCurrencyCode } from '../../utils/currency.util';
+import { PageHeaderComponent } from '../../shared/page-header/page-header.component';
 
 @Component({
   selector: 'app-wallets',
   standalone: true,
-  imports: [CommonModule, FormsModule, IonicModule],
+  imports: [CommonModule, FormsModule, IonicModule, PageHeaderComponent],
   templateUrl: './wallets.page.html',
   styleUrls: ['./wallets.page.scss'],
 })

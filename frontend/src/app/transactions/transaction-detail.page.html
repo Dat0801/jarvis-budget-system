@@ -1,0 +1,87 @@
+<app-page-header
+  title="Transaction Detail"
+  [translucent]="true"
+  [showBack]="true"
+  backHref="/tabs/transactions"
+  headerClass="transaction-detail-header"
+>
+  <ion-buttons slot="end">
+    <ion-button fill="clear" (click)="duplicateTransaction()" [disabled]="isProcessing || isLoading">
+      <ion-icon slot="icon-only" name="copy-outline"></ion-icon>
+    </ion-button>
+    <ion-button fill="clear" (click)="editTransaction()" [disabled]="isProcessing || isLoading">
+      <ion-icon slot="icon-only" name="create-outline"></ion-icon>
+    </ion-button>
+    <ion-button fill="clear" color="danger" (click)="deleteTransaction()" [disabled]="isProcessing || isLoading">
+      <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+    </ion-button>
+  </ion-buttons>
+</app-page-header>
+
+<ion-content class="transaction-detail-page" [fullscreen]="true">
+  <div class="page-inner">
+    <div class="loading-state" *ngIf="isLoading">
+      <ion-spinner name="crescent"></ion-spinner>
+      <span>Loading transaction...</span>
+    </div>
+
+    <div class="error-state" *ngIf="!isLoading && error">
+      <ion-icon name="alert-circle-outline"></ion-icon>
+      <p>{{ error }}</p>
+    </div>
+
+    <ng-container *ngIf="!isLoading && !error && detail">
+      <section class="hero-section">
+        <div class="hero-amount" [class.hero-income]="isIncome" [class.hero-expense]="isExpense">
+          <div class="hero-label">{{ isIncome ? 'Income' : 'Expense' }}</div>
+          <div class="hero-value">
+            <span class="sign">{{ isIncome ? '+' : '-' }}</span>{{ formatCurrency(detail.amount) }}
+          </div>
+        </div>
+      </section>
+
+      <section class="info-section">
+        <ion-list lines="full">
+          <ion-item>
+            <ion-label>
+              <h3>Category</h3>
+              <p>{{ detail.category }}</p>
+            </ion-label>
+          </ion-item>
+
+          <ion-item>
+            <ion-label>
+              <h3>Wallet</h3>
+              <p>{{ detail.walletName }}</p>
+            </ion-label>
+          </ion-item>
+
+          <ion-item>
+            <ion-label>
+              <h3>Date</h3>
+              <p>
+                {{ detail.date | date: 'mediumDate' }}
+                &bull;
+                {{ detail.date | date: 'shortTime' }}
+              </p>
+            </ion-label>
+          </ion-item>
+
+          <ion-item *ngIf="detail.note">
+            <ion-label>
+              <h3>Note</h3>
+              <p>{{ detail.note }}</p>
+            </ion-label>
+          </ion-item>
+
+          <ion-item *ngIf="detail.source">
+            <ion-label>
+              <h3>Source</h3>
+              <p>{{ detail.source }}</p>
+            </ion-label>
+          </ion-item>
+        </ion-list>
+      </section>
+    </ng-container>
+  </div>
+</ion-content>
