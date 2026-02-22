@@ -10,6 +10,7 @@ import { ExpenseService } from '../services/expense.service';
 import { IncomeService } from '../services/income.service';
 import { NoteService } from '../services/note.service';
 import { IncomeVsExpenses, StatsService } from '../services/stats.service';
+import { CategoryService, CategoryTreeNode } from '../services/category.service';
 import {
   CurrencyCode,
   formatCurrencyAmount,
@@ -32,6 +33,12 @@ interface Transaction {
 interface TopSpending {
   title: string;
   amount: number;
+  percentage: number;
+}
+
+interface ChartAxisTick {
+  y: number;
+  value: number;
 }
 
 @Component({
@@ -57,16 +64,32 @@ export class HomePage implements OnInit {
   monthlyIncomeTotal = 0;
   monthlyExpenseTotal = 0;
 
-  weeklyTopSpending: TopSpending = { title: 'No spending this week', amount: 0 };
-  monthlyTopSpending: TopSpending = { title: 'No spending this month', amount: 0 };
+  weeklyTopSpending: TopSpending[] = [
+    { title: 'No spending this week', amount: 0, percentage: 0 },
+  ];
+  monthlyTopSpending: TopSpending[] = [
+    { title: 'No spending this month', amount: 0, percentage: 0 },
+  ];
   selectedSpendingTab: 'week' | 'month' = 'week';
 
+  expenseCategories: CategoryTreeNode[] = [];
+  private categoryParentMap: Record<string, string> = {};
+
   reportLabels: string[] = [];
-  incomePath = '';
-  expensePath = '';
-  incomePoints = '';
-  expensePoints = '';
+  reportPath = '';
+  reportPoints = '';
+  reportAxisTicks: ChartAxisTick[] = [];
   reportMaxValue = 1;
+  reportMetricTab: 'income' | 'expense' = 'expense';
+  reportRangeTab: 'week' | 'month' = 'month';
+  reportActiveIndex: number | null = null;
+
+  private monthlyLabels: string[] = [];
+  private monthlyIncomeSeries: number[] = [];
+  private monthlyExpenseSeries: number[] = [];
+  private weeklyLabels: string[] = [];
+  private weeklyIncomeSeries: number[] = [];
+  private weeklyExpenseSeries: number[] = [];
 
   constructor(
     private router: Router,
@@ -74,7 +97,8 @@ export class HomePage implements OnInit {
     private expenseService: ExpenseService,
     private incomeService: IncomeService,
     private noteService: NoteService,
-    private statsService: StatsService
+    private statsService: StatsService,
+    private categoryService: CategoryService
   ) {}
 
   ngOnInit(): void {
@@ -99,6 +123,32 @@ export class HomePage implements OnInit {
 
   selectSpendingTab(tab: 'week' | 'month'): void {
     this.selectedSpendingTab = tab;
+  }
+
+  selectReportMetricTab(tab: 'income' | 'expense'): void {
+    this.reportMetricTab = tab;
+    this.updateReportChart();
+  }
+
+  selectReportRangeTab(tab: 'week' | 'month'): void {
+    this.reportRangeTab = tab;
+    this.reportActiveIndex = null;
+    this.updateReportChart();
+  }
+
+  selectReportPoint(index: number): void {
+    if (index < 0 || index >= this.reportLabels.length) {
+      this.reportActiveIndex = null;
+      return;
+    }
+    this.reportActiveIndex = index;
+  }
+
+  get reportTotal(): number {
+    if (this.reportMetricTab === 'income') {
+      return this.monthlyIncomeTotal;
+    }
+    return this.monthlyExpenseTotal;
   }
 
   getWalletProgress(jar: Wallet): number {
@@ -126,6 +176,15 @@ export class HomePage implements OnInit {
     this.router.navigate(['/tabs/transactions']);
   }
 
+  openTransactionDetail(transaction: Transaction): void {
+    const type = transaction.type;
+    const id = transaction.id;
+    if ((type !== 'income' && type !== 'expense') || !Number.isFinite(id)) {
+      return;
+    }
+    this.router.navigate(['/tabs/transactions', type, id]);
+  }
+
   private loadDashboardData(): void {
     this.isLoadingDashboard = true;
     forkJoin({
@@ -134,15 +193,24 @@ export class HomePage implements OnInit {
       incomesResponse: this.incomeService.list().pipe(catchError(() => of([]))),
       reminders: this.noteService.reminderCount().pipe(catchError(() => of({ count: 0 }))),
       incomeVsExpenses: this.statsService.getIncomeVsExpenses().pipe(catchError(() => of(null))),
+      expenseCategories: this.categoryService
+        .getTree('expense')
+        .pipe(catchError(() => of({ data: [] } as { data: CategoryTreeNode[] }))),
     })
       .pipe(
         finalize(() => {
           this.isLoadingDashboard = false;
         })
       )
-      .subscribe(({ jars, expensesResponse, incomesResponse, reminders, incomeVsExpenses }) => {
+      .subscribe(({ jars, expensesResponse, incomesResponse, reminders, incomeVsExpenses, expenseCategories }) => {
         this.notificationCount = Number(reminders?.count) || 0;
         this.jars = Array.isArray(jars) ? jars : [];
+
+        const categoriesData = Array.isArray(expenseCategories?.data)
+          ? expenseCategories.data
+          : [];
+        this.expenseCategories = categoriesData;
+        this.categoryParentMap = this.buildCategoryParentMap(categoriesData);
 
         const expenses = this.extractList(expensesResponse).map((expense: any) => {
           const transactionDate = this.parseDate(expense.spent_at || expense.created_at);
@@ -187,6 +255,7 @@ export class HomePage implements OnInit {
 
         this.calculateMonthlyTotals();
         this.calculateTopSpending(expenses);
+        this.buildWeeklyReportSeries();
         this.buildIncomeExpenseChart(incomeVsExpenses);
         this.applyTransactionSearch();
       });
@@ -234,26 +303,84 @@ export class HomePage implements OnInit {
 
     const weekExpenses = expenses.filter((transaction) => transaction.date >= weekStart);
 
-    this.weeklyTopSpending = this.getTopSpending(weekExpenses, 'No spending this week');
-    this.monthlyTopSpending = this.getTopSpending(monthExpenses, 'No spending this month');
+    this.weeklyTopSpending = this.getTopSpendingList(weekExpenses, 'No spending this week');
+    this.monthlyTopSpending = this.getTopSpendingList(monthExpenses, 'No spending this month');
   }
 
-  private getTopSpending(expenses: Transaction[], emptyLabel: string): TopSpending {
+  private getTopSpendingList(expenses: Transaction[], emptyLabel: string): TopSpending[] {
     if (!expenses.length) {
-      return { title: emptyLabel, amount: 0 };
+      return [
+        {
+          title: emptyLabel,
+          amount: 0,
+          percentage: 0,
+        },
+      ];
     }
 
     const groupedAmounts = expenses.reduce<Record<string, number>>((accumulator, transaction) => {
-      const key = transaction.title || 'Other';
+      const key = this.getParentCategoryTitle(transaction.title);
       accumulator[key] = (accumulator[key] || 0) + Math.abs(transaction.amount);
       return accumulator;
     }, {});
 
-    const [title, amount] = Object.entries(groupedAmounts).sort(
-      (first, second) => second[1] - first[1]
-    )[0];
+    const totalAmount = Object.values(groupedAmounts).reduce(
+      (sum, value) => sum + value,
+      0
+    );
 
-    return { title, amount };
+    if (!totalAmount) {
+      return [
+        {
+          title: emptyLabel,
+          amount: 0,
+          percentage: 0,
+        },
+      ];
+    }
+
+    return Object.entries(groupedAmounts)
+      .sort((first, second) => second[1] - first[1])
+      .map(([title, amount]) => ({
+        title,
+        amount,
+        percentage: (amount / totalAmount) * 100,
+      }));
+  }
+
+  private buildCategoryParentMap(tree: CategoryTreeNode[]): Record<string, string> {
+    const map: Record<string, string> = {};
+
+    tree.forEach((parent) => {
+      const parentName = parent.name?.trim();
+      if (parentName) {
+        const parentKey = parentName.toLowerCase();
+        map[parentKey] = parentName;
+      }
+
+      parent.children.forEach((child) => {
+        const childName = child.name?.trim();
+        if (!childName) {
+          return;
+        }
+        const childKey = childName.toLowerCase();
+        map[childKey] = parentName || childName;
+      });
+    });
+
+    return map;
+  }
+
+  private getParentCategoryTitle(rawTitle: string | null | undefined): string {
+    const fallback = rawTitle && rawTitle.trim().length > 0 ? rawTitle.trim() : 'Other';
+    const normalized = fallback.toLowerCase();
+
+    const parent = this.categoryParentMap[normalized];
+    if (parent && parent.trim().length > 0) {
+      return parent;
+    }
+
+    return fallback;
   }
 
   private buildIncomeExpenseChart(data: IncomeVsExpenses | null): void {
@@ -264,17 +391,120 @@ export class HomePage implements OnInit {
       ? data?.expenses.slice(-6)
       : [this.monthlyExpenseTotal];
 
+    this.monthlyLabels = labels;
+
+    const normalizedIncome = this.normalizeSeriesLength(income, this.monthlyLabels.length);
+    const normalizedExpenses = this.normalizeSeriesLength(expenses, this.monthlyLabels.length);
+
+    this.monthlyIncomeSeries = normalizedIncome;
+    this.monthlyExpenseSeries = normalizedExpenses;
+
+    this.updateReportChart();
+  }
+
+  private buildWeeklyReportSeries(): void {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+
+    const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
+    const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
+
+    const weekStarts: Date[] = [];
+    let cursor = new Date(firstDayOfMonth.getTime());
+
+    while (cursor.getTime() <= lastDayOfMonth.getTime()) {
+      weekStarts.push(new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate()));
+      cursor.setDate(cursor.getDate() + 7);
+    }
+
+    const labels: string[] = [];
+    const incomeSeries: number[] = [];
+    const expenseSeries: number[] = [];
+
+    for (let index = 0; index < weekStarts.length; index += 1) {
+      const start = weekStarts[index];
+      const end =
+        index === weekStarts.length - 1
+          ? new Date(lastDayOfMonth.getFullYear(), lastDayOfMonth.getMonth(), lastDayOfMonth.getDate(), 23, 59, 59, 999)
+          : new Date(
+              weekStarts[index + 1].getFullYear(),
+              weekStarts[index + 1].getMonth(),
+              weekStarts[index + 1].getDate() - 1,
+              23,
+              59,
+              59,
+              999
+            );
+
+      labels.push(`W${index + 1}`);
+
+      const weekTransactions = this.allTransactions.filter((transaction) => {
+        const transactionDate = transaction.date;
+        return (
+          transactionDate.getFullYear() === currentYear &&
+          transactionDate.getMonth() === currentMonth &&
+          transactionDate.getTime() >= start.getTime() &&
+          transactionDate.getTime() <= end.getTime()
+        );
+      });
+
+      const weekIncome = weekTransactions
+        .filter((transaction) => transaction.type === 'income')
+        .reduce((sum, transaction) => sum + Math.abs(transaction.amount), 0);
+
+      const weekExpense = weekTransactions
+        .filter((transaction) => transaction.type === 'expense')
+        .reduce((sum, transaction) => sum + Math.abs(transaction.amount), 0);
+
+      incomeSeries.push(weekIncome);
+      expenseSeries.push(weekExpense);
+    }
+
+    this.weeklyLabels = labels;
+    this.weeklyIncomeSeries = incomeSeries;
+    this.weeklyExpenseSeries = expenseSeries;
+  }
+
+  private updateReportChart(): void {
+    let labels: string[] = [];
+    let values: number[] = [];
+
+    if (this.reportRangeTab === 'week') {
+      labels = this.weeklyLabels;
+      values = this.reportMetricTab === 'income' ? this.weeklyIncomeSeries : this.weeklyExpenseSeries;
+    } else {
+      labels = this.monthlyLabels;
+      values = this.reportMetricTab === 'income' ? this.monthlyIncomeSeries : this.monthlyExpenseSeries;
+    }
+
+    if (!labels.length) {
+      const fallbackLabel = this.monthLabel || this.getCurrentMonthLabel();
+      labels = [fallbackLabel];
+      values = [
+        this.reportMetricTab === 'income' ? this.monthlyIncomeTotal : this.monthlyExpenseTotal,
+      ];
+    }
+
     this.reportLabels = labels;
+    if (this.reportActiveIndex !== null && this.reportActiveIndex >= this.reportLabels.length) {
+      this.reportActiveIndex = this.reportLabels.length - 1;
+    }
 
-    const normalizedIncome = this.normalizeSeriesLength(income, this.reportLabels.length);
-    const normalizedExpenses = this.normalizeSeriesLength(expenses, this.reportLabels.length);
+    const normalizedValues = this.normalizeSeriesLength(values, this.reportLabels.length);
 
-    this.reportMaxValue = Math.max(...normalizedIncome, ...normalizedExpenses, 1);
+    this.reportMaxValue = Math.max(...normalizedValues, 1);
 
-    this.incomePath = this.buildChartPath(normalizedIncome);
-    this.expensePath = this.buildChartPath(normalizedExpenses);
-    this.incomePoints = this.buildChartPoints(normalizedIncome);
-    this.expensePoints = this.buildChartPoints(normalizedExpenses);
+    this.reportPath = this.buildChartPath(normalizedValues);
+    this.reportPoints = this.buildChartPoints(normalizedValues);
+
+    const maxValue = this.reportMaxValue;
+    const midValue = maxValue / 2;
+    this.reportAxisTicks = [
+      { y: 24, value: maxValue },
+      { y: 84, value: midValue },
+      { y: 144, value: 0 },
+    ];
   }
 
   private normalizeSeriesLength(values: number[], expectedLength: number): number[] {
@@ -323,6 +553,68 @@ export class HomePage implements OnInit {
         y: Number(y.toFixed(2)),
       };
     });
+  }
+
+  getReportHitAreaX(index: number): number {
+    const xPadding = 16;
+    const width = 300;
+    const innerWidth = width - xPadding * 2;
+    const denominator = Math.max(this.reportLabels.length - 1, 1);
+    const centerX = xPadding + (index / denominator) * innerWidth;
+    return centerX - 12;
+  }
+
+  formatAxisValue(value: number): string {
+    const absolute = Math.abs(value);
+
+    if (absolute >= 1_000_000_000) {
+      const scaled = value / 1_000_000_000;
+      return `${scaled.toFixed(Math.abs(scaled) >= 100 ? 0 : 1)}B`;
+    }
+
+    if (absolute >= 1_000_000) {
+      const scaled = value / 1_000_000;
+      return `${scaled.toFixed(Math.abs(scaled) >= 100 ? 0 : 1)}M`;
+    }
+
+    if (absolute >= 1_000) {
+      const scaled = value / 1_000;
+      return `${scaled.toFixed(Math.abs(scaled) >= 100 ? 0 : 1)}K`;
+    }
+
+    return Math.round(value).toString();
+  }
+
+  getActiveReportLabel(): string | null {
+    if (this.reportActiveIndex === null) {
+      return null;
+    }
+    if (this.reportActiveIndex < 0 || this.reportActiveIndex >= this.reportLabels.length) {
+      return null;
+    }
+    return this.reportLabels[this.reportActiveIndex];
+  }
+
+  getActiveReportValue(): number | null {
+    if (this.reportActiveIndex === null) {
+      return null;
+    }
+
+    if (this.reportRangeTab === 'week') {
+      const series =
+        this.reportMetricTab === 'income' ? this.weeklyIncomeSeries : this.weeklyExpenseSeries;
+      if (this.reportActiveIndex < 0 || this.reportActiveIndex >= series.length) {
+        return null;
+      }
+      return series[this.reportActiveIndex];
+    }
+
+    const series =
+      this.reportMetricTab === 'income' ? this.monthlyIncomeSeries : this.monthlyExpenseSeries;
+    if (this.reportActiveIndex < 0 || this.reportActiveIndex >= series.length) {
+      return null;
+    }
+    return series[this.reportActiveIndex];
   }
 
   private applyTransactionSearch(): void {

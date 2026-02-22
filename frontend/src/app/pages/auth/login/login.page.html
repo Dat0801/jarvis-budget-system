@@ -49,6 +49,10 @@
         {{ isLoading ? 'Signing in...' : 'Log In' }}
       </ion-button>
 
+      <div *ngIf="loginError" class="error-message">
+        {{ loginError }}
+      </div>
+
       <div class="divider">
         <span>OR CONTINUE WITH</span>
       </div>

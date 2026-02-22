@@ -37,6 +37,14 @@ ion-content.jars-page {
 	box-shadow: 0 14px 28px rgba(46, 103, 216, 0.25);
 }
 
+.total-card.total-card--overspent .total-overspent {
+	color: #f97316;
+}
+
+.total-card.total-card--can-spend .total-overspent {
+	color: #16a34a;
+}
+
 .total-label {
 	font-size: 13px;
 	letter-spacing: 1.6px;
@@ -217,6 +225,18 @@ ion-content.jars-page {
 	height: 100%;
 	background: #2e7ff2;
 	border-radius: 999px;
+}
+
+.progress-fill--overspent {
+	background: #d92d20;
+}
+
+.progress-fill--can-spend {
+	background: #16a34a;
+}
+
+.progress-fill--used {
+	background: #2e7ff2;
 }
 
 .add-fab {

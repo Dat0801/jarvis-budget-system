@@ -3,13 +3,18 @@
     <ion-buttons slot="start">
       <ion-back-button defaultHref="/tabs/transactions"></ion-back-button>
     </ion-buttons>
-    <ion-title>Add Transaction</ion-title>
+    <ion-title>{{ isEditMode ? 'Edit Transaction' : 'Add Transaction' }}</ion-title>
   </ion-toolbar>
 </ion-header>
 
 <ion-content class="transaction-page" [fullscreen]="true">
   <form class="transaction-form" (ngSubmit)="submit()">
-    <ion-segment class="transaction-tabs" [value]="segmentValue" (ionChange)="onSegmentChange($event)">
+    <ion-segment
+      *ngIf="!isEditMode"
+      class="transaction-tabs"
+      [value]="segmentValue"
+      (ionChange)="onSegmentChange($event)"
+    >
       <ion-segment-button value="expense">
         <ion-label>Expense</ion-label>
       </ion-segment-button>

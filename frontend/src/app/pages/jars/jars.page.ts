@@ -248,6 +248,16 @@ export class JarsPage implements OnInit {
     return this.getJarOverspent(jar) > 0;
   }
 
+  getJarProgressClass(jar: Budget): string {
+    if (this.isJarOverspent(jar)) {
+      return 'progress-fill--overspent';
+    }
+    if (this.getJarRemaining(jar) > 0) {
+      return 'progress-fill--can-spend';
+    }
+    return 'progress-fill--used';
+  }
+
   getJarSpent(jar: Budget): number {
     const categoryKey = this.toCategoryKey(jar.category || jar.name);
     if (!categoryKey) {
@@ -261,7 +271,23 @@ export class JarsPage implements OnInit {
   }
 
   get totalOverspent(): number {
-    return this.jars.reduce((sum, jar) => sum + this.getJarOverspent(jar), 0);
+    const diff = this.totalSaved - this.totalSpent;
+    return diff < 0 ? Math.abs(diff) : 0;
+  }
+
+  get totalCanSpend(): number {
+    const diff = this.totalSaved - this.totalSpent;
+    return diff > 0 ? diff : 0;
+  }
+
+  get totalHeaderClass(): string {
+    if (this.totalOverspent > 0) {
+      return 'total-card--overspent';
+    }
+    if (this.totalCanSpend > 0) {
+      return 'total-card--can-spend';
+    }
+    return '';
   }
 
   get daysLeftToEndOfMonth(): number {
@@ -323,11 +349,11 @@ export class JarsPage implements OnInit {
     const absAmount = Math.abs(amount);
 
     if (absAmount >= 1_000_000) {
-      return `${this.formatCompactValue(amount / 1_000_000)}M`;
+      return `${this.formatCompactValue(amount / 1_000_000, 2)}M`;
     }
 
     if (absAmount >= 1_000) {
-      return `${this.formatCompactValue(amount / 1_000)}K`;
+      return `${this.formatCompactValue(amount / 1_000, 1)}K`;
     }
 
     return `${Math.round(amount)}`;
@@ -476,8 +502,10 @@ export class JarsPage implements OnInit {
     return `${day}/${month}`;
   }
 
-  private formatCompactValue(value: number): string {
-    const rounded = Math.round(value * 10) / 10;
-    return Number.isInteger(rounded) ? `${rounded}` : `${rounded}`;
+  private formatCompactValue(value: number, fractionDigits = 1): string {
+    const factor = Math.pow(10, fractionDigits);
+    const rounded = Math.round(value * factor) / factor;
+    const text = rounded.toFixed(fractionDigits);
+    return text.replace(/\.0+$/, '').replace(/(\.\d*[1-9])0+$/, '$1');
   }
 }

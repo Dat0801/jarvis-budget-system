@@ -1,0 +1,107 @@
+.transaction-detail-header {
+  --background: #ffffff;
+  border-bottom: 1px solid #eef1f6;
+
+  ion-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #101828;
+  }
+
+  ion-button {
+    --color: #667085;
+  }
+}
+
+ion-content.transaction-detail-page {
+  --background: #f5f7fb;
+}
+
+.page-inner {
+  padding: 16px 18px 32px;
+}
+
+.hero-section {
+  margin-bottom: 16px;
+}
+
+.hero-amount {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 16px;
+  border: 1px solid #eef1f6;
+  text-align: center;
+}
+
+.hero-label {
+  font-size: 13px;
+  color: #667085;
+  margin-bottom: 4px;
+}
+
+.hero-value {
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.hero-value .sign {
+  font-weight: 700;
+  margin-right: 4px;
+}
+
+.hero-amount.hero-income .hero-value {
+  color: #12b76a;
+}
+
+.hero-amount.hero-expense .hero-value {
+  color: #d92d20;
+}
+
+.info-section ion-list {
+  margin-top: 8px;
+}
+
+.info-section h3 {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #667085;
+}
+
+.info-section p {
+  margin: 0;
+  font-size: 14px;
+  color: #101828;
+}
+
+.loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  color: #667085;
+}
+
+.error-state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fee4e2;
+  border: 1px solid #fecaca;
+  color: #d92d20;
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 16px;
+}
+
+.error-state ion-icon {
+  font-size: 20px;
+}
+
+.error-state p {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+}
+

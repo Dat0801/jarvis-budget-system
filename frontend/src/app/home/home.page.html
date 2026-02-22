@@ -101,21 +101,83 @@
     <div class="top-spending-grid" *ngIf="!isLoadingDashboard">
       <div class="spending-card" *ngIf="selectedSpendingTab === 'week'; else monthSpending">
         <div class="spending-label">This week</div>
-        <div class="spending-title">{{ weeklyTopSpending.title }}</div>
-        <div class="spending-value">{{ formatCurrency(weeklyTopSpending.amount) }}</div>
+        <div
+          class="spending-item"
+          *ngFor="let item of weeklyTopSpending | slice : 0 : 3"
+        >
+          <div class="spending-item-left">
+            <div class="spending-title">{{ item.title }}</div>
+            <div class="spending-value">{{ formatCurrency(item.amount) }}</div>
+          </div>
+          <div class="spending-item-right">
+            <div class="spending-percent">
+              {{ item.percentage | number: '1.0-0' }}%
+            </div>
+          </div>
+        </div>
       </div>
 
       <ng-template #monthSpending>
         <div class="spending-card">
           <div class="spending-label">This month</div>
-          <div class="spending-title">{{ monthlyTopSpending.title }}</div>
-          <div class="spending-value">{{ formatCurrency(monthlyTopSpending.amount) }}</div>
+          <div
+            class="spending-item"
+            *ngFor="let item of monthlyTopSpending | slice : 0 : 3"
+          >
+            <div class="spending-item-left">
+              <div class="spending-title">{{ item.title }}</div>
+              <div class="spending-value">{{ formatCurrency(item.amount) }}</div>
+            </div>
+            <div class="spending-item-right">
+              <div class="spending-percent">
+                {{ item.percentage | number: '1.0-0' }}%
+              </div>
+            </div>
+          </div>
         </div>
       </ng-template>
     </div>
 
     <div class="section-header">
       <div class="section-title">Report this month</div>
+    </div>
+
+    <div class="report-tabs">
+      <button
+        type="button"
+        class="report-tab"
+        [class.active]="reportMetricTab === 'expense'"
+        (click)="selectReportMetricTab('expense')"
+      >
+        Total spent
+      </button>
+      <button
+        type="button"
+        class="report-tab"
+        [class.active]="reportMetricTab === 'income'"
+        (click)="selectReportMetricTab('income')"
+      >
+        Total income
+      </button>
+    </div>
+
+    <div class="report-tabs secondary">
+      <button
+        type="button"
+        class="report-tab"
+        [class.active]="reportRangeTab === 'week'"
+        (click)="selectReportRangeTab('week')"
+      >
+        Week
+      </button>
+      <button
+        type="button"
+        class="report-tab"
+        [class.active]="reportRangeTab === 'month'"
+        (click)="selectReportRangeTab('month')"
+      >
+        Month
+      </button>
     </div>
 
     <div class="report-card" *ngIf="!isLoadingDashboard; else reportLoading">
@@ -127,24 +189,54 @@
             <line x1="16" y1="140" x2="284" y2="140"></line>
           </g>
 
-          <path class="income-line" [attr.d]="incomePath"></path>
-          <path class="expense-line" [attr.d]="expensePath"></path>
+          <path
+            [ngClass]="reportMetricTab === 'income' ? 'income-line' : 'expense-line'"
+            [attr.d]="reportPath"
+          ></path>
 
-          <polyline class="income-points" [attr.points]="incomePoints"></polyline>
-          <polyline class="expense-points" [attr.points]="expensePoints"></polyline>
+          <polyline
+            [ngClass]="reportMetricTab === 'income' ? 'income-points' : 'expense-points'"
+            [attr.points]="reportPoints"
+          ></polyline>
+
+          <ng-container *ngFor="let tick of reportAxisTicks">
+            <text
+              class="chart-axis-value"
+              x="294"
+              [attr.y]="tick.y"
+            >
+              {{ formatAxisValue(tick.value) }}
+            </text>
+          </ng-container>
+
+          <ng-container *ngFor="let label of reportLabels; let index = index">
+            <rect
+              class="chart-hit-area"
+              [attr.x]="getReportHitAreaX(index)"
+              y="14"
+              width="24"
+              height="132"
+              (click)="selectReportPoint(index)"
+            ></rect>
+          </ng-container>
         </svg>
       </div>
 
       <div class="chart-legend">
         <div class="legend-item">
-          <span class="legend-dot income"></span>
-          <span>Income</span>
-          <strong>{{ formatCurrency(monthlyIncomeTotal) }}</strong>
+          <span
+            class="legend-dot"
+            [class.income]="reportMetricTab === 'income'"
+            [class.expense]="reportMetricTab === 'expense'"
+          ></span>
+          <span>{{ reportMetricTab === 'income' ? 'Total income' : 'Total spent' }}</span>
+          <strong>{{ formatCurrency(reportTotal) }}</strong>
         </div>
-        <div class="legend-item">
-          <span class="legend-dot expense"></span>
-          <span>Expense</span>
-          <strong>{{ formatCurrency(monthlyExpenseTotal) }}</strong>
+
+        <div class="legend-item" *ngIf="getActiveReportLabel() && getActiveReportValue() !== null">
+          <span class="legend-dot detail"></span>
+          <span>{{ getActiveReportLabel() }}</span>
+          <strong>{{ formatCurrency(getActiveReportValue()) }}</strong>
         </div>
       </div>
 
@@ -170,7 +262,11 @@
     </div>
 
     <div class="transaction-list" *ngIf="!isLoadingDashboard && filteredTransactions.length > 0; else emptyTransactions">
-      <div class="transaction-card" *ngFor="let tx of filteredTransactions; trackBy: trackByTransactionId">
+      <div
+        class="transaction-card"
+        *ngFor="let tx of filteredTransactions; trackBy: trackByTransactionId"
+        (click)="openTransactionDetail(tx)"
+      >
         <div class="tx-icon" [class.income]="tx.type === 'income'" [class.expense]="tx.type === 'expense'">
           <ion-icon [name]="tx.icon"></ion-icon>
         </div>

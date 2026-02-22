@@ -173,6 +173,13 @@
 	text-decoration: none;
 }
 
+.error-message {
+	margin-top: 8px;
+	font-size: 13px;
+	color: #e53e3e;
+	text-align: center;
+}
+
 @media (max-width: 480px) {
 	.page-shell {
 		padding-top: 36px;

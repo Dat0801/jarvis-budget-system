@@ -188,6 +188,18 @@ export class TransactionsPage implements OnInit {
     return transaction.id;
   }
 
+  openTransactionDetail(transaction: TransactionItem): void {
+    const [type, rawId] = transaction.id.split('-');
+    if ((type !== 'income' && type !== 'expense') || !rawId) {
+      return;
+    }
+    const id = Number(rawId);
+    if (!Number.isFinite(id)) {
+      return;
+    }
+    this.router.navigate(['/tabs/transactions', type, id]);
+  }
+
   openReportsModal(): void {
     this.isReportsModalOpen = true;
   }

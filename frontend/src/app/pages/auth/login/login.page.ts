@@ -16,11 +16,13 @@ export class LoginPage {
   email = '';
   password = '';
   isLoading = false;
+  loginError: string | null = null;
 
   constructor(private authService: AuthService, private router: Router) {}
 
   submit(): void {
     this.isLoading = true;
+    this.loginError = null;
     this.authService.login({ email: this.email, password: this.password }).subscribe({
       next: () => {
         this.isLoading = false;
@@ -28,12 +30,16 @@ export class LoginPage {
       },
       error: (error) => {
         this.isLoading = false;
-        console.error('Login request failed', {
-          email: this.email,
-          status: error?.status,
-          message: error?.error?.message ?? error?.message,
-          error,
-        });
+        const status = error?.status;
+        const backendMessage = error?.error?.message ?? error?.message;
+
+        if (status === 401) {
+          this.loginError = 'Invalid email or password';
+        } else if (backendMessage) {
+          this.loginError = backendMessage;
+        } else {
+          this.loginError = 'Failed to sign in. Please try again.';
+        }
       },
     });
   }

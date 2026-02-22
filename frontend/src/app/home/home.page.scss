@@ -253,11 +253,56 @@ ion-content.dashboard::part(background) {
 	color: #ffffff;
 }
 
+.report-tabs {
+	margin-top: 8px;
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 8px;
+}
+
+.report-tabs.secondary {
+	margin-top: 6px;
+}
+
+.report-tab {
+	border: none;
+	border-radius: 999px;
+	padding: 8px 10px;
+	font-size: 12px;
+	font-weight: 700;
+	background: rgba(59, 130, 246, 0.06);
+	color: var(--primary-dark);
+	backdrop-filter: blur(8px);
+}
+
+.report-tab.active {
+	background: linear-gradient(90deg, #3b82f6, #2563eb);
+	color: #ffffff;
+	box-shadow: 0 6px 14px rgba(37, 99, 235, 0.35);
+}
+
 .spending-card {
 	background: #ffffff;
 	border-radius: 16px;
 	padding: 14px;
 	box-shadow: var(--soft-shadow);
+}
+
+.spending-item {
+	margin-top: 8px;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.spending-item-left {
+	flex: 1;
+	min-width: 0;
+}
+
+.spending-item-right {
+	text-align: right;
+	margin-left: 8px;
 }
 
 .spending-label {
@@ -275,14 +320,26 @@ ion-content.dashboard::part(background) {
 
 .spending-value {
 	margin-top: 4px;
-	font-size: 22px;
+	display: inline-block;
+	padding: 2px 8px;
+	border-radius: 999px;
+	font-size: 13px;
+	font-weight: 600;
+	color: #ffffff;
+	background: #ef4444;
+}
+
+.spending-percent {
+	margin-top: 0;
+	font-size: 18px;
 	font-weight: 800;
+	color: #ef4444;
 }
 
 .report-card {
 	margin-top: 12px;
 	border-radius: 18px;
-	background: #ffffff;
+	background: radial-gradient(circle at top left, #eef2ff, #ffffff);
 	padding: 16px 12px 12px;
 	box-shadow: var(--soft-shadow);
 }
@@ -329,6 +386,17 @@ ion-content.dashboard::part(background) {
 	stroke: #f97373;
 }
 
+.chart-axis-value {
+	font-size: 9px;
+	fill: var(--text-muted);
+	text-anchor: end;
+}
+
+.chart-hit-area {
+	fill: transparent;
+	cursor: pointer;
+}
+
 .chart-legend {
 	display: flex;
 	justify-content: space-between;
@@ -355,6 +423,10 @@ ion-content.dashboard::part(background) {
 
 .legend-dot.expense {
 	background: #ef4444;
+}
+
+.legend-dot.detail {
+	background: #f97316;
 }
 
 .chart-labels {
@@ -406,6 +478,7 @@ ion-content.dashboard::part(background) {
 	border-radius: 14px;
 	background: #ffffff;
 	box-shadow: var(--soft-shadow);
+	cursor: pointer;
 }
 
 .tx-icon {
