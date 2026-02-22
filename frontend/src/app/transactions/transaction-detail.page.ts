@@ -3,6 +3,7 @@ import { Component, OnInit } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { ActivatedRoute, Router } from '@angular/router';
 import { IonicModule } from '@ionic/angular';
+import { PageHeaderComponent } from '../shared/page-header/page-header.component';
 import { ExpenseService } from '../services/expense.service';
 import { IncomeService } from '../services/income.service';
 import { formatCurrencyAmount, getStoredCurrencyCode } from '../utils/currency.util';
@@ -45,7 +46,7 @@ interface TransactionDetailView {
 @Component({
   selector: 'app-transaction-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule, IonicModule],
+  imports: [CommonModule, RouterModule, IonicModule, PageHeaderComponent],
   templateUrl: './transaction-detail.page.html',
   styleUrls: ['./transaction-detail.page.scss'],
 })

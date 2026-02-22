@@ -3,6 +3,7 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
+import { PageHeaderComponent } from '../../shared/page-header/page-header.component';
 import { ExpenseService } from '../../services/expense.service';
 import { IncomeService } from '../../services/income.service';
 import { Wallet, WalletService } from '../../services/wallet.service';
@@ -36,7 +37,7 @@ type TransactionTab = 'expense' | 'income' | 'debtLoan';
 @Component({
   selector: 'app-expense',
   standalone: true,
-  imports: [CommonModule, FormsModule, IonicModule],
+  imports: [CommonModule, FormsModule, IonicModule, PageHeaderComponent],
   templateUrl: './expense.page.html',
   styleUrls: ['./expense.page.scss'],
 })
@@ -96,6 +97,11 @@ export class ExpensePage implements OnInit {
       const mode = params.get('mode');
       const typeParam = params.get('type');
       const idParam = params.get('id');
+      const amountParam = params.get('amount');
+
+      if (amountParam) {
+        this.amount = amountParam;
+      }
 
       if (mode === 'edit' && (typeParam === 'income' || typeParam === 'expense') && idParam) {
         this.isEditMode = true;
@@ -317,6 +323,7 @@ export class ExpensePage implements OnInit {
       queryParams: {
         selectMode: '1',
         type: this.segmentValue === 'income' ? 'income' : this.segmentValue === 'debtLoan' ? 'debtLoan' : 'expense',
+        ...(this.amount ? { amount: this.amount } : {}),
         returnUrl: '/expense',
       },
     });

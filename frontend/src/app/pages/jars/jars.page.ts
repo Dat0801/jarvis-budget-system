@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
+import { PageHeaderComponent } from '../../shared/page-header/page-header.component';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Budget, BudgetService } from '../../services/budget.service';
 import { CategoryService, CategoryTreeNode } from '../../services/category.service';
@@ -24,7 +25,7 @@ interface BudgetCategoryOption {
 @Component({
   selector: 'app-jars',
   standalone: true,
-  imports: [CommonModule, FormsModule, IonicModule],
+  imports: [CommonModule, FormsModule, IonicModule, PageHeaderComponent],
   templateUrl: './jars.page.html',
   styleUrls: ['./jars.page.scss'],
 })

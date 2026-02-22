@@ -3,13 +3,14 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { IonicModule } from '@ionic/angular';
 import { CategoryService, CategoryTreeNode, CategoryType } from '../../services/category.service';
+import { PageHeaderComponent } from '../../shared/page-header/page-header.component';
 
 type CategoryTab = 'expense' | 'income' | 'debtLoan';
 
 @Component({
   selector: 'app-categories',
   standalone: true,
-  imports: [CommonModule, IonicModule],
+  imports: [CommonModule, IonicModule, PageHeaderComponent],
   templateUrl: './categories.page.html',
   styleUrls: ['./categories.page.scss'],
 })
@@ -144,9 +145,13 @@ export class CategoriesPage implements OnInit {
   }
 
   private selectCategory(selectedCategory: string): void {
+    const amount = this.route.snapshot.queryParamMap.get('amount');
+
     const urlTree = this.router.createUrlTree([this.returnUrl], {
       queryParams: {
         selectedCategory,
+        tab: this.activeTab,
+        ...(amount ? { amount } : {}),
         ...(this.returnMode ? { returnMode: this.returnMode } : {}),
       },
     });

@@ -3,6 +3,7 @@ import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
+import { PageHeaderComponent } from '../../shared/page-header/page-header.component';
 import { IncomeService } from '../../services/income.service';
 import { Budget, BudgetService } from '../../services/budget.service';
 import { formatVndAmountInput, parseVndAmount } from '../../utils/vnd-amount.util';
@@ -24,7 +25,7 @@ interface PaginatedIncomeResponse {
 @Component({
   selector: 'app-income',
   standalone: true,
-  imports: [CommonModule, FormsModule, IonicModule],
+  imports: [CommonModule, FormsModule, IonicModule, PageHeaderComponent],
   templateUrl: './income.page.html',
   styleUrls: ['./income.page.scss'],
 })

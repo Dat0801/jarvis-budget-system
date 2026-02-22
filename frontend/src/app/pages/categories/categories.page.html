@@ -1,11 +1,9 @@
-<ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-buttons slot="start">
-      <ion-back-button [defaultHref]="backHref"></ion-back-button>
-    </ion-buttons>
-    <ion-title>Categories</ion-title>
-  </ion-toolbar>
-</ion-header>
+<app-page-header
+  title="Categories"
+  [translucent]="true"
+  [showBack]="true"
+  [backHref]="backHref"
+></app-page-header>
 
 <ion-content [fullscreen]="true">
   <ion-segment [value]="activeTab" (ionChange)="selectTab($any($event.detail.value))">

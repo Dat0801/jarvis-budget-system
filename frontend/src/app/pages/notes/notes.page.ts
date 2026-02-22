@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
+import { PageHeaderComponent } from '../../shared/page-header/page-header.component';
 import { Note, NoteService } from '../../services/note.service';
 import { FabService } from '../../services/fab.service';
 import { finalize, take } from 'rxjs';
@@ -9,7 +10,7 @@ import { finalize, take } from 'rxjs';
 @Component({
   selector: 'app-notes',
   standalone: true,
-  imports: [CommonModule, FormsModule, IonicModule],
+  imports: [CommonModule, FormsModule, IonicModule, PageHeaderComponent],
   templateUrl: './notes.page.html',
   styleUrls: ['./notes.page.scss'],
 })

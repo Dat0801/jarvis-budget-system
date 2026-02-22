@@ -11,6 +11,7 @@ import { IncomeService } from '../services/income.service';
 import { NoteService } from '../services/note.service';
 import { IncomeVsExpenses, StatsService } from '../services/stats.service';
 import { CategoryService, CategoryTreeNode } from '../services/category.service';
+import { PageHeaderComponent } from '../shared/page-header/page-header.component';
 import {
   CurrencyCode,
   formatCurrencyAmount,
@@ -44,7 +45,7 @@ interface ChartAxisTick {
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule, FormsModule, IonicModule, RouterModule],
+  imports: [CommonModule, FormsModule, IonicModule, RouterModule, PageHeaderComponent],
   templateUrl: './home.page.html',
   styleUrls: ['./home.page.scss'],
 })

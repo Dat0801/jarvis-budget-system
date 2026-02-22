@@ -1,22 +1,22 @@
-<ion-header [translucent]="true" class="transaction-detail-header">
-  <ion-toolbar>
-    <ion-buttons slot="start">
-      <ion-back-button defaultHref="/tabs/transactions"></ion-back-button>
-    </ion-buttons>
-    <ion-title>Transaction Detail</ion-title>
-    <ion-buttons slot="end">
-      <ion-button fill="clear" (click)="duplicateTransaction()" [disabled]="isProcessing || isLoading">
-        <ion-icon slot="icon-only" name="copy-outline"></ion-icon>
-      </ion-button>
-      <ion-button fill="clear" (click)="editTransaction()" [disabled]="isProcessing || isLoading">
-        <ion-icon slot="icon-only" name="create-outline"></ion-icon>
-      </ion-button>
-      <ion-button fill="clear" color="danger" (click)="deleteTransaction()" [disabled]="isProcessing || isLoading">
-        <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
-      </ion-button>
-    </ion-buttons>
-  </ion-toolbar>
-</ion-header>
+<app-page-header
+  title="Transaction Detail"
+  [translucent]="true"
+  [showBack]="true"
+  backHref="/tabs/transactions"
+  headerClass="transaction-detail-header"
+>
+  <ion-buttons slot="end">
+    <ion-button fill="clear" (click)="duplicateTransaction()" [disabled]="isProcessing || isLoading">
+      <ion-icon slot="icon-only" name="copy-outline"></ion-icon>
+    </ion-button>
+    <ion-button fill="clear" (click)="editTransaction()" [disabled]="isProcessing || isLoading">
+      <ion-icon slot="icon-only" name="create-outline"></ion-icon>
+    </ion-button>
+    <ion-button fill="clear" color="danger" (click)="deleteTransaction()" [disabled]="isProcessing || isLoading">
+      <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+    </ion-button>
+  </ion-buttons>
+</app-page-header>
 
 <ion-content class="transaction-detail-page" [fullscreen]="true">
   <div class="page-inner">
@@ -85,4 +85,3 @@
     </ng-container>
   </div>
 </ion-content>
-

@@ -1,11 +1,10 @@
-<ion-header [translucent]="true" class="profile-header">
-  <ion-toolbar>
-    <ion-buttons slot="start">
-      <ion-back-button defaultHref="/tabs/dashboard"></ion-back-button>
-    </ion-buttons>
-    <ion-title>Profile & Settings</ion-title>
-  </ion-toolbar>
-</ion-header>
+<app-page-header
+  title="Profile & Settings"
+  [translucent]="true"
+  headerClass="profile-header"
+  [showBack]="true"
+  backHref="/tabs/dashboard"
+></app-page-header>
 
 <ion-content [fullscreen]="false" class="profile-content">
   <div class="profile-card">

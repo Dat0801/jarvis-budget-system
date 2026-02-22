@@ -1,11 +1,10 @@
-<ion-header class="transaction-header" [translucent]="true">
-  <ion-toolbar>
-    <ion-buttons slot="start">
-      <ion-back-button defaultHref="/tabs/transactions"></ion-back-button>
-    </ion-buttons>
-    <ion-title>Add Transaction</ion-title>
-  </ion-toolbar>
-</ion-header>
+<app-page-header
+  title="Add Transaction"
+  [translucent]="true"
+  [showBack]="true"
+  backHref="/tabs/transactions"
+  headerClass="transaction-header"
+></app-page-header>
 
 <ion-content class="transaction-page" [fullscreen]="true">
   <form class="transaction-form" (ngSubmit)="submit()">

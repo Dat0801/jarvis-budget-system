@@ -1,13 +1,10 @@
-<ion-header class="activity-header" translucent="true">
-  <ion-toolbar>
-    <ion-buttons slot="start">
-      <ion-button fill="clear" (click)="goBack()">
-        <ion-icon name="chevron-back-outline"></ion-icon>
-      </ion-button>
-    </ion-buttons>
-    <ion-title>{{ jar?.name || 'Wallet Detail' }}</ion-title>
-  </ion-toolbar>
-</ion-header>
+<app-page-header
+  [title]="jar?.name || 'Wallet Detail'"
+  [translucent]="true"
+  [showBack]="true"
+  backHref="/tabs/budgets"
+  headerClass="activity-header"
+></app-page-header>
 
 <ion-content class="activity-page" fullscreen="true">
   <div class="page-inner">

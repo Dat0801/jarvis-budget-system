@@ -1,0 +1,17 @@
+ion-header.app-header {
+  --background: #ffffff;
+  border-bottom: 1px solid #eef1f6;
+
+  ion-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: #101828;
+  }
+
+  ion-back-button {
+    --color: #667085;
+    --padding-start: 8px;
+    --padding-end: 8px;
+  }
+}
+

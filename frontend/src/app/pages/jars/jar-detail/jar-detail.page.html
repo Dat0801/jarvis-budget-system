@@ -1,21 +1,19 @@
-<ion-header class="jar-detail-header" translucent="true">
-  <ion-toolbar>
-    <ion-buttons slot="start">
-      <ion-button fill="clear" (click)="goBack()">
-        <ion-icon name="chevron-back-outline"></ion-icon>
-      </ion-button>
-    </ion-buttons>
-    <ion-title>Budget details</ion-title>
-    <ion-buttons slot="end">
-      <ion-button fill="clear" class="header-icon-btn" (click)="openEditJar()" aria-label="Edit budget">
-        <ion-icon name="create-outline"></ion-icon>
-      </ion-button>
-      <ion-button fill="clear" class="header-icon-btn" (click)="confirmDeleteJar()" aria-label="Delete budget">
-        <ion-icon name="trash-outline"></ion-icon>
-      </ion-button>
-    </ion-buttons>
-  </ion-toolbar>
-</ion-header>
+<app-page-header
+  title="Budget details"
+  [translucent]="true"
+  [showBack]="true"
+  backHref="/tabs/budgets"
+  headerClass="jar-detail-header"
+>
+  <ion-buttons slot="end">
+    <ion-button fill="clear" class="header-icon-btn" (click)="openEditJar()" aria-label="Edit budget">
+      <ion-icon name="create-outline"></ion-icon>
+    </ion-button>
+    <ion-button fill="clear" class="header-icon-btn" (click)="confirmDeleteJar()" aria-label="Delete budget">
+      <ion-icon name="trash-outline"></ion-icon>
+    </ion-button>
+  </ion-buttons>
+</app-page-header>
 
 <ion-content class="jar-detail-page" fullscreen="true">
   <div class="page-inner">
