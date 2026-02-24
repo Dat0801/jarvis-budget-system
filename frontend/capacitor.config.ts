@@ -2,10 +2,10 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'io.ionic.starter',
-  appName: 'frontend',
+  appName: 'Jarvis Budget',
   webDir: 'www',
   server: {
-    androidScheme: 'http',
+    androidScheme: 'https',
     cleartext: true,
   },
 };
