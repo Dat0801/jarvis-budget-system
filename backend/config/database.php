@@ -99,13 +99,13 @@ return [
                 ? (defined('PDO::PGSQL_ATTR_DISABLE_PREPARES')
                     ? [
                         PDO::ATTR_EMULATE_PREPARES => env('DB_EMULATE_PREPARES', false),
-                        PDO::PGSQL_ATTR_DISABLE_PREPARES => env('DB_DISABLE_PREPARES', false),
+                        PDO::PGSQL_ATTR_DISABLE_PREPARES => env('DB_DISABLE_PREPARES', true),
                     ]
                     : [
                         PDO::ATTR_EMULATE_PREPARES => env('DB_EMULATE_PREPARES', false),
                     ])
                 : [],
-            'prepared' => env('DB_PREPARED_STATEMENTS', true),
+            'prepared' => env('DB_PREPARED_STATEMENTS', false),
         ],
 
         'sqlsrv' => [
