@@ -18,9 +18,19 @@ export class RegisterPage {
   email = '';
   password = '';
   passwordConfirmation = '';
+  showPassword = false;
+  showPasswordConfirmation = false;
   isLoading = false;
 
   constructor(private authService: AuthService, private router: Router) {}
+
+  togglePasswordVisibility(): void {
+    this.showPassword = !this.showPassword;
+  }
+
+  togglePasswordConfirmationVisibility(): void {
+    this.showPasswordConfirmation = !this.showPasswordConfirmation;
+  }
 
   submit(): void {
     this.isLoading = true;

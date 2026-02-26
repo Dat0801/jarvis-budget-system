@@ -14,12 +14,30 @@
 
     <ion-item>
       <ion-label position="stacked">Password</ion-label>
-      <ion-input type="password" [(ngModel)]="password" name="password" required></ion-input>
+      <ion-input [type]="showPassword ? 'text' : 'password'" [(ngModel)]="password" name="password" required></ion-input>
+      <ion-button
+        fill="clear"
+        slot="end"
+        type="button"
+        (click)="togglePasswordVisibility()"
+        aria-label="Toggle password visibility"
+      >
+        <ion-icon [name]="showPassword ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
+      </ion-button>
     </ion-item>
 
     <ion-item>
       <ion-label position="stacked">Confirm Password</ion-label>
-      <ion-input type="password" [(ngModel)]="passwordConfirmation" name="passwordConfirmation" required></ion-input>
+      <ion-input [type]="showPasswordConfirmation ? 'text' : 'password'" [(ngModel)]="passwordConfirmation" name="passwordConfirmation" required></ion-input>
+      <ion-button
+        fill="clear"
+        slot="end"
+        type="button"
+        (click)="togglePasswordConfirmationVisibility()"
+        aria-label="Toggle confirm password visibility"
+      >
+        <ion-icon [name]="showPasswordConfirmation ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
+      </ion-button>
     </ion-item>
 
     <ion-button expand="block" type="submit" [disabled]="isLoading">

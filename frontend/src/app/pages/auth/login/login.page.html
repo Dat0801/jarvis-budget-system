@@ -31,12 +31,21 @@
         </div>
         <ion-item lines="none" class="input-item">
           <ion-input
-            type="password"
+            [type]="showPassword ? 'text' : 'password'"
             placeholder="........"
             [(ngModel)]="password"
             name="password"
             required
           ></ion-input>
+          <ion-button
+            fill="clear"
+            slot="end"
+            type="button"
+            (click)="togglePasswordVisibility()"
+            aria-label="Toggle password visibility"
+          >
+            <ion-icon [name]="showPassword ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
+          </ion-button>
         </ion-item>
       </div>
 
@@ -58,13 +67,9 @@
       </div>
 
       <div class="social-row">
-        <ion-button class="social-btn" fill="outline" type="button">
+        <ion-button class="social-btn" fill="outline" type="button" (click)="loginWithGoogle()">
           <ion-icon name="logo-google"></ion-icon>
           Google
-        </ion-button>
-        <ion-button class="social-btn" fill="outline" type="button">
-          <ion-icon name="logo-apple"></ion-icon>
-          Apple
         </ion-button>
       </div>
 

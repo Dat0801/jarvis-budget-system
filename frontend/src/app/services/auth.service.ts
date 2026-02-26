@@ -37,6 +37,14 @@ export class AuthService {
     );
   }
 
+  googleLogin(token: string) {
+    return this.api.post<AuthResponse>('auth/google', { token }).pipe(
+      switchMap((response) =>
+        from(this.setToken(response.access_token)).pipe(map(() => response))
+      )
+    );
+  }
+
   register(payload: { name: string; email: string; password: string; password_confirmation: string }) {
     return this.api.post<AuthResponse>('auth/register', payload).pipe(
       switchMap((response) =>
