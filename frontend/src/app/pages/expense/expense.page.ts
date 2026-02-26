@@ -419,12 +419,25 @@ export class ExpensePage implements OnInit {
     }).format(date);
   }
 
-  onAmountChange(value: string | number | null | undefined): void {
-    this.amount = String(value ?? '').replace(/\D+/g, '');
-  }
-
-  onAmountBlur(): void {
-    this.amount = formatVndAmountInput(this.amount);
+  onAmountInput(event: any): void {
+    const input = event.target as HTMLInputElement;
+    const originalValue = input.value || '';
+    const digits = originalValue.replace(/\D/g, '');
+    const formatted = formatVndAmountInput(digits);
+    
+    if (this.amount !== formatted) {
+      const cursor = input.selectionStart || 0;
+      const digitsBeforeCursor = originalValue.substring(0, cursor).replace(/\D/g, '').length;
+      this.amount = formatted;
+      input.value = formatted;
+      let newCursor = 0;
+      let digitsFound = 0;
+      for (let i = 0; i < formatted.length && digitsFound < digitsBeforeCursor; i++) {
+        if (/\d/.test(formatted[i])) digitsFound++;
+        newCursor = i + 1;
+      }
+      input.setSelectionRange(newCursor, newCursor);
+    }
   }
 
   loadExpenses(): void {
@@ -476,8 +489,25 @@ export class ExpensePage implements OnInit {
     });
   }
 
-  onEditAmountInput(event: CustomEvent): void {
-    this.editAmount = formatVndAmountInput(event.detail?.value);
+  onEditAmountInput(event: any): void {
+    const input = event.target as HTMLInputElement;
+    const originalValue = input.value || '';
+    const digits = originalValue.replace(/\D/g, '');
+    const formatted = formatVndAmountInput(digits);
+    
+    if (this.editAmount !== formatted) {
+      const cursor = input.selectionStart || 0;
+      const digitsBeforeCursor = originalValue.substring(0, cursor).replace(/\D/g, '').length;
+      this.editAmount = formatted;
+      input.value = formatted;
+      let newCursor = 0;
+      let digitsFound = 0;
+      for (let i = 0; i < formatted.length && digitsFound < digitsBeforeCursor; i++) {
+        if (/\d/.test(formatted[i])) digitsFound++;
+        newCursor = i + 1;
+      }
+      input.setSelectionRange(newCursor, newCursor);
+    }
   }
 
   deleteExpense(id: number): void {

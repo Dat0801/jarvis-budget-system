@@ -135,12 +135,33 @@ export class JarsPage implements OnInit {
     this.closeCreateJar();
   }
 
-  onBudgetAmountChange(value: string | number | null | undefined): void {
-    this.budgetAmount = String(value ?? '').replace(/\D+/g, '');
-  }
-
-  onBudgetAmountBlur(): void {
-    this.budgetAmount = formatVndAmountInput(this.budgetAmount);
+  onBudgetAmountInput(event: any): void {
+    const input = event.target as HTMLInputElement;
+    const originalValue = input.value || '';
+    
+    // Extract only digits
+    const digits = originalValue.replace(/\D/g, '');
+    const formatted = formatVndAmountInput(digits);
+    
+    if (this.budgetAmount !== formatted) {
+      // Save cursor position
+      const cursor = input.selectionStart || 0;
+      const digitsBeforeCursor = originalValue.substring(0, cursor).replace(/\D/g, '').length;
+      
+      this.budgetAmount = formatted;
+      input.value = formatted;
+      
+      // Restore cursor position
+      let newCursor = 0;
+      let digitsFound = 0;
+      for (let i = 0; i < formatted.length && digitsFound < digitsBeforeCursor; i++) {
+        if (/\d/.test(formatted[i])) {
+          digitsFound++;
+        }
+        newCursor = i + 1;
+      }
+      input.setSelectionRange(newCursor, newCursor);
+    }
   }
 
   get canSaveJar(): boolean {

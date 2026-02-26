@@ -266,8 +266,25 @@ export class JarDetailPage implements OnInit {
     }
   }
 
-  onAddAmountInput(event: CustomEvent): void {
-    this.addAmount = formatVndAmountInput(event.detail?.value);
+  onAddAmountInput(event: any): void {
+    const input = event.target as HTMLInputElement;
+    const originalValue = input.value || '';
+    const digits = originalValue.replace(/\D/g, '');
+    const formatted = formatVndAmountInput(digits);
+    
+    if (this.addAmount !== formatted) {
+      const cursor = input.selectionStart || 0;
+      const digitsBeforeCursor = originalValue.substring(0, cursor).replace(/\D/g, '').length;
+      this.addAmount = formatted;
+      input.value = formatted;
+      let newCursor = 0;
+      let digitsFound = 0;
+      for (let i = 0; i < formatted.length && digitsFound < digitsBeforeCursor; i++) {
+        if (/\d/.test(formatted[i])) digitsFound++;
+        newCursor = i + 1;
+      }
+      input.setSelectionRange(newCursor, newCursor);
+    }
   }
 
   get canSubmitAddMoney(): boolean {
@@ -308,12 +325,25 @@ export class JarDetailPage implements OnInit {
     });
   }
 
-  onEditBudgetAmountChange(value: string | number | null | undefined): void {
-    this.editBudgetAmount = String(value ?? '').replace(/\D+/g, '');
-  }
-
-  onEditBudgetAmountBlur(): void {
-    this.editBudgetAmount = formatVndAmountInput(this.editBudgetAmount);
+  onEditBudgetAmountInput(event: any): void {
+    const input = event.target as HTMLInputElement;
+    const originalValue = input.value || '';
+    const digits = originalValue.replace(/\D/g, '');
+    const formatted = formatVndAmountInput(digits);
+    
+    if (this.editBudgetAmount !== formatted) {
+      const cursor = input.selectionStart || 0;
+      const digitsBeforeCursor = originalValue.substring(0, cursor).replace(/\D/g, '').length;
+      this.editBudgetAmount = formatted;
+      input.value = formatted;
+      let newCursor = 0;
+      let digitsFound = 0;
+      for (let i = 0; i < formatted.length && digitsFound < digitsBeforeCursor; i++) {
+        if (/\d/.test(formatted[i])) digitsFound++;
+        newCursor = i + 1;
+      }
+      input.setSelectionRange(newCursor, newCursor);
+    }
   }
 
   get canUpdateJar(): boolean {

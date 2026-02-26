@@ -1,51 +1,112 @@
-<app-page-header title="Register"></app-page-header>
+<ion-content class="register-page">
+  <div class="page-shell">
+    <div class="brand">
+      <div class="brand-icon">
+        <ion-icon name="wallet-outline"></ion-icon>
+      </div>
+      <h1>Jarvis Budget</h1>
+      <p>Create your account to get started.</p>
+    </div>
 
-<ion-content class="ion-padding">
-  <form (ngSubmit)="submit()">
-    <ion-item>
-      <ion-label position="stacked">Name</ion-label>
-      <ion-input [(ngModel)]="name" name="name" required></ion-input>
-    </ion-item>
+    <form class="register-card" (ngSubmit)="submit()">
+      <div class="field-group">
+        <label>Full Name</label>
+        <ion-item lines="none" class="input-item">
+          <ion-input
+            type="text"
+            placeholder="John Doe"
+            [(ngModel)]="name"
+            name="name"
+            required
+          ></ion-input>
+        </ion-item>
+      </div>
 
-    <ion-item>
-      <ion-label position="stacked">Email</ion-label>
-      <ion-input type="email" [(ngModel)]="email" name="email" required></ion-input>
-    </ion-item>
+      <div class="field-group">
+        <label>Email Address</label>
+        <ion-item lines="none" class="input-item">
+          <ion-input
+            type="email"
+            placeholder="name@company.com"
+            [(ngModel)]="email"
+            name="email"
+            required
+          ></ion-input>
+        </ion-item>
+      </div>
 
-    <ion-item>
-      <ion-label position="stacked">Password</ion-label>
-      <ion-input [type]="showPassword ? 'text' : 'password'" [(ngModel)]="password" name="password" required></ion-input>
+      <div class="field-group">
+        <label>Password</label>
+        <ion-item lines="none" class="input-item">
+          <ion-input
+            [type]="showPassword ? 'text' : 'password'"
+            placeholder="........"
+            [(ngModel)]="password"
+            name="password"
+            required
+          ></ion-input>
+          <ion-button
+            fill="clear"
+            slot="end"
+            type="button"
+            (click)="togglePasswordVisibility()"
+            aria-label="Toggle password visibility"
+          >
+            <ion-icon [name]="showPassword ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
+          </ion-button>
+        </ion-item>
+      </div>
+
+      <div class="field-group">
+        <label>Confirm Password</label>
+        <ion-item lines="none" class="input-item">
+          <ion-input
+            [type]="showPasswordConfirmation ? 'text' : 'password'"
+            placeholder="........"
+            [(ngModel)]="passwordConfirmation"
+            name="passwordConfirmation"
+            required
+          ></ion-input>
+          <ion-button
+            fill="clear"
+            slot="end"
+            type="button"
+            (click)="togglePasswordConfirmationVisibility()"
+            aria-label="Toggle confirm password visibility"
+          >
+            <ion-icon [name]="showPasswordConfirmation ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
+          </ion-button>
+        </ion-item>
+      </div>
+
       <ion-button
-        fill="clear"
-        slot="end"
-        type="button"
-        (click)="togglePasswordVisibility()"
-        aria-label="Toggle password visibility"
+        expand="block"
+        type="submit"
+        class="primary-btn"
+        [disabled]="isLoading"
       >
-        <ion-icon [name]="showPassword ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
+        {{ isLoading ? 'Creating account...' : 'Create Account' }}
       </ion-button>
-    </ion-item>
 
-    <ion-item>
-      <ion-label position="stacked">Confirm Password</ion-label>
-      <ion-input [type]="showPasswordConfirmation ? 'text' : 'password'" [(ngModel)]="passwordConfirmation" name="passwordConfirmation" required></ion-input>
-      <ion-button
-        fill="clear"
-        slot="end"
-        type="button"
-        (click)="togglePasswordConfirmationVisibility()"
-        aria-label="Toggle confirm password visibility"
-      >
-        <ion-icon [name]="showPasswordConfirmation ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
-      </ion-button>
-    </ion-item>
+      <div *ngIf="registerError" class="error-message">
+        {{ registerError }}
+      </div>
 
-    <ion-button expand="block" type="submit" [disabled]="isLoading">
-      {{ isLoading ? 'Creating...' : 'Create account' }}
-    </ion-button>
+      <div class="divider">
+        <span>OR CONTINUE WITH</span>
+      </div>
 
-    <ion-button expand="block" fill="clear" routerLink="/auth/login">
-      Back to login
-    </ion-button>
-  </form>
+      <div class="social-row">
+        <ion-button class="social-btn" fill="outline" type="button" (click)="loginWithGoogle()">
+          <ion-icon name="logo-google"></ion-icon>
+          Google
+        </ion-button>
+      </div>
+
+      <div class="footer-link">
+        <span>Already have an account?</span>
+        <a routerLink="/auth/login">Log In</a>
+      </div>
+    </form>
+  </div>
 </ion-content>

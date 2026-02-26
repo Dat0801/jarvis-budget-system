@@ -38,9 +38,8 @@
             type="text"
             inputmode="numeric"
             placeholder="0"
-            [(ngModel)]="amount"
-            (ngModelChange)="onAmountChange($event)"
-            (ionBlur)="onAmountBlur()"
+            [value]="amount"
+            (ionInput)="onAmountInput($event)"
             name="amount"
             required
           ></ion-input>
@@ -156,7 +155,7 @@
           <ion-input
             type="text"
             inputmode="numeric"
-            [(ngModel)]="editAmount"
+            [value]="editAmount"
             (ionInput)="onEditAmountInput($event)"
             name="editAmount"
             required

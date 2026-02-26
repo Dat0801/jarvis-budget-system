@@ -74,12 +74,25 @@ export class WalletsPage implements OnInit {
     this.notificationsEnabled = false;
   }
 
-  onInitialBalanceChange(value: string | number | null | undefined): void {
-    this.initialBalance = String(value ?? '').replace(/\D+/g, '');
-  }
-
-  onInitialBalanceBlur(): void {
-    this.initialBalance = formatVndAmountInput(this.initialBalance);
+  onInitialBalanceInput(event: any): void {
+    const input = event.target as HTMLInputElement;
+    const originalValue = input.value || '';
+    const digits = originalValue.replace(/\D/g, '');
+    const formatted = formatVndAmountInput(digits);
+    
+    if (this.initialBalance !== formatted) {
+      const cursor = input.selectionStart || 0;
+      const digitsBeforeCursor = originalValue.substring(0, cursor).replace(/\D/g, '').length;
+      this.initialBalance = formatted;
+      input.value = formatted;
+      let newCursor = 0;
+      let digitsFound = 0;
+      for (let i = 0; i < formatted.length && digitsFound < digitsBeforeCursor; i++) {
+        if (/\d/.test(formatted[i])) digitsFound++;
+        newCursor = i + 1;
+      }
+      input.setSelectionRange(newCursor, newCursor);
+    }
   }
 
   get canCreateWallet(): boolean {

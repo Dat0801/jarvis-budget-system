@@ -58,9 +58,8 @@
           <ion-input
             type="text"
             inputmode="numeric"
-            [(ngModel)]="initialBalance"
-            (ngModelChange)="onInitialBalanceChange($event)"
-            (ionBlur)="onInitialBalanceBlur()"
+            [value]="initialBalance"
+            (ionInput)="onInitialBalanceInput($event)"
             name="initialBalance"
           ></ion-input>
         </ion-item>

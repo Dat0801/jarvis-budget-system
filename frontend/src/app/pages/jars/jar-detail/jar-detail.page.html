@@ -145,7 +145,7 @@
               type="text"
               inputmode="numeric"
               placeholder="0"
-              [(ngModel)]="addAmount"
+              [value]="addAmount"
               (ionInput)="onAddAmountInput($event)"
               name="addAmount"
             ></ion-input>
@@ -205,9 +205,8 @@
                   type="text"
                   inputmode="numeric"
                   placeholder="0"
-                  [(ngModel)]="editBudgetAmount"
-                  (ngModelChange)="onEditBudgetAmountChange($event)"
-                  (ionBlur)="onEditBudgetAmountBlur()"
+                  [value]="editBudgetAmount"
+                  (ionInput)="onEditBudgetAmountInput($event)"
                   name="editBudgetAmount"
                   required
                 ></ion-input>
