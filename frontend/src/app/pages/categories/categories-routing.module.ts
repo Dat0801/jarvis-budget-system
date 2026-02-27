@@ -7,6 +7,14 @@ const routes: Routes = [
     path: '',
     component: CategoriesPage,
   },
+  {
+    path: 'new',
+    loadComponent: () => import('./category-detail/category-detail.page').then(m => m.CategoryDetailPage)
+  },
+  {
+    path: ':id',
+    loadComponent: () => import('./category-detail/category-detail.page').then(m => m.CategoryDetailPage)
+  }
 ];
 
 @NgModule({

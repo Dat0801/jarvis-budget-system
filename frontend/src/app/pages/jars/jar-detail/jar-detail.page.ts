@@ -375,6 +375,7 @@ export class JarDetailPage implements OnInit {
       queryParams: {
         selectMode: '1',
         type: 'expense',
+        jarId: this.jarId,
         returnUrl: `/tabs/budgets/${this.jarId}`,
         returnMode: 'editBudget',
       },

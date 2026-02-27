@@ -324,6 +324,7 @@ export class ExpensePage implements OnInit {
         selectMode: '1',
         type: this.segmentValue === 'income' ? 'income' : this.segmentValue === 'debtLoan' ? 'debtLoan' : 'expense',
         ...(this.amount ? { amount: this.amount } : {}),
+        jarId: this.jarId || undefined,
         returnUrl: '/expense',
       },
     });

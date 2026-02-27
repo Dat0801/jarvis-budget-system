@@ -1,0 +1,151 @@
+<app-page-header
+  [title]="categoryId ? 'Edit Category' : 'Add Category'"
+  [showBack]="true"
+  backHref="/tabs/categories"
+>
+  <ion-buttons slot="end" *ngIf="categoryId">
+    <ion-button color="danger" (click)="deleteCategory()">
+      <ion-icon name="trash-outline"></ion-icon>
+    </ion-button>
+  </ion-buttons>
+</app-page-header>
+
+<ion-content class="ion-padding">
+  <div class="category-form">
+    <ion-list lines="none">
+      <div class="field">
+        <div class="field-label">NAME</div>
+        <ion-item class="input-item">
+          <ion-input
+            type="text"
+            placeholder="Enter category name"
+            [(ngModel)]="name"
+          ></ion-input>
+        </ion-item>
+      </div>
+
+      <div class="field">
+        <div class="field-label">PARENT CATEGORY</div>
+        <ion-item class="input-item">
+          <ion-select [(ngModel)]="parentId" placeholder="Select parent (Optional)" interface="popover">
+            <ion-select-option [value]="null">None</ion-select-option>
+            <ion-select-option *ngFor="let parent of parentCategories" [value]="parent.id">
+              {{ parent.name }}
+            </ion-select-option>
+          </ion-select>
+        </ion-item>
+      </div>
+
+      <div class="field">
+        <div class="field-label-row">
+          <div class="field-label">ICON</div>
+          <ion-button fill="clear" size="small" (click)="openIconModal()">
+            See More
+          </ion-button>
+        </div>
+        <div class="icon-grid">
+          <div
+            *ngFor="let i of icons"
+            class="icon-item"
+            [class.selected]="i === icon"
+            (click)="selectIcon(i)"
+          >
+            <ion-icon [name]="i"></ion-icon>
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="field-label-row">
+          <div class="field-label">SHOW IN WALLETS</div>
+          <ion-button fill="clear" size="small" (click)="openWalletModal()">
+            Edit
+          </ion-button>
+        </div>
+        <div class="wallet-chips">
+          <ion-chip
+            *ngFor="let wallet of getSelectedWallets()"
+            outline="true"
+            color="primary"
+          >
+            <ion-icon name="wallet-outline"></ion-icon>
+            <ion-label>{{ wallet.name }}</ion-label>
+          </ion-chip>
+          <div class="empty-wallets" *ngIf="selectedWalletIds.length === 0">
+            No wallets selected.
+          </div>
+        </div>
+      </div>
+    </ion-list>
+
+    <div class="actions">
+      <ion-button expand="block" (click)="save()" [disabled]="isSaving || !name.trim()">
+        <ion-spinner *ngIf="isSaving" name="crescent"></ion-spinner>
+        <span *ngIf="!isSaving">{{ categoryId ? 'Save Changes' : 'Add Category' }}</span>
+      </ion-button>
+    </div>
+  </div>
+
+  <ion-modal [isOpen]="isIconModalOpen" (didDismiss)="isIconModalOpen = false">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>Select Icon</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="isIconModalOpen = false">Close</ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="ion-padding">
+        <div class="icon-grid all-icons-grid">
+          <div
+            *ngFor="let i of allIcons"
+            class="icon-item"
+            [class.selected]="i === icon"
+            (click)="selectIcon(i)"
+          >
+            <ion-icon [name]="i"></ion-icon>
+          </div>
+        </div>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+
+  <ion-modal [isOpen]="isWalletModalOpen" (didDismiss)="isWalletModalOpen = false" class="wallet-selector-modal">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>Activate in wallets</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="isWalletModalOpen = false">Done</ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content>
+        <div class="loading-state" *ngIf="isLoading">
+          <ion-spinner name="crescent"></ion-spinner>
+          <span>Loading wallets...</span>
+        </div>
+
+        <ion-list lines="full" *ngIf="!isLoading">
+          <ion-item *ngFor="let wallet of wallets">
+            <ion-icon slot="start" name="wallet-outline" color="primary"></ion-icon>
+            <ion-label>
+              <h2>{{ wallet.name }}</h2>
+              <p>{{ wallet.balance | number }} VND</p>
+            </ion-label>
+            <ion-toggle
+              slot="end"
+              [checked]="isWalletSelected(wallet.id)"
+              (ionChange)="toggleWallet(wallet.id)"
+            ></ion-toggle>
+          </ion-item>
+
+          <div class="empty-state ion-padding" *ngIf="wallets.length === 0">
+            <p>No wallets found.</p>
+          </div>
+        </ion-list>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+</ion-content>

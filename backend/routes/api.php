@@ -48,6 +48,9 @@ Route::middleware('auth:api')->group(function () {
     Route::delete('/expenses/{expense}', [ExpenseController::class, 'destroy']);
 
     Route::get('/categories/tree', [CategoryController::class, 'tree']);
+    Route::post('/categories', [CategoryController::class, 'store']);
+    Route::patch('/categories/{category}', [CategoryController::class, 'update']);
+    Route::delete('/categories/{category}', [CategoryController::class, 'destroy']);
 
     Route::get('/notes', [NoteController::class, 'index']);
     Route::get('/notes/reminders/count', [NoteController::class, 'reminderCount']);

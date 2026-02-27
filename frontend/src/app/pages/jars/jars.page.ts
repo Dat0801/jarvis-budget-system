@@ -208,7 +208,7 @@ export class JarsPage implements OnInit {
   openCategorySelector(): void {
     this.isCreateJarOpen = false;
 
-    const urlTree = this.router.createUrlTree(['/tabs/categories'], {
+    this.router.navigate(['/tabs/categories'], {
       queryParams: {
         selectMode: '1',
         type: 'expense',
@@ -216,9 +216,6 @@ export class JarsPage implements OnInit {
         returnMode: 'createBudget',
       },
     });
-
-    const url = this.router.serializeUrl(urlTree);
-    window.location.href = url;
   }
 
   get selectedPeriodLabel(): string {

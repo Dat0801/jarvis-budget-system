@@ -4,6 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { IonicModule } from '@ionic/angular';
 import { CategoryService, CategoryTreeNode, CategoryType } from '../../services/category.service';
 import { PageHeaderComponent } from '../../shared/page-header/page-header.component';
+import { FabService } from '../../services/fab.service';
 
 type CategoryTab = 'expense' | 'income' | 'debtLoan';
 
@@ -15,12 +16,14 @@ type CategoryTab = 'expense' | 'income' | 'debtLoan';
   styleUrls: ['./categories.page.scss'],
 })
 export class CategoriesPage implements OnInit {
+  private readonly fabOwner = 'categories';
   activeTab: CategoryTab = 'expense';
   categories: CategoryTreeNode[] = [];
   isLoading = false;
   loadError = '';
   isSelectMode = false;
   restrictToExpense = false;
+  jarId: number | null = null;
   private returnUrl = '/expense';
   private returnMode = '';
   private readonly expandedCategoryIds = new Set<number>();
@@ -28,12 +31,15 @@ export class CategoriesPage implements OnInit {
   constructor(
     private categoryService: CategoryService,
     private route: ActivatedRoute,
-    private router: Router
+    private router: Router,
+    private fabService: FabService
   ) {}
 
   ngOnInit(): void {
     this.route.queryParamMap.subscribe((params) => {
       this.isSelectMode = params.get('selectMode') === '1';
+      const jarIdParam = params.get('jarId');
+      this.jarId = jarIdParam ? Number(jarIdParam) : null;
 
       const typeParam = params.get('type');
       if (typeParam === 'income') {
@@ -50,6 +56,16 @@ export class CategoriesPage implements OnInit {
         this.isSelectMode && this.returnUrl.startsWith('/tabs/budgets');
       this.fetchCategories();
     });
+  }
+
+  ionViewWillEnter(): void {
+    if (!this.isSelectMode) {
+      this.fabService.showFab(() => this.addCategory(), 'add', this.fabOwner);
+    }
+  }
+
+  ionViewDidLeave(): void {
+    this.fabService.hideFab(this.fabOwner);
   }
 
   selectTab(tab: CategoryTab): void {
@@ -80,7 +96,9 @@ export class CategoriesPage implements OnInit {
 
   onCategoryClick(categoryId: number): void {
     if (!this.isSelectMode) {
-      this.toggleCategory(categoryId);
+      this.router.navigate(['/tabs/categories', categoryId], {
+        queryParams: { type: this.mapTabToType(this.activeTab) }
+      });
       return;
     }
 
@@ -89,10 +107,19 @@ export class CategoriesPage implements OnInit {
 
   onSubCategoryClick(subCategoryId: number): void {
     if (!this.isSelectMode) {
+      this.router.navigate(['/tabs/categories', subCategoryId], {
+        queryParams: { type: this.mapTabToType(this.activeTab) }
+      });
       return;
     }
 
     this.selectCategory(`sub:${subCategoryId}`);
+  }
+
+  addCategory(): void {
+    this.router.navigate(['/tabs/categories', 'new'], {
+      queryParams: { type: this.mapTabToType(this.activeTab) }
+    });
   }
 
   getCurrentTabLabel(): string {
@@ -117,7 +144,26 @@ export class CategoriesPage implements OnInit {
 
     this.categoryService.getTree(this.mapTabToType(this.activeTab)).subscribe({
       next: (response) => {
-        this.categories = response.data;
+        let data = response.data;
+        
+        // Filter by jarId if provided
+        if (this.jarId) {
+          data = data.filter(category => {
+            const matchesJar = !category.jars || category.jars.length === 0 || category.jars.some(j => j.id === this.jarId);
+            if (matchesJar) {
+              // Also filter children
+              if (category.children) {
+                category.children = category.children.filter(child => 
+                  !child.jars || child.jars.length === 0 || child.jars.some(j => j.id === this.jarId)
+                );
+              }
+              return true;
+            }
+            return false;
+          });
+        }
+
+        this.categories = data;
         this.expandedCategoryIds.clear();
         this.categories.forEach((category) => {
           this.expandedCategoryIds.add(category.id);
