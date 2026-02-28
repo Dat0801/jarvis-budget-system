@@ -11,6 +11,8 @@ import { ExpenseService } from '../../services/expense.service';
 import { formatVndAmountInput, parseVndAmount } from '../../utils/vnd-amount.util';
 import { catchError, finalize, forkJoin, of } from 'rxjs';
 import { formatCurrencyAmount, getStoredCurrencyCode } from '../../utils/currency.util';
+import { addIcons } from 'ionicons';
+import { closeOutline, chevronForwardOutline, basketOutline } from 'ionicons/icons';
 
 type BudgetPeriod = 'week' | 'month' | 'quarter' | 'year';
 
@@ -58,7 +60,9 @@ export class JarsPage implements OnInit {
     private fabService: FabService,
     private route: ActivatedRoute,
     private router: Router
-  ) {}
+  ) {
+    addIcons({ closeOutline, chevronForwardOutline, basketOutline });
+  }
 
   ngOnInit(): void {
     this.route.queryParamMap.subscribe((params) => {
@@ -208,14 +212,17 @@ export class JarsPage implements OnInit {
   openCategorySelector(): void {
     this.isCreateJarOpen = false;
 
-    this.router.navigate(['/tabs/categories'], {
-      queryParams: {
-        selectMode: '1',
-        type: 'expense',
-        returnUrl: '/tabs/budgets',
-        returnMode: 'createBudget',
-      },
-    });
+    // Use a small delay to ensure modal dismissal starts before navigation
+    setTimeout(() => {
+      this.router.navigate(['/tabs/categories'], {
+        queryParams: {
+          selectMode: '1',
+          type: 'expense',
+          returnUrl: '/tabs/budgets',
+          returnMode: 'createBudget',
+        },
+      });
+    }, 100);
   }
 
   get selectedPeriodLabel(): string {

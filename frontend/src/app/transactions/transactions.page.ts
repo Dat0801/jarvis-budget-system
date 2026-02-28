@@ -5,7 +5,7 @@ import { ExpenseService } from '../services/expense.service';
 import { IncomeService } from '../services/income.service';
 import { MonthlyReport, StatsService } from '../services/stats.service';
 import { FabService } from '../services/fab.service';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { formatCurrencyAmount, getStoredCurrencyCode } from '../utils/currency.util';
 
 interface ExpenseItem {
@@ -68,6 +68,7 @@ export class TransactionsPage implements OnInit {
 
   isLoading = true;
   error: string | null = null;
+  selectedJarId: number | null = null;
 
   totalBalance = 0;
   inflowTotal = 0;
@@ -80,11 +81,15 @@ export class TransactionsPage implements OnInit {
     private incomeService: IncomeService,
     private statsService: StatsService,
     private fabService: FabService,
-    private router: Router
+    private router: Router,
+    private route: ActivatedRoute
   ) {}
 
   ngOnInit() {
-    this.loadTransactions();
+    this.route.queryParams.subscribe(params => {
+      this.selectedJarId = params['jarId'] ? Number(params['jarId']) : null;
+      this.loadTransactions();
+    });
   }
 
   ionViewWillEnter(): void {
@@ -115,7 +120,9 @@ export class TransactionsPage implements OnInit {
           return accumulator;
         }, {});
 
-        const expenses = this.extractList<ExpenseItem>(expensesResponse).map((item) => {
+        const expenses = this.extractList<ExpenseItem>(expensesResponse)
+          .filter(item => !this.selectedJarId || Number(item.jar_id) === this.selectedJarId)
+          .map((item) => {
           const date = this.parseDate(item.spent_at || item.created_at);
           return {
             id: `expense-${item.id}`,
@@ -131,7 +138,9 @@ export class TransactionsPage implements OnInit {
           };
         });
 
-        const incomes = this.extractList<IncomeItem>(incomesResponse).map((item) => {
+        const incomes = this.extractList<IncomeItem>(incomesResponse)
+          .filter(item => !this.selectedJarId || Number(item.jar_id) === this.selectedJarId)
+          .map((item) => {
           const date = this.parseDate(item.received_at || item.created_at);
           return {
             id: `income-${item.id}`,
@@ -449,5 +458,10 @@ export class TransactionsPage implements OnInit {
       return 'school-outline';
     }
     return 'card-outline';
+  }
+
+  getWalletName(jarId: number): string {
+    const jar = this.jars.find(j => j.id === jarId);
+    return jar ? jar.name : 'Transactions';
   }
 }

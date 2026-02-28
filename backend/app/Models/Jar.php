@@ -9,6 +9,7 @@ class Jar extends Model
     protected $fillable = [
         'user_id',
         'name',
+        'icon',
         'category',
         'balance',
         'description',
@@ -43,5 +44,10 @@ class Jar extends Model
     public function expenses()
     {
         return $this->hasMany(Expense::class);
+    }
+
+    public function categories()
+    {
+        return $this->belongsToMany(TransactionCategory::class, 'category_jar', 'jar_id', 'transaction_category_id');
     }
 }

@@ -371,15 +371,20 @@ export class JarDetailPage implements OnInit {
       return;
     }
 
-    this.router.navigate(['/tabs/categories'], {
-      queryParams: {
-        selectMode: '1',
-        type: 'expense',
-        jarId: this.jarId,
-        returnUrl: `/tabs/budgets/${this.jarId}`,
-        returnMode: 'editBudget',
-      },
-    });
+    this.isEditJarOpen = false;
+
+    // Use a small delay to ensure modal dismissal starts before navigation
+    setTimeout(() => {
+      this.router.navigate(['/tabs/categories'], {
+        queryParams: {
+          selectMode: '1',
+          type: 'expense',
+          jarId: this.jarId,
+          returnUrl: `/tabs/budgets/${this.jarId}`,
+          returnMode: 'editBudget',
+        },
+      });
+    }, 100);
   }
 
   get budgetCategoryOptions(): BudgetCategoryOption[] {

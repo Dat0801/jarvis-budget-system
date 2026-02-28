@@ -6,6 +6,8 @@ import { IonicModule, AlertController, ToastController } from '@ionic/angular';
 import { CategoryService, CategoryTreeNode, CategoryType } from '../../../services/category.service';
 import { WalletService, Wallet } from '../../../services/wallet.service';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { addIcons } from 'ionicons';
+import { closeOutline, trashOutline, walletOutline, searchOutline } from 'ionicons/icons';
 
 @Component({
   selector: 'app-category-detail',
@@ -28,6 +30,8 @@ export class CategoryDetailPage implements OnInit {
   isSaving = false;
   isIconModalOpen = false;
   isWalletModalOpen = false;
+  iconSearchTerm = '';
+  filteredIcons: string[] = [];
 
   readonly icons = [
     'pricetag-outline', 'cart-outline', 'restaurant-outline', 'bus-outline', 
@@ -64,7 +68,9 @@ export class CategoryDetailPage implements OnInit {
     private walletService: WalletService,
     private alertCtrl: AlertController,
     private toastCtrl: ToastController
-  ) {}
+  ) {
+    addIcons({ closeOutline, trashOutline, walletOutline, searchOutline });
+  }
 
   ngOnInit() {
     this.route.paramMap.subscribe(params => {
@@ -96,15 +102,14 @@ export class CategoryDetailPage implements OnInit {
       });
 
       // Fetch parent categories (only top-level categories of the same type)
-      this.categoryService.getTree(this.type).subscribe(res => {
-        this.parentCategories = res.data.filter(c => c.id !== this.categoryId);
-      });
+      this.fetchParentCategories();
+
+      this.filteredIcons = [...this.allIcons];
 
       // Fetch category detail if editing
       if (this.categoryId) {
-        // We don't have a direct detail API, so we'll find it in the tree
-        // or we could add a detail API. For now, let's use the tree.
-        this.categoryService.getTree(this.type).subscribe(res => {
+        // We fetch the tree without type restriction to find the category
+        this.categoryService.getTree().subscribe(res => {
           const findCategory = (nodes: CategoryTreeNode[]): CategoryTreeNode | null => {
             for (const node of nodes) {
               if (node.id === this.categoryId) return node;
@@ -119,9 +124,13 @@ export class CategoryDetailPage implements OnInit {
           const category = findCategory(res.data);
           if (category) {
             this.name = category.name;
+            this.type = category.type;
             this.icon = category.icon || 'pricetag-outline';
             this.parentId = category.parent_id;
             
+            // Re-fetch parents for the correct type if it's different from initial
+            this.fetchParentCategories();
+
             // If category has jars defined, use them. Otherwise default to all wallets.
             if (category.jars && category.jars.length > 0) {
               this.selectedWalletIds = category.jars.map(j => j.id);
@@ -154,11 +163,35 @@ export class CategoryDetailPage implements OnInit {
   }
 
   openIconModal() {
+    this.iconSearchTerm = '';
+    this.filteredIcons = [...this.allIcons];
     this.isIconModalOpen = true;
+  }
+
+  onIconSearch(event: any) {
+    const query = event.target.value.toLowerCase();
+    if (!query) {
+      this.filteredIcons = [...this.allIcons];
+    } else {
+      this.filteredIcons = this.allIcons.filter(icon => 
+        icon.toLowerCase().includes(query)
+      );
+    }
   }
 
   isWalletSelected(walletId: number): boolean {
     return this.selectedWalletIds.includes(walletId);
+  }
+
+  onTypeChange() {
+    this.parentId = null; // Reset parent when type changes
+    this.fetchParentCategories();
+  }
+
+  private fetchParentCategories() {
+    this.categoryService.getTree(this.type).subscribe(res => {
+      this.parentCategories = res.data.filter(c => c.id !== this.categoryId);
+    });
   }
 
   toggleWallet(walletId: number) {

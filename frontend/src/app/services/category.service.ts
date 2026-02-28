@@ -39,6 +39,7 @@ export class CategoryService {
   }
 
   update(id: number, payload: {
+    type?: CategoryType;
     name?: string;
     icon?: string;
     parent_id?: number;

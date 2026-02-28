@@ -67,6 +67,7 @@ class CategoryController extends Controller
     public function update(Request $request, TransactionCategory $category)
     {
         $data = $request->validate([
+            'type' => 'sometimes|required|in:expense,income,debt_loan',
             'name' => 'sometimes|required|string|max:255',
             'icon' => 'nullable|string|max:255',
             'parent_id' => 'nullable|exists:transaction_categories,id',

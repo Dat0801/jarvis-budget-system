@@ -1,0 +1,10 @@
+<ion-list lines="none">
+  <ion-item button (click)="selectSort('frequency')">
+    <ion-label>By Frequency</ion-label>
+    <ion-icon slot="end" name="checkmark-outline" *ngIf="currentSort === 'frequency'"></ion-icon>
+  </ion-item>
+  <ion-item button (click)="selectSort('name')">
+    <ion-label>By Name A-Z</ion-label>
+    <ion-icon slot="end" name="checkmark-outline" *ngIf="currentSort === 'name'"></ion-icon>
+  </ion-item>
+</ion-list>

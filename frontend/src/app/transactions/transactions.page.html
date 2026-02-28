@@ -1,5 +1,5 @@
 <app-page-header
-  title="Transactions"
+  [title]="selectedJarId ? getWalletName(selectedJarId) : 'Transactions'"
   [translucent]="true"
   [showBack]="true"
   backHref="/tabs/dashboard"

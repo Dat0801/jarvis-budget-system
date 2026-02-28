@@ -1,37 +1,72 @@
 <app-page-header
-  title="Categories"
+  [title]="pageTitle"
   [translucent]="true"
   [showBack]="true"
   [backHref]="backHref"
-></app-page-header>
+>
+  <ion-buttons slot="end">
+    <!-- Transaction Source: Sort Icon + Search Icon -->
+    <ng-container *ngIf="sourcePage === 'transaction'">
+      <ion-button (click)="openSortPopover($event)">
+        <ion-icon slot="icon-only" name="swap-vertical-outline"></ion-icon>
+      </ion-button>
+    </ng-container>
+
+    <!-- Account Source: Wallet Icon + Search Icon -->
+    <ng-container *ngIf="sourcePage === 'account'">
+      <ion-button class="wallet-button">
+        <ion-icon slot="icon-only" name="wallet-outline"></ion-icon>
+        <ion-select
+          [value]="jarId"
+          placeholder="Wallet"
+          interface="alert"
+          (ionChange)="onWalletChange($event)"
+          class="hidden-select"
+        >
+          <ion-select-option [value]="-1">All Wallets</ion-select-option>
+          <ion-select-option *ngFor="let wallet of wallets" [value]="wallet.id">
+            {{ wallet.name }}
+          </ion-select-option>
+        </ion-select>
+      </ion-button>
+    </ng-container>
+
+    <!-- Search Icon for all cases -->
+    <ion-button (click)="toggleSearchBar()">
+      <ion-icon slot="icon-only" name="search-outline"></ion-icon>
+    </ion-button>
+  </ion-buttons>
+</app-page-header>
 
 <ion-content [fullscreen]="true">
+  <ion-searchbar
+    *ngIf="showSearchBar"
+    [(ngModel)]="searchQuery"
+    (ionInput)="onSearch($event)"
+    placeholder="Search categories..."
+    class="custom-searchbar"
+  ></ion-searchbar>
+
   <ion-segment [value]="activeTab" (ionChange)="selectTab($any($event.detail.value))">
     <ion-segment-button value="expense">
       <ion-label>Expense</ion-label>
     </ion-segment-button>
-    <ion-segment-button *ngIf="!restrictToExpense" value="income">
+    <ion-segment-button *ngIf="sourcePage !== 'budget'" value="income">
       <ion-label>Income</ion-label>
     </ion-segment-button>
-    <ion-segment-button *ngIf="!restrictToExpense" value="debtLoan">
+    <ion-segment-button value="debtLoan">
       <ion-label>Debt/Loan</ion-label>
     </ion-segment-button>
   </ion-segment>
 
   <ion-list lines="full" class="categories-list" *ngIf="!isLoading && !loadError">
-    <ng-container *ngFor="let category of categories">
+    <ng-container *ngFor="let category of filteredCategories">
       <ion-item button detail="false" class="tree-parent" (click)="onCategoryClick(category.id)">
         <ion-icon slot="start" [name]="getCategoryIcon(category.icon)" class="parent-icon"></ion-icon>
         <ion-label>{{ category.name }}</ion-label>
-        <ion-icon
-          *ngIf="!isSelectMode"
-          slot="end"
-          class="toggle-icon"
-          [name]="isExpanded(category.id) ? 'chevron-down-outline' : 'chevron-forward-outline'"
-        ></ion-icon>
       </ion-item>
 
-      <ng-container *ngIf="isExpanded(category.id)">
+      <ng-container *ngIf="category.children && category.children.length > 0">
         <ion-item
           button
           detail="false"

@@ -1,6 +1,7 @@
 <app-page-header
   [title]="categoryId ? 'Edit Category' : 'Add Category'"
   [showBack]="true"
+  [useCloseIcon]="true"
   backHref="/tabs/categories"
 >
   <ion-buttons slot="end" *ngIf="categoryId">
@@ -13,6 +14,21 @@
 <ion-content class="ion-padding">
   <div class="category-form">
     <ion-list lines="none">
+      <div class="field">
+        <div class="field-label">TYPE</div>
+        <ion-segment [(ngModel)]="type" (ionChange)="onTypeChange()">
+          <ion-segment-button value="expense">
+            <ion-label>Expense</ion-label>
+          </ion-segment-button>
+          <ion-segment-button value="income">
+            <ion-label>Income</ion-label>
+          </ion-segment-button>
+          <ion-segment-button value="debt_loan">
+            <ion-label>Debt/Loan</ion-label>
+          </ion-segment-button>
+        </ion-segment>
+      </div>
+
       <div class="field">
         <div class="field-label">NAME</div>
         <ion-item class="input-item">
@@ -37,21 +53,13 @@
       </div>
 
       <div class="field">
-        <div class="field-label-row">
-          <div class="field-label">ICON</div>
-          <ion-button fill="clear" size="small" (click)="openIconModal()">
-            See More
-          </ion-button>
-        </div>
-        <div class="icon-grid">
-          <div
-            *ngFor="let i of icons"
-            class="icon-item"
-            [class.selected]="i === icon"
-            (click)="selectIcon(i)"
-          >
-            <ion-icon [name]="i"></ion-icon>
+        <div class="field-label">ICON</div>
+        <div class="icon-selector-container" (click)="openIconModal()">
+          <div class="selected-icon-box">
+            <ion-icon [name]="icon"></ion-icon>
           </div>
+          <div class="icon-label">Select Icon</div>
+          <ion-icon name="chevron-forward-outline" class="arrow-icon"></ion-icon>
         </div>
       </div>
 
@@ -86,26 +94,39 @@
     </div>
   </div>
 
-  <ion-modal [isOpen]="isIconModalOpen" (didDismiss)="isIconModalOpen = false">
+  <ion-modal [isOpen]="isIconModalOpen" (didDismiss)="isIconModalOpen = false" class="icon-selector-modal">
     <ng-template>
       <ion-header>
         <ion-toolbar>
-          <ion-title>Select Icon</ion-title>
-          <ion-buttons slot="end">
-            <ion-button (click)="isIconModalOpen = false">Close</ion-button>
+          <ion-buttons slot="start">
+            <ion-button (click)="isIconModalOpen = false">
+              <ion-icon slot="icon-only" name="close-outline"></ion-icon>
+            </ion-button>
           </ion-buttons>
+          <ion-title>Select Icon</ion-title>
+        </ion-toolbar>
+        <ion-toolbar>
+          <ion-searchbar
+            placeholder="Search icons..."
+            (ionInput)="onIconSearch($any($event))"
+            [(ngModel)]="iconSearchTerm"
+            mode="ios"
+          ></ion-searchbar>
         </ion-toolbar>
       </ion-header>
       <ion-content class="ion-padding">
         <div class="icon-grid all-icons-grid">
           <div
-            *ngFor="let i of allIcons"
+            *ngFor="let i of filteredIcons"
             class="icon-item"
             [class.selected]="i === icon"
             (click)="selectIcon(i)"
           >
             <ion-icon [name]="i"></ion-icon>
           </div>
+        </div>
+        <div class="empty-state" *ngIf="filteredIcons.length === 0">
+          <p>No icons found.</p>
         </div>
       </ion-content>
     </ng-template>
@@ -115,7 +136,12 @@
     <ng-template>
       <ion-header>
         <ion-toolbar>
-          <ion-title>Activate in wallets</ion-title>
+          <ion-buttons slot="start">
+            <ion-button (click)="isWalletModalOpen = false">
+              <ion-icon slot="icon-only" name="close-outline"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+          <ion-title>Select Wallets</ion-title>
           <ion-buttons slot="end">
             <ion-button (click)="isWalletModalOpen = false">Done</ion-button>
           </ion-buttons>

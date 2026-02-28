@@ -7,10 +7,12 @@ const routes: Routes = [
   {
     path: '',
     component: JarsPage,
+    title: 'Budget Jars',
   },
   {
     path: ':id',
     component: JarActivityPage,
+    title: 'Jar Detail',
   },
   {
     path: ':id/activity',

@@ -7,10 +7,12 @@ const routes: Routes = [
   {
     path: '',
     component: TransactionsPage,
+    title: 'Transactions',
   },
   {
     path: ':type/:id',
     component: TransactionDetailPage,
+    title: 'Transaction Detail',
   },
 ];
 
