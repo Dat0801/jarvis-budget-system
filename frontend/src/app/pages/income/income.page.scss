@@ -138,11 +138,7 @@
 }
 
 .date-picker-modal-card {
-	--width: min(92vw, 360px);
-	--height: 520px;
-	--min-height: 520px;
-	--max-height: 90vh;
-	--border-radius: 16px;
+	// Global styles in global.scss now handle full screen
 }
 
 .date-picker-modal-card ion-content {

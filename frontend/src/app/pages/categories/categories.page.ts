@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, Input } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { IonicModule, PopoverController } from '@ionic/angular';
+import { IonicModule, PopoverController, ModalController } from '@ionic/angular';
 import { CategoryService, CategoryTreeNode, CategoryType } from '../../services/category.service';
 import { WalletService, Wallet } from '../../services/wallet.service';
 import { PageHeaderComponent } from '../../shared/page-header/page-header.component';
@@ -18,12 +18,19 @@ type SortType = 'frequency' | 'name';
 @Component({
   selector: 'app-categories',
   standalone: true,
-  imports: [CommonModule, IonicModule, PageHeaderComponent, FormsModule, CategorySortPopoverComponent],
+  imports: [CommonModule, IonicModule, PageHeaderComponent, FormsModule],
   templateUrl: './categories.page.html',
   styleUrls: ['./categories.page.scss'],
 })
 export class CategoriesPage implements OnInit {
   private readonly fabOwner = 'categories';
+  @Input() isModal = false;
+  @Input() initialTab: CategoryTab = 'expense';
+  @Input() initialJarId: number | null = null;
+  @Input() initialReturnUrl = '/expense';
+  @Input() initialReturnMode = '';
+  @Input() initialSelectMode = false;
+
   activeTab: CategoryTab = 'expense';
   categories: CategoryTreeNode[] = [];
   filteredCategories: CategoryTreeNode[] = [];
@@ -46,45 +53,61 @@ export class CategoriesPage implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private fabService: FabService,
-    private popoverController: PopoverController
+    private popoverController: PopoverController,
+    private modalController: ModalController
   ) {
     addIcons({ searchOutline, pricetagOutline, chevronDownOutline, chevronForwardOutline, returnDownForwardOutline, swapVerticalOutline, walletOutline });
   }
 
   ngOnInit(): void {
     this.fetchWallets();
-    this.route.queryParamMap.subscribe((params) => {
-      this.isSelectMode = params.get('selectMode') === '1';
-      const jarIdParam = params.get('jarId');
-      this.jarId = jarIdParam ? Number(jarIdParam) : null;
 
-      const typeParam = params.get('type');
-      if (typeParam === 'income') {
-        this.activeTab = 'income';
-      } else if (typeParam === 'debtLoan') {
-        this.activeTab = 'debtLoan';
-      } else {
-        this.activeTab = 'expense';
-      }
-
-      this.returnUrl = params.get('returnUrl') || '/expense';
-      this.returnMode = params.get('returnMode') || '';
-      
-      if (!this.isSelectMode) {
-        this.sourcePage = 'account';
-      } else if (this.returnUrl.startsWith('/tabs/budgets')) {
-        this.sourcePage = 'budget';
-      } else {
-        this.sourcePage = 'transaction';
-      }
-
-      if (this.sourcePage === 'budget' && this.activeTab === 'income') {
-        this.activeTab = 'expense';
-      }
-
-      this.restrictToExpense = this.sourcePage === 'budget';
+    if (this.isModal) {
+      this.isSelectMode = this.initialSelectMode;
+      this.jarId = this.initialJarId;
+      this.activeTab = this.initialTab;
+      this.returnUrl = this.initialReturnUrl;
+      this.returnMode = this.initialReturnMode;
+      this.updateSourcePage();
       this.fetchCategories();
-    });
+    } else {
+      this.route.queryParamMap.subscribe((params) => {
+        this.isSelectMode = params.get('selectMode') === '1';
+        const jarIdParam = params.get('jarId');
+        this.jarId = jarIdParam ? Number(jarIdParam) : null;
+
+        const typeParam = params.get('type');
+        if (typeParam === 'income') {
+          this.activeTab = 'income';
+        } else if (typeParam === 'debtLoan') {
+          this.activeTab = 'debtLoan';
+        } else {
+          this.activeTab = 'expense';
+        }
+
+        this.returnUrl = params.get('returnUrl') || '/expense';
+        this.returnMode = params.get('returnMode') || '';
+        
+        this.updateSourcePage();
+        this.fetchCategories();
+      });
+    }
+  }
+
+  private updateSourcePage(): void {
+    if (!this.isSelectMode) {
+      this.sourcePage = 'account';
+    } else if (this.returnUrl.startsWith('/tabs/budgets')) {
+      this.sourcePage = 'budget';
+    } else {
+      this.sourcePage = 'transaction';
+    }
+
+    if (this.sourcePage === 'budget' && this.activeTab === 'income') {
+      this.activeTab = 'expense';
+    }
+
+    this.restrictToExpense = this.sourcePage === 'budget';
   }
 
   ionViewWillEnter(): void {
@@ -304,7 +327,22 @@ export class CategoriesPage implements OnInit {
     return 'expense';
   }
 
+  closeModal(): void {
+    if (this.isModal) {
+      this.modalController.dismiss();
+    }
+  }
+
   private selectCategory(selectedCategory: string): void {
+    if (this.isModal) {
+      this.modalController.dismiss({
+        selectedCategory,
+        tab: this.activeTab,
+        returnMode: this.returnMode,
+      });
+      return;
+    }
+
     const amount = this.route.snapshot.queryParamMap.get('amount');
 
     this.router.navigate([this.returnUrl], {

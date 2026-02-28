@@ -4,9 +4,38 @@
   [showBack]="true"
   backHref="/tabs/dashboard"
   headerClass="activity-header"
-></app-page-header>
+>
+  <ion-buttons slot="end">
+    <!-- Wallet Picker Popup -->
+    <ion-button (click)="openWalletPicker()">
+      <ion-icon slot="icon-only" name="wallet-outline"></ion-icon>
+    </ion-button>
+
+    <!-- Time Range Picker Popup -->
+    <ion-button (click)="openTimeRangePicker()">
+      <ion-icon slot="icon-only" name="calendar-clear-outline"></ion-icon>
+    </ion-button>
+
+    <!-- Search Toggle -->
+    <ion-button (click)="toggleSearchBar()">
+      <ion-icon slot="icon-only" name="search-outline"></ion-icon>
+    </ion-button>
+  </ion-buttons>
+</app-page-header>
 
 <ion-content class="activity-page" [fullscreen]="true">
+  <!-- Search Bar -->
+  <div class="search-bar-container" [class.show]="showSearchBar">
+    <ion-searchbar
+      mode="ios"
+      placeholder="Search transactions..."
+      [value]="searchQuery"
+      (ionInput)="onSearchChange($event)"
+      show-clear-button="always"
+      animated="true"
+    ></ion-searchbar>
+  </div>
+
   <div class="page-inner">
     <div class="loading-state" *ngIf="isLoading">
       <ion-spinner name="crescent"></ion-spinner>
@@ -25,7 +54,7 @@
           <h2 class="balance-value">{{ formatSignedCurrency(totalBalance) }}</h2>
         </div>
 
-        <ion-segment [value]="selectedMonthKey" scrollable="true" (ionChange)="onMonthChange($event)">
+        <ion-segment [value]="selectedTabKey" scrollable="true" (ionChange)="onMonthChange($event)">
           <ion-segment-button *ngFor="let tab of monthTabs; trackBy: trackByMonth" [value]="tab.key">
             <ion-label>{{ tab.label }}</ion-label>
           </ion-segment-button>
@@ -33,19 +62,28 @@
 
         <div class="month-summary-rows">
           <div class="summary-row">
-            <span class="summary-row-label">Inflow</span>
+            <div class="summary-row-label-group">
+              <ion-icon name="arrow-down-circle-outline" class="icon-inflow"></ion-icon>
+              <span class="summary-row-label">Inflow</span>
+            </div>
             <span class="summary-row-value summary-row-value-inflow">
               {{ formatCurrency(inflowTotal) }}
             </span>
           </div>
           <div class="summary-row">
-            <span class="summary-row-label">Outflow</span>
+            <div class="summary-row-label-group">
+              <ion-icon name="arrow-up-circle-outline" class="icon-outflow"></ion-icon>
+              <span class="summary-row-label">Outflow</span>
+            </div>
             <span class="summary-row-value summary-row-value-outflow">
               {{ formatCurrency(outflowTotal) }}
             </span>
           </div>
           <div class="summary-row summary-row-net">
-            <span class="summary-row-label">Net</span>
+            <div class="summary-row-label-group">
+              <ion-icon name="pie-chart-outline" class="icon-net"></ion-icon>
+              <span class="summary-row-label">Net</span>
+            </div>
             <span class="summary-row-value summary-row-value-net">
               {{ formatSignedCurrency(totalBalance) }}
             </span>

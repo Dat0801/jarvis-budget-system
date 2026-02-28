@@ -1,9 +1,15 @@
 <app-page-header
   [title]="pageTitle"
   [translucent]="true"
-  [showBack]="true"
-  [backHref]="backHref"
+  [showBack]="!isModal"
+  [backHref]="isModal ? null : backHref"
+  [useCloseIcon]="isModal"
 >
+  <ion-buttons slot="start" *ngIf="isModal">
+    <ion-button (click)="closeModal()">
+      <ion-icon slot="icon-only" name="close-outline"></ion-icon>
+    </ion-button>
+  </ion-buttons>
   <ion-buttons slot="end">
     <!-- Transaction Source: Sort Icon + Search Icon -->
     <ng-container *ngIf="sourcePage === 'transaction'">

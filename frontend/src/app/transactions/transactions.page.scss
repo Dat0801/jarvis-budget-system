@@ -19,6 +19,26 @@ ion-content.activity-page {
   }
 }
 
+.search-bar-container {
+  height: 0;
+  overflow: hidden;
+  transition: height 0.3s ease-out, padding 0.3s ease-out;
+  background: #ffffff;
+  border-bottom: 1px solid #eef1f6;
+
+  &.show {
+    height: 60px;
+    padding: 8px 16px;
+  }
+
+  ion-searchbar {
+    --background: #f2f4f7;
+    --border-radius: 10px;
+    padding: 0;
+    margin: 0;
+  }
+}
+
 .page-inner {
   padding: 20px 18px 100px;
 }
@@ -194,6 +214,29 @@ ion-content.activity-page {
   align-items: center;
   justify-content: space-between;
   font-size: 13px;
+  padding: 4px 0;
+}
+
+.summary-row-label-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  ion-icon {
+    font-size: 18px;
+    
+    &.icon-inflow {
+      color: #12b76a;
+    }
+    
+    &.icon-outflow {
+      color: #d92d20;
+    }
+    
+    &.icon-net {
+      color: #155eef;
+    }
+  }
 }
 
 .summary-row-label {

@@ -8,6 +8,7 @@ class Jar extends Model
 {
     protected $fillable = [
         'user_id',
+        'wallet_id',
         'name',
         'icon',
         'category',
@@ -34,6 +35,16 @@ class Jar extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function wallet()
+    {
+        return $this->belongsTo(Jar::class, 'wallet_id');
+    }
+
+    public function budgets()
+    {
+        return $this->hasMany(Jar::class, 'wallet_id');
     }
 
     public function incomes()

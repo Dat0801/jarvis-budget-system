@@ -102,6 +102,17 @@
           <div class="section-title">Budget Details</div>
 
           <div class="field">
+            <div class="field-label">ICON</div>
+            <div class="icon-selector-trigger" (click)="openIconPicker()">
+              <div class="selected-icon-preview">
+                <ion-icon [name]="budgetIcon"></ion-icon>
+              </div>
+              <div class="trigger-label">Change Icon</div>
+              <ion-icon name="chevron-forward-outline" class="arrow-icon"></ion-icon>
+            </div>
+          </div>
+
+          <div class="field">
             <div class="field-label">CATEGORY</div>
             <ion-item
               lines="none"
@@ -119,7 +130,16 @@
             <div class="field-label">AMOUNT</div>
             <div class="amount-block">
               <div class="amount-input-row">
-                <div class="currency">đ</div>
+                <ion-select
+                  interface="popover"
+                  [(ngModel)]="budgetCurrency"
+                  name="budgetCurrency"
+                  class="currency-select"
+                >
+                  <ion-select-option *ngFor="let curr of currencyOptions" [value]="curr">
+                    {{ curr === 'VND' ? 'đ' : curr }}
+                  </ion-select-option>
+                </ion-select>
                 <ion-input
                   type="text"
                   inputmode="numeric"
@@ -131,6 +151,23 @@
                 ></ion-input>
               </div>
             </div>
+          </div>
+
+          <div class="field">
+            <div class="field-label">WALLET</div>
+            <ion-item lines="none" class="text-item">
+              <ion-select
+                interface="action-sheet"
+                [(ngModel)]="budgetWalletId"
+                name="budgetWalletId"
+                placeholder="Select wallet"
+              >
+                <ion-select-option [value]="null">No specific wallet</ion-select-option>
+                <ion-select-option *ngFor="let wallet of wallets" [value]="wallet.id">
+                  {{ wallet.name }}
+                </ion-select-option>
+              </ion-select>
+            </ion-item>
           </div>
 
           <div class="field">
@@ -169,6 +206,38 @@
           Save Budget
         </ion-button>
       </form>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<!-- Icon Picker Modal -->
+<ion-modal
+  [isOpen]="isIconPickerOpen"
+  (didDismiss)="closeIconPicker()"
+  class="icon-picker-modal"
+>
+  <ng-template>
+    <ion-header class="transaction-header">
+      <ion-toolbar>
+        <ion-buttons slot="start">
+          <ion-button fill="clear" (click)="closeIconPicker()">
+            <ion-icon name="close-outline"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+        <ion-title>Select Icon</ion-title>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content class="picker-content">
+      <div class="icon-grid">
+        <div
+          *ngFor="let icon of budgetIcons"
+          class="icon-item"
+          [class.selected]="budgetIcon === icon"
+          (click)="selectIcon(icon)"
+        >
+          <ion-icon [name]="icon"></ion-icon>
+        </div>
+      </div>
     </ion-content>
   </ng-template>
 </ion-modal>

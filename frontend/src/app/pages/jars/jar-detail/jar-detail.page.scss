@@ -99,6 +99,129 @@ ion-content.jar-detail-page {
   font-weight: 500;
 }
 
+.field-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #98a2b3;
+  margin-bottom: 8px;
+  letter-spacing: 1px;
+}
+
+.icon-selector-trigger {
+  display: flex;
+  align-items: center;
+  background: #f2f4f7;
+  padding: 12px 16px;
+  border-radius: 16px;
+  gap: 16px;
+  transition: background 0.2s ease;
+
+  &:active {
+    background: #e5e7eb;
+  }
+
+  .selected-icon-preview {
+    width: 44px;
+    height: 44px;
+    background: #2e7ff2;
+    color: #ffffff;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    box-shadow: 0 4px 12px rgba(46, 127, 242, 0.2);
+  }
+
+  .trigger-label {
+    flex: 1;
+    font-size: 15px;
+    font-weight: 500;
+    color: #344054;
+  }
+
+  .arrow-icon {
+    color: #98a2b3;
+    font-size: 18px;
+  }
+}
+
+.icon-picker-modal {
+  --height: 100%;
+  --width: 100%;
+
+  .picker-content {
+    --background: #ffffff;
+    --padding-top: 16px;
+    --padding-bottom: 24px;
+  }
+}
+
+.icon-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  padding: 0 16px 24px;
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+    gap: 12px;
+    padding: 0 24px 32px;
+  }
+
+  .icon-item {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f9fafb;
+    border-radius: 16px;
+    font-size: 28px;
+    color: #667085;
+    transition: all 0.2s ease;
+
+    @media (min-width: 768px) {
+      font-size: 24px;
+      border-radius: 12px;
+    }
+
+    &.selected {
+      background: #e0eaff;
+      color: #2e7ff2;
+      box-shadow: inset 0 0 0 2px #2e7ff2;
+    }
+
+    &:active {
+      transform: scale(0.9);
+      background: #f2f4f7;
+    }
+  }
+}
+
+.progress-label {
+  --padding-start: 0;
+  --padding-end: 8px;
+  font-size: 24px;
+  font-weight: 700;
+  color: #101828;
+  max-width: 80px;
+}
+
+.amount-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 2px solid #f2f4f7;
+  padding-bottom: 4px;
+
+  ion-input {
+    font-size: 32px;
+    font-weight: 700;
+    --padding-start: 0;
+    color: #101828;
+  }
+}
+
 .progress-value {
   font-size: 16px;
   color: #101828;

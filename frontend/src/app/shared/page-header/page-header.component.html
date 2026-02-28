@@ -8,6 +8,8 @@
       ></ion-back-button>
     </ion-buttons>
 
+    <ng-content select="[slot='start']"></ng-content>
+
     <ion-title>{{ title }}</ion-title>
 
     <ng-content select="[slot='end']"></ng-content>
