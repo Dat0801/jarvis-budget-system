@@ -163,38 +163,6 @@
   </ng-template>
 </ion-modal>
 
-<!-- Icon Picker Modal -->
-<ion-modal
-  [isOpen]="isIconPickerOpen"
-  (didDismiss)="closeIconPicker()"
-  class="icon-picker-modal"
->
-  <ng-template>
-    <ion-header class="transaction-header">
-      <ion-toolbar>
-        <ion-buttons slot="start">
-          <ion-button fill="clear" (click)="closeIconPicker()">
-            <ion-icon name="close-outline"></ion-icon>
-          </ion-button>
-        </ion-buttons>
-        <ion-title>Select Icon</ion-title>
-      </ion-toolbar>
-    </ion-header>
-    <ion-content class="picker-content">
-      <div class="icon-grid">
-        <div
-          *ngFor="let icon of budgetIcons"
-          class="icon-item"
-          [class.selected]="editBudgetIcon === icon"
-          (click)="selectEditIcon(icon)"
-        >
-          <ion-icon [name]="icon"></ion-icon>
-        </div>
-      </div>
-    </ion-content>
-  </ng-template>
-</ion-modal>
-
 <!-- Edit Budget Modal -->
 <ion-modal [isOpen]="isEditJarOpen" (didDismiss)="closeEditJar()" class="transaction-modal edit-budget-modal">
   <ng-template>
@@ -213,17 +181,6 @@
       <form (ngSubmit)="submitEditJar()">
         <ion-card class="section-card">
           <div class="section-title">Budget Details</div>
-
-          <div class="field">
-            <div class="field-label">ICON</div>
-            <div class="icon-selector-trigger" (click)="openIconPicker()">
-              <div class="selected-icon-preview">
-                <ion-icon [name]="editBudgetIcon"></ion-icon>
-              </div>
-              <div class="trigger-label">Change Icon</div>
-              <ion-icon name="chevron-forward-outline" class="arrow-icon"></ion-icon>
-            </div>
-          </div>
 
           <div class="field">
             <div class="field-label">CATEGORY</div>

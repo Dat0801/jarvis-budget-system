@@ -74,7 +74,6 @@ export class JarsPage implements OnInit {
   totalSpent = 0;
   isLoadingJars = false;
   isCreateJarOpen = false;
-  isIconPickerOpen = false;
   selectedBudgetCategoryValue = '';
   budgetAmount = '';
   budgetIcon = 'basket-outline';
@@ -87,16 +86,6 @@ export class JarsPage implements OnInit {
   readonly categorySelectInterfaceOptions = { cssClass: 'category-tree-sheet' };
   readonly budgetPeriodOptions: BudgetPeriod[] = ['week', 'month', 'quarter', 'year'];
   readonly currencyOptions = ['VND', 'USD', 'EUR', 'JPY', 'GBP'];
-  readonly budgetIcons = [
-    'basket-outline', 'cart-outline', 'restaurant-outline', 'cafe-outline',
-    'home-outline', 'car-outline', 'airplane-outline', 'bus-outline',
-    'shirt-outline', 'gift-outline', 'heart-outline', 'fitness-outline',
-    'school-outline', 'briefcase-outline', 'wallet-outline', 'cash-outline',
-    'card-outline', 'game-controller-outline', 'musical-notes-outline', 'tv-outline',
-    'phone-portrait-outline', 'wifi-outline', 'flash-outline', 'water-outline',
-    'hammer-outline', 'construct-outline', 'brush-outline', 'color-wand-outline',
-    'camera-outline', 'star-outline', 'happy-outline', 'shield-checkmark-outline'
-  ];
   private readonly targetOverrides = [
     { match: 'emergency', target: 10000 },
     { match: 'car', target: 45000 },
@@ -153,10 +142,14 @@ export class JarsPage implements OnInit {
   ngOnInit(): void {
     this.route.queryParamMap.subscribe((params) => {
       const selectedCategory = params.get('selectedCategory');
+      const categoryIcon = params.get('categoryIcon');
       const returnMode = params.get('returnMode');
 
       if (selectedCategory) {
         this.selectedBudgetCategoryValue = selectedCategory;
+        if (categoryIcon) {
+          this.budgetIcon = categoryIcon;
+        }
       }
 
       if (returnMode === 'createBudget') {
@@ -166,7 +159,7 @@ export class JarsPage implements OnInit {
       if (selectedCategory || returnMode) {
         this.router.navigate([], {
           relativeTo: this.route,
-          queryParams: { selectedCategory: null, returnMode: null },
+          queryParams: { selectedCategory: null, categoryIcon: null, returnMode: null },
           queryParamsHandling: 'merge',
           replaceUrl: true,
         });
@@ -228,19 +221,6 @@ export class JarsPage implements OnInit {
     this.resetCreateForm();
   }
 
-  openIconPicker(): void {
-    this.isIconPickerOpen = true;
-  }
-
-  closeIconPicker(): void {
-    this.isIconPickerOpen = false;
-  }
-
-  selectIcon(icon: string): void {
-    this.budgetIcon = icon;
-    this.closeIconPicker();
-  }
-
   submitCreateJar(): void {
     const category = this.selectedBudgetCategoryLabel;
     const amount = parseVndAmount(this.budgetAmount);
@@ -259,8 +239,9 @@ export class JarsPage implements OnInit {
     this.closeCreateJar();
   }
 
-  onBudgetAmountInput(event: any): void {
-    const input = event.target as HTMLInputElement;
+  async onBudgetAmountInput(event: any): Promise<void> {
+    const ionInput = event.target as HTMLIonInputElement;
+    const input = await ionInput.getInputElement();
     const originalValue = input.value || '';
     
     // Extract only digits
@@ -346,6 +327,9 @@ export class JarsPage implements OnInit {
     const { data } = await modal.onDidDismiss();
     if (data && data.selectedCategory) {
       this.selectedBudgetCategoryValue = data.selectedCategory;
+      if (data.categoryData?.icon) {
+        this.budgetIcon = data.categoryData.icon;
+      }
       this.isCreateJarOpen = true;
     } else {
       // Re-open the create budget modal if canceled

@@ -27,6 +27,7 @@ import {
   schoolOutline,
   cardOutline,
   cashOutline,
+  archiveOutline,
 } from 'ionicons/icons';
 
 interface ExpenseItem {
@@ -138,6 +139,7 @@ export class TransactionsPage implements OnInit {
       schoolOutline,
       cardOutline,
       cashOutline,
+      archiveOutline,
     });
   }
 

@@ -141,8 +141,9 @@ export class IncomePage implements OnInit {
     this.closeDatePicker();
   }
 
-  onAmountInput(event: any): void {
-    const input = event.target as HTMLInputElement;
+  async onAmountInput(event: any): Promise<void> {
+    const ionInput = event.target as HTMLIonInputElement;
+    const input = await ionInput.getInputElement();
     const originalValue = input.value || '';
     const digits = originalValue.replace(/\D/g, '');
     const formatted = formatVndAmountInput(digits);

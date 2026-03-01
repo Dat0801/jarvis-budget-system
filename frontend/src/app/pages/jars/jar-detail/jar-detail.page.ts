@@ -86,7 +86,6 @@ export class JarDetailPage implements OnInit {
   isLoadingTransactions = false;
   isAddMoneyOpen = false;
   isEditJarOpen = false;
-  isIconPickerOpen = false;
   addAmount = '';
   selectedBudgetCategoryValue = '';
   editBudgetAmount = '';
@@ -98,16 +97,6 @@ export class JarDetailPage implements OnInit {
   budgetCategories: CategoryTreeNode[] = [];
   wallets: Wallet[] = [];
   readonly currencyOptions = ['VND', 'USD', 'EUR', 'JPY', 'GBP'];
-  readonly budgetIcons = [
-    'basket-outline', 'cart-outline', 'restaurant-outline', 'cafe-outline',
-    'home-outline', 'car-outline', 'airplane-outline', 'bus-outline',
-    'shirt-outline', 'gift-outline', 'heart-outline', 'fitness-outline',
-    'school-outline', 'briefcase-outline', 'wallet-outline', 'cash-outline',
-    'card-outline', 'game-controller-outline', 'musical-notes-outline', 'tv-outline',
-    'phone-portrait-outline', 'wifi-outline', 'flash-outline', 'water-outline',
-    'hammer-outline', 'construct-outline', 'brush-outline', 'color-wand-outline',
-    'camera-outline', 'star-outline', 'happy-outline', 'shield-checkmark-outline'
-  ];
   readonly budgetPeriodOptions: BudgetPeriod[] = ['week', 'month', 'quarter', 'year'];
   jarId: number | null = null;
   parseFloat = parseFloat;
@@ -169,10 +158,14 @@ export class JarDetailPage implements OnInit {
 
     this.route.queryParamMap.subscribe((params) => {
       const selectedCategory = params.get('selectedCategory');
+      const categoryIcon = params.get('categoryIcon');
       const returnMode = params.get('returnMode');
 
       if (selectedCategory) {
         this.selectedBudgetCategoryValue = selectedCategory;
+        if (categoryIcon) {
+          this.editBudgetIcon = categoryIcon;
+        }
       }
 
       if (returnMode === 'editBudget') {
@@ -182,7 +175,7 @@ export class JarDetailPage implements OnInit {
       if (selectedCategory || returnMode) {
         this.router.navigate([], {
           relativeTo: this.route,
-          queryParams: { selectedCategory: null, returnMode: null },
+          queryParams: { selectedCategory: null, categoryIcon: null, returnMode: null },
           queryParamsHandling: 'merge',
           replaceUrl: true,
         });
@@ -370,8 +363,9 @@ export class JarDetailPage implements OnInit {
     }
   }
 
-  onAddAmountInput(event: any): void {
-    const input = event.target as HTMLInputElement;
+  async onAddAmountInput(event: any): Promise<void> {
+    const ionInput = event.target as HTMLIonInputElement;
+    const input = await ionInput.getInputElement();
     const originalValue = input.value || '';
     const digits = originalValue.replace(/\D/g, '');
     const formatted = formatVndAmountInput(digits);
@@ -410,19 +404,6 @@ export class JarDetailPage implements OnInit {
     this.isEditJarOpen = false;
   }
 
-  openIconPicker(): void {
-    this.isIconPickerOpen = true;
-  }
-
-  closeIconPicker(): void {
-    this.isIconPickerOpen = false;
-  }
-
-  selectEditIcon(icon: string): void {
-    this.editBudgetIcon = icon;
-    this.closeIconPicker();
-  }
-
   submitEditJar(): void {
     if (!this.jarId) return;
     const category = this.selectedBudgetCategoryLabel;
@@ -445,8 +426,9 @@ export class JarDetailPage implements OnInit {
     });
   }
 
-  onEditBudgetAmountInput(event: any): void {
-    const input = event.target as HTMLInputElement;
+  async onEditBudgetAmountInput(event: any): Promise<void> {
+    const ionInput = event.target as HTMLIonInputElement;
+    const input = await ionInput.getInputElement();
     const originalValue = input.value || '';
     const digits = originalValue.replace(/\D/g, '');
     const formatted = formatVndAmountInput(digits);
@@ -508,6 +490,9 @@ export class JarDetailPage implements OnInit {
     const { data } = await modal.onDidDismiss();
     if (data && data.selectedCategory) {
       this.selectedBudgetCategoryValue = data.selectedCategory;
+      if (data.categoryData?.icon) {
+        this.editBudgetIcon = data.categoryData.icon;
+      }
       this.isEditJarOpen = true;
     } else {
       // Re-open the edit budget modal if canceled

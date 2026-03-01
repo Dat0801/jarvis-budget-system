@@ -178,45 +178,49 @@
     </div>
 
     <div class="report-card" *ngIf="!isLoadingDashboard; else reportLoading">
-      <div class="report-chart-line">
-        <svg viewBox="0 0 300 160" preserveAspectRatio="none">
-          <g class="grid-lines">
-            <line x1="16" y1="20" x2="284" y2="20"></line>
-            <line x1="16" y1="80" x2="284" y2="80"></line>
-            <line x1="16" y1="140" x2="284" y2="140"></line>
-          </g>
+      <div class="report-chart-container">
+        <div class="report-y-axis">
+          <div
+            *ngFor="let tick of reportAxisTicks"
+            class="chart-axis-value"
+            [style.top.%]="(tick.y / 160) * 100"
+          >
+            {{ formatAxisValue(tick.value) }}
+          </div>
+        </div>
 
-          <path
-            [ngClass]="reportMetricTab === 'income' ? 'income-line' : 'expense-line'"
-            [attr.d]="reportPath"
-          ></path>
+        <div class="report-chart-line">
+          <svg viewBox="0 0 300 160" preserveAspectRatio="none">
+            <g class="grid-lines">
+              <line x1="16" y1="20" x2="284" y2="20"></line>
+              <line x1="16" y1="80" x2="284" y2="80"></line>
+              <line x1="16" y1="140" x2="284" y2="140"></line>
+            </g>
 
-          <polyline
-            [ngClass]="reportMetricTab === 'income' ? 'income-points' : 'expense-points'"
-            [attr.points]="reportPoints"
-          ></polyline>
+            <path
+              [ngClass]="reportMetricTab === 'income' ? 'income-line' : 'expense-line'"
+              [attr.d]="reportPath"
+              vector-effect="non-scaling-stroke"
+            ></path>
 
-          <ng-container *ngFor="let tick of reportAxisTicks">
-            <text
-              class="chart-axis-value"
-              x="294"
-              [attr.y]="tick.y"
-            >
-              {{ formatAxisValue(tick.value) }}
-            </text>
-          </ng-container>
+            <polyline
+              [ngClass]="reportMetricTab === 'income' ? 'income-points' : 'expense-points'"
+              [attr.points]="reportPoints"
+              vector-effect="non-scaling-stroke"
+            ></polyline>
 
-          <ng-container *ngFor="let label of reportLabels; let index = index">
-            <rect
-              class="chart-hit-area"
-              [attr.x]="getReportHitAreaX(index)"
-              y="14"
-              width="24"
-              height="132"
-              (click)="selectReportPoint(index)"
-            ></rect>
-          </ng-container>
-        </svg>
+            <ng-container *ngFor="let label of reportLabels; let index = index">
+              <rect
+                class="chart-hit-area"
+                [attr.x]="getReportHitAreaX(index)"
+                y="14"
+                width="24"
+                height="132"
+                (click)="selectReportPoint(index)"
+              ></rect>
+            </ng-container>
+          </svg>
+        </div>
       </div>
 
       <div class="chart-legend">

@@ -164,21 +164,40 @@ export class WalletsPage implements OnInit {
     this.editWalletId = null;
   }
 
-  onBalanceInput(event: any, isEdit = false): void {
-    const input = event.target as HTMLInputElement;
+  async onBalanceInput(event: any, isEdit = false): Promise<void> {
+    const ionInput = event.target as HTMLIonInputElement;
+    const input = await ionInput.getInputElement();
     const originalValue = input.value || '';
     const digits = originalValue.replace(/\D/g, '');
     const formatted = formatVndAmountInput(digits);
     
     if (isEdit) {
       if (this.editBalance !== formatted) {
+        const cursor = input.selectionStart || 0;
+        const digitsBeforeCursor = originalValue.substring(0, cursor).replace(/\D/g, '').length;
         this.editBalance = formatted;
         input.value = formatted;
+        let newCursor = 0;
+        let digitsFound = 0;
+        for (let i = 0; i < formatted.length && digitsFound < digitsBeforeCursor; i++) {
+          if (/\d/.test(formatted[i])) digitsFound++;
+          newCursor = i + 1;
+        }
+        input.setSelectionRange(newCursor, newCursor);
       }
     } else {
       if (this.initialBalance !== formatted) {
+        const cursor = input.selectionStart || 0;
+        const digitsBeforeCursor = originalValue.substring(0, cursor).replace(/\D/g, '').length;
         this.initialBalance = formatted;
         input.value = formatted;
+        let newCursor = 0;
+        let digitsFound = 0;
+        for (let i = 0; i < formatted.length && digitsFound < digitsBeforeCursor; i++) {
+          if (/\d/.test(formatted[i])) digitsFound++;
+          newCursor = i + 1;
+        }
+        input.setSelectionRange(newCursor, newCursor);
       }
     }
   }

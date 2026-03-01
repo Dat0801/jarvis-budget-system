@@ -148,7 +148,8 @@ export class CategoriesPage implements OnInit {
       return;
     }
 
-    this.selectCategory(`category:${categoryId}`);
+    const category = this.categories.find(c => c.id === categoryId);
+    this.selectCategory(`category:${categoryId}`, category);
   }
 
   onSubCategoryClick(subCategoryId: number): void {
@@ -159,7 +160,12 @@ export class CategoriesPage implements OnInit {
       return;
     }
 
-    this.selectCategory(`sub:${subCategoryId}`);
+    let subCategory: CategoryTreeNode | undefined;
+    for (const cat of this.categories) {
+      subCategory = cat.children?.find(c => c.id === subCategoryId);
+      if (subCategory) break;
+    }
+    this.selectCategory(`sub:${subCategoryId}`, subCategory);
   }
 
   addCategory(): void {
@@ -333,10 +339,11 @@ export class CategoriesPage implements OnInit {
     }
   }
 
-  private selectCategory(selectedCategory: string): void {
+  private selectCategory(selectedCategory: string, categoryData?: CategoryTreeNode): void {
     if (this.isModal) {
       this.modalController.dismiss({
         selectedCategory,
+        categoryData,
         tab: this.activeTab,
         returnMode: this.returnMode,
       });
@@ -348,6 +355,7 @@ export class CategoriesPage implements OnInit {
     this.router.navigate([this.returnUrl], {
       queryParams: {
         selectedCategory,
+        categoryIcon: categoryData?.icon || '',
         tab: this.activeTab,
         ...(amount ? { amount } : {}),
         ...(this.returnMode ? { returnMode: this.returnMode } : {}),

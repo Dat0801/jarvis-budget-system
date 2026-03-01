@@ -433,8 +433,9 @@ export class ExpensePage implements OnInit {
     }).format(date);
   }
 
-  onAmountInput(event: any): void {
-    const input = event.target as HTMLInputElement;
+  async onAmountInput(event: any): Promise<void> {
+    const ionInput = event.target as HTMLIonInputElement;
+    const input = await ionInput.getInputElement();
     const originalValue = input.value || '';
     const digits = originalValue.replace(/\D/g, '');
     const formatted = formatVndAmountInput(digits);
@@ -503,8 +504,9 @@ export class ExpensePage implements OnInit {
     });
   }
 
-  onEditAmountInput(event: any): void {
-    const input = event.target as HTMLInputElement;
+  async onEditAmountInput(event: any): Promise<void> {
+    const ionInput = event.target as HTMLIonInputElement;
+    const input = await ionInput.getInputElement();
     const originalValue = input.value || '';
     const digits = originalValue.replace(/\D/g, '');
     const formatted = formatVndAmountInput(digits);
