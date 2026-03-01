@@ -32,6 +32,9 @@ export class SettingsPage implements OnInit {
   currentPassword = '';
   newPassword = '';
   confirmPassword = '';
+  showCurrentPassword = false;
+  showNewPassword = false;
+  showConfirmPassword = false;
 
   constructor(
     private router: Router,
@@ -164,7 +167,22 @@ export class SettingsPage implements OnInit {
     this.currentPassword = '';
     this.newPassword = '';
     this.confirmPassword = '';
+    this.showCurrentPassword = false;
+    this.showNewPassword = false;
+    this.showConfirmPassword = false;
     this.isChangePasswordOpen = true;
+  }
+
+  toggleCurrentPasswordVisibility() {
+    this.showCurrentPassword = !this.showCurrentPassword;
+  }
+
+  toggleNewPasswordVisibility() {
+    this.showNewPassword = !this.showNewPassword;
+  }
+
+  toggleConfirmPasswordVisibility() {
+    this.showConfirmPassword = !this.showConfirmPassword;
   }
 
   closeChangePassword() {

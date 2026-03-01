@@ -81,3 +81,30 @@
 	width: 18px;
 	height: 18px;
 }
+
+/* Force all modals to be full screen on all devices, including web/desktop */
+ion-modal {
+  --width: 100% !important;
+  --height: 100% !important;
+  --max-width: 100% !important;
+  --max-height: 100% !important;
+  --border-radius: 0 !important;
+}
+
+/* Force action sheets to be full screen on all devices, similar to mobile */
+ion-action-sheet {
+  --width: 100% !important;
+  --height: 100% !important;
+  --max-width: 100% !important;
+  --max-height: 100% !important;
+  --border-radius: 0 !important;
+}
+
+/* For iOS mode on larger screens, Ionic might still add some padding/margins */
+.modal-wrapper {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  border-radius: 0 !important;
+}

@@ -18,6 +18,7 @@ Route::get('/up', function () {
 Route::prefix('auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/google', [AuthController::class, 'googleLogin']);
     Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:api');
     Route::get('/me', [AuthController::class, 'me'])->middleware('auth:api');
 });
@@ -33,6 +34,9 @@ Route::middleware('auth:api')->group(function () {
 
     Route::get('/wallets', [WalletController::class, 'index']);
     Route::post('/wallets', [WalletController::class, 'store']);
+    Route::patch('/wallets/{id}', [WalletController::class, 'update']);
+    Route::delete('/wallets/{id}', [WalletController::class, 'destroy']);
+    Route::get('/wallets/{id}/categories', [WalletController::class, 'categories']);
 
     Route::get('/incomes', [IncomeController::class, 'index']);
     Route::post('/incomes', [IncomeController::class, 'store']);
@@ -47,6 +51,9 @@ Route::middleware('auth:api')->group(function () {
     Route::delete('/expenses/{expense}', [ExpenseController::class, 'destroy']);
 
     Route::get('/categories/tree', [CategoryController::class, 'tree']);
+    Route::post('/categories', [CategoryController::class, 'store']);
+    Route::patch('/categories/{category}', [CategoryController::class, 'update']);
+    Route::delete('/categories/{category}', [CategoryController::class, 'destroy']);
 
     Route::get('/notes', [NoteController::class, 'index']);
     Route::get('/notes/reminders/count', [NoteController::class, 'reminderCount']);

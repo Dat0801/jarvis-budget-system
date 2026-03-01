@@ -7,8 +7,8 @@
 
 <ion-content [fullscreen]="true">
   <ion-list *ngIf="!isLoading" lines="full">
-    <ion-item *ngFor="let wallet of wallets">
-      <ion-icon slot="start" name="wallet-outline"></ion-icon>
+    <ion-item *ngFor="let wallet of wallets" button (click)="openEditWallet(wallet)">
+      <ion-icon slot="start" [name]="wallet.icon || 'wallet-outline'"></ion-icon>
       <ion-label>
         <h2>{{ wallet.name }}</h2>
         <p>{{ wallet.wallet_type === 'wallet' ? 'Basic Wallet' : wallet.wallet_type }}</p>
@@ -23,19 +23,33 @@
   </div>
 </ion-content>
 
+<!-- Create Wallet Modal -->
 <ion-modal [isOpen]="isCreateOpen" (didDismiss)="closeCreateWallet()">
   <ng-template>
     <ion-header>
       <ion-toolbar>
         <ion-buttons slot="start">
-          <ion-button (click)="closeCreateWallet()">Cancel</ion-button>
+          <ion-button (click)="closeCreateWallet()">
+            <ion-icon slot="icon-only" name="close-outline"></ion-icon>
+          </ion-button>
         </ion-buttons>
         <ion-title>Create Wallet</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="submitCreateWallet()" [disabled]="!canCreateWallet" color="primary">Create</ion-button>
+        </ion-buttons>
       </ion-toolbar>
     </ion-header>
 
     <ion-content>
       <form (ngSubmit)="submitCreateWallet()" class="wallet-form">
+        <div class="icon-selector-container ion-padding-vertical ion-text-center">
+          <div class="selected-icon-preview" (click)="isIconModalOpen = true">
+            <ion-icon [name]="walletIcon"></ion-icon>
+            <div class="edit-badge"><ion-icon name="pencil"></ion-icon></div>
+          </div>
+          <p>Choose Icon</p>
+        </div>
+
         <ion-item>
           <ion-label position="stacked">Wallet Type</ion-label>
           <ion-select [(ngModel)]="walletType" name="walletType" interface="popover">
@@ -58,9 +72,8 @@
           <ion-input
             type="text"
             inputmode="numeric"
-            [(ngModel)]="initialBalance"
-            (ngModelChange)="onInitialBalanceChange($event)"
-            (ionBlur)="onInitialBalanceBlur()"
+            [value]="initialBalance"
+            (ionInput)="onBalanceInput($event)"
             name="initialBalance"
           ></ion-input>
         </ion-item>
@@ -78,6 +91,178 @@
           {{ isSaving ? 'Saving...' : 'Create Wallet' }}
         </ion-button>
       </form>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<!-- Edit Wallet Modal -->
+<ion-modal [isOpen]="isEditOpen" (didDismiss)="closeEditWallet()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-buttons slot="start">
+          <ion-button (click)="closeEditWallet()">
+            <ion-icon slot="icon-only" name="close-outline"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+        <ion-title>Edit Wallet</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="submitUpdateWallet()" [disabled]="!canUpdateWallet" color="primary">Save</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+
+    <ion-content>
+      <form (ngSubmit)="submitUpdateWallet()" class="wallet-form">
+        <div class="icon-selector-container ion-padding-vertical ion-text-center">
+          <div class="selected-icon-preview" (click)="isIconModalOpen = true">
+            <ion-icon [name]="editIcon"></ion-icon>
+            <div class="edit-badge"><ion-icon name="pencil"></ion-icon></div>
+          </div>
+          <p>Choose Icon</p>
+        </div>
+
+        <ion-item>
+          <ion-label position="stacked">Wallet Name</ion-label>
+          <ion-input [(ngModel)]="editWalletName" name="editWalletName" required></ion-input>
+        </ion-item>
+
+        <ion-item>
+          <ion-label position="stacked">Unit</ion-label>
+          <ion-input [(ngModel)]="editCurrencyUnit" name="editCurrencyUnit" required></ion-input>
+        </ion-item>
+
+        <ion-item>
+          <ion-label position="stacked">Current Balance</ion-label>
+          <ion-input
+            type="text"
+            inputmode="numeric"
+            [value]="editBalance"
+            (ionInput)="onBalanceInput($event, true)"
+            name="editBalance"
+          ></ion-input>
+        </ion-item>
+
+        <ion-item (click)="openCategoryManagement()" button detail="true">
+          <ion-label>
+            <h3>Categories</h3>
+            <p>{{ editCategoriesCount }} categories associated</p>
+          </ion-label>
+        </ion-item>
+
+        <ion-item>
+          <ion-label>
+            <h3>Enable notification</h3>
+            <p>Get notified when there are changes to this wallet's transactions.</p>
+          </ion-label>
+          <ion-toggle slot="end" [(ngModel)]="editNotificationsEnabled" name="editNotificationsEnabled"></ion-toggle>
+        </ion-item>
+
+        <div class="ion-padding">
+          <ion-button expand="block" color="danger" fill="outline" (click)="deleteWallet()">
+            Delete Wallet
+          </ion-button>
+        </div>
+      </form>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<!-- Icon Selector Modal -->
+<ion-modal [isOpen]="isIconModalOpen" (didDismiss)="isIconModalOpen = false" class="icon-modal">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-buttons slot="start">
+          <ion-button (click)="isIconModalOpen = false">
+            <ion-icon slot="icon-only" name="close-outline"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+        <ion-title>Select Icon</ion-title>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content>
+      <div class="icon-grid">
+        <div 
+          *ngFor="let icon of allIcons" 
+          class="icon-item" 
+          (click)="selectIcon(icon, isEditOpen)"
+          [class.selected]="isEditOpen ? editIcon === icon : walletIcon === icon"
+        >
+          <ion-icon [name]="icon"></ion-icon>
+        </div>
+      </div>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<!-- Category Management Modal -->
+<ion-modal [isOpen]="isCategoryModalOpen" (didDismiss)="isCategoryModalOpen = false">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-buttons slot="start">
+          <ion-button (click)="isCategoryModalOpen = false">
+            <ion-icon slot="icon-only" name="arrow-back-outline"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+        <ion-title>Categories</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="isAddCategoryOpen = true">
+            <ion-icon slot="icon-only" name="add"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+
+    <ion-content>
+      <div class="loading-state" *ngIf="isLoadingCategories">
+        <ion-spinner name="crescent"></ion-spinner>
+        <span>Loading categories...</span>
+      </div>
+
+      <ion-list lines="full" *ngIf="!isLoadingCategories">
+        <ion-item *ngFor="let category of categories">
+          <ion-icon slot="start" [name]="category.icon || 'pricetag-outline'"></ion-icon>
+          <ion-label>
+            <h2>{{ category.name }}</h2>
+            <p>{{ category.is_active ? 'Active' : 'Inactive' }}</p>
+          </ion-label>
+          <ion-toggle 
+            slot="end" 
+            [checked]="category.is_active" 
+            (ionChange)="toggleCategoryStatus(category)"
+          ></ion-toggle>
+        </ion-item>
+
+        <div class="empty-state ion-padding ion-text-center" *ngIf="categories.length === 0">
+          <p>No categories found for this wallet.</p>
+          <ion-button fill="clear" (click)="isAddCategoryOpen = true">Add Category</ion-button>
+        </div>
+      </ion-list>
+
+      <!-- Add Category Inner Modal -->
+      <ion-modal [isOpen]="isAddCategoryOpen" (didDismiss)="isAddCategoryOpen = false" class="small-modal">
+        <ng-template>
+          <ion-header>
+            <ion-toolbar>
+              <ion-title>Add Category</ion-title>
+              <ion-buttons slot="end">
+                <ion-button (click)="isAddCategoryOpen = false">Cancel</ion-button>
+              </ion-buttons>
+            </ion-toolbar>
+          </ion-header>
+          <ion-content class="ion-padding">
+            <ion-item>
+              <ion-label position="stacked">Category Name</ion-label>
+              <ion-input [(ngModel)]="newCategoryName" placeholder="e.g. Food, Travel"></ion-input>
+            </ion-item>
+            <ion-button expand="block" (click)="addCategory()" [disabled]="!newCategoryName.trim()" class="ion-margin-top">
+              Add Category
+            </ion-button>
+          </ion-content>
+        </ng-template>
+      </ion-modal>
     </ion-content>
   </ng-template>
 </ion-modal>

@@ -6,6 +6,15 @@ import { Budget, BudgetService, Transaction } from '../../../services/budget.ser
 import { finalize } from 'rxjs';
 import { formatCurrencyAmount, getStoredCurrencyCode } from '../../../utils/currency.util';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { addIcons } from 'ionicons';
+import {
+  calendarOutline,
+  archiveOutline,
+  walletOutline,
+  cartOutline,
+  swapHorizontalOutline,
+  bagOutline,
+} from 'ionicons/icons';
 
 interface MonthTab {
   key: string;
@@ -36,7 +45,16 @@ export class JarActivityPage implements OnInit {
     private budgetService: BudgetService,
     private route: ActivatedRoute,
     private router: Router
-  ) {}
+  ) {
+    addIcons({
+      calendarOutline,
+      archiveOutline,
+      walletOutline,
+      cartOutline,
+      swapHorizontalOutline,
+      bagOutline,
+    });
+  }
 
   ngOnInit(): void {
     this.jarId = Number(this.route.snapshot.paramMap.get('id'));
@@ -59,10 +77,7 @@ export class JarActivityPage implements OnInit {
     this.budgetService.getTransactions(this.jarId).pipe(finalize(() => {
       this.isLoadingTransactions = false;
     })).subscribe((response) => {
-      const transactions = response.data || [];
-      this.transactions = transactions.sort(
-        (a, b) => this.resolveTransactionDate(b).getTime() - this.resolveTransactionDate(a).getTime()
-      );
+      this.transactions = response.data || [];
 
       this.buildMonthTabs();
       if (!this.selectedMonthKey) {
@@ -201,7 +216,7 @@ export class JarActivityPage implements OnInit {
   }
 
   private resolveTransactionDate(transaction: Transaction): Date {
-    const rawDate = transaction.received_at || transaction.spent_at || transaction.created_at;
+    const rawDate = transaction.date || transaction.received_at || transaction.spent_at || transaction.created_at;
     const parsed = new Date(rawDate);
     return Number.isNaN(parsed.getTime()) ? new Date(transaction.created_at) : parsed;
   }

@@ -2,14 +2,57 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { AlertController, IonicModule } from '@ionic/angular';
+import { AlertController, IonicModule, ModalController } from '@ionic/angular';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
+import { CategoriesPage } from '../../categories/categories.page';
 import { catchError, finalize, of } from 'rxjs';
 import { Budget, BudgetService, Transaction } from '../../../services/budget.service';
 import { CategoryService, CategoryTreeNode } from '../../../services/category.service';
 import { ExpenseService } from '../../../services/expense.service';
+import { WalletService, Wallet } from '../../../services/wallet.service';
 import { formatVndAmountInput, parseVndAmount } from '../../../utils/vnd-amount.util';
 import { formatCurrencyAmount, getStoredCurrencyCode } from '../../../utils/currency.util';
+import { addIcons } from 'ionicons';
+import {
+  closeOutline,
+  chevronForwardOutline,
+  basketOutline,
+  walletOutline,
+  cashOutline,
+  cardOutline,
+  briefcaseOutline,
+  homeOutline,
+  carOutline,
+  airplaneOutline,
+  giftOutline,
+  heartOutline,
+  fitnessOutline,
+  schoolOutline,
+  restaurantOutline,
+  cartOutline,
+  shirtOutline,
+  constructOutline,
+  hammerOutline,
+  flashOutline,
+  waterOutline,
+  wifiOutline,
+  tvOutline,
+  phonePortraitOutline,
+  gameControllerOutline,
+  musicalNotesOutline,
+  cameraOutline,
+  brushOutline,
+  colorWandOutline,
+  starOutline,
+  happyOutline,
+  shieldCheckmarkOutline,
+  createOutline,
+  trashOutline,
+  calendarOutline,
+  swapHorizontalOutline,
+  bagOutline,
+  cart,
+} from 'ionicons/icons';
 
 type BudgetPeriod = 'week' | 'month' | 'quarter' | 'year';
 
@@ -43,13 +86,28 @@ export class JarDetailPage implements OnInit {
   isLoadingTransactions = false;
   isAddMoneyOpen = false;
   isEditJarOpen = false;
+  isIconPickerOpen = false;
   addAmount = '';
   selectedBudgetCategoryValue = '';
   editBudgetAmount = '';
+  editBudgetIcon = 'basket-outline';
+  editBudgetCurrency = 'VND';
+  editBudgetWalletId: number | null = null;
   editBudgetPeriod: BudgetPeriod = 'month';
   editRepeatThisBudget = false;
   budgetCategories: CategoryTreeNode[] = [];
-  readonly categorySelectInterfaceOptions = { cssClass: 'category-tree-sheet' };
+  wallets: Wallet[] = [];
+  readonly currencyOptions = ['VND', 'USD', 'EUR', 'JPY', 'GBP'];
+  readonly budgetIcons = [
+    'basket-outline', 'cart-outline', 'restaurant-outline', 'cafe-outline',
+    'home-outline', 'car-outline', 'airplane-outline', 'bus-outline',
+    'shirt-outline', 'gift-outline', 'heart-outline', 'fitness-outline',
+    'school-outline', 'briefcase-outline', 'wallet-outline', 'cash-outline',
+    'card-outline', 'game-controller-outline', 'musical-notes-outline', 'tv-outline',
+    'phone-portrait-outline', 'wifi-outline', 'flash-outline', 'water-outline',
+    'hammer-outline', 'construct-outline', 'brush-outline', 'color-wand-outline',
+    'camera-outline', 'star-outline', 'happy-outline', 'shield-checkmark-outline'
+  ];
   readonly budgetPeriodOptions: BudgetPeriod[] = ['week', 'month', 'quarter', 'year'];
   jarId: number | null = null;
   parseFloat = parseFloat;
@@ -58,10 +116,53 @@ export class JarDetailPage implements OnInit {
     private budgetService: BudgetService,
     private expenseService: ExpenseService,
     private categoryService: CategoryService,
+    private walletService: WalletService,
     private route: ActivatedRoute,
     private router: Router,
-    private alertController: AlertController
-  ) {}
+    private alertController: AlertController,
+    private modalController: ModalController
+  ) {
+    addIcons({
+      closeOutline,
+      chevronForwardOutline,
+      basketOutline,
+      walletOutline,
+      cashOutline,
+      cardOutline,
+      briefcaseOutline,
+      homeOutline,
+      carOutline,
+      airplaneOutline,
+      giftOutline,
+      heartOutline,
+      fitnessOutline,
+      schoolOutline,
+      restaurantOutline,
+      cartOutline,
+      shirtOutline,
+      constructOutline,
+      hammerOutline,
+      flashOutline,
+      waterOutline,
+      wifiOutline,
+      tvOutline,
+      phonePortraitOutline,
+      gameControllerOutline,
+      musicalNotesOutline,
+      cameraOutline,
+      brushOutline,
+      colorWandOutline,
+      starOutline,
+      happyOutline,
+      shieldCheckmarkOutline,
+      createOutline,
+      trashOutline,
+      calendarOutline,
+      swapHorizontalOutline,
+      bagOutline,
+      cart,
+    });
+  }
 
   ngOnInit(): void {
     this.jarId = Number(this.route.snapshot.paramMap.get('id'));
@@ -89,10 +190,17 @@ export class JarDetailPage implements OnInit {
     });
 
     this.loadBudgetCategories();
+    this.loadWallets();
     this.loadExpenseTotals();
     if (this.jarId) {
       this.loadJarDetail();
     }
+  }
+
+  loadWallets(): void {
+    this.walletService.list().subscribe((wallets) => {
+      this.wallets = wallets;
+    });
   }
 
   loadJarDetail(): void {
@@ -104,6 +212,9 @@ export class JarDetailPage implements OnInit {
       this.jar = jar;
       this.selectedBudgetCategoryValue = this.getCategoryValueFromJar(jar);
       this.editBudgetAmount = formatVndAmountInput(this.parseAmount(jar.balance));
+      this.editBudgetIcon = jar.icon || 'basket-outline';
+      this.editBudgetCurrency = jar.currency_unit || 'VND';
+      this.editBudgetWalletId = jar.wallet_id || null;
       this.editBudgetPeriod = this.getPeriodFromBudgetDate(jar.budget_date);
       this.editRepeatThisBudget = !!jar.repeat_this_budget;
       this.loadTransactions();
@@ -116,10 +227,7 @@ export class JarDetailPage implements OnInit {
     this.budgetService.getTransactions(this.jarId).pipe(finalize(() => {
       this.isLoadingTransactions = false;
     })).subscribe((response) => {
-      const transactions = response.data || [];
-      this.transactions = transactions.sort(
-        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
+      this.transactions = response.data || [];
     });
   }
 
@@ -242,10 +350,6 @@ export class JarDetailPage implements OnInit {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   }
 
-  getRecentTransactions(): Transaction[] {
-    return this.transactions.slice(0, 3);
-  }
-
   openAddMoney(): void {
     this.isAddMoneyOpen = true;
   }
@@ -266,8 +370,25 @@ export class JarDetailPage implements OnInit {
     }
   }
 
-  onAddAmountInput(event: CustomEvent): void {
-    this.addAmount = formatVndAmountInput(event.detail?.value);
+  onAddAmountInput(event: any): void {
+    const input = event.target as HTMLInputElement;
+    const originalValue = input.value || '';
+    const digits = originalValue.replace(/\D/g, '');
+    const formatted = formatVndAmountInput(digits);
+    
+    if (this.addAmount !== formatted) {
+      const cursor = input.selectionStart || 0;
+      const digitsBeforeCursor = originalValue.substring(0, cursor).replace(/\D/g, '').length;
+      this.addAmount = formatted;
+      input.value = formatted;
+      let newCursor = 0;
+      let digitsFound = 0;
+      for (let i = 0; i < formatted.length && digitsFound < digitsBeforeCursor; i++) {
+        if (/\d/.test(formatted[i])) digitsFound++;
+        newCursor = i + 1;
+      }
+      input.setSelectionRange(newCursor, newCursor);
+    }
   }
 
   get canSubmitAddMoney(): boolean {
@@ -289,6 +410,19 @@ export class JarDetailPage implements OnInit {
     this.isEditJarOpen = false;
   }
 
+  openIconPicker(): void {
+    this.isIconPickerOpen = true;
+  }
+
+  closeIconPicker(): void {
+    this.isIconPickerOpen = false;
+  }
+
+  selectEditIcon(icon: string): void {
+    this.editBudgetIcon = icon;
+    this.closeIconPicker();
+  }
+
   submitEditJar(): void {
     if (!this.jarId) return;
     const category = this.selectedBudgetCategoryLabel;
@@ -300,20 +434,36 @@ export class JarDetailPage implements OnInit {
     this.budgetService.update(this.jarId, {
       category,
       amount,
+      icon: this.editBudgetIcon,
+      currency_unit: this.editBudgetCurrency,
+      wallet_id: this.editBudgetWalletId,
       budget_date: this.getSelectedPeriodStartDate(),
       repeat_this_budget: this.editRepeatThisBudget,
-    }).subscribe(() => {
+    }).subscribe((updatedJar: any) => {
+      this.jar = { ...this.jar, ...updatedJar };
       this.closeEditJar();
-      this.loadJarDetail();
     });
   }
 
-  onEditBudgetAmountChange(value: string | number | null | undefined): void {
-    this.editBudgetAmount = String(value ?? '').replace(/\D+/g, '');
-  }
-
-  onEditBudgetAmountBlur(): void {
-    this.editBudgetAmount = formatVndAmountInput(this.editBudgetAmount);
+  onEditBudgetAmountInput(event: any): void {
+    const input = event.target as HTMLInputElement;
+    const originalValue = input.value || '';
+    const digits = originalValue.replace(/\D/g, '');
+    const formatted = formatVndAmountInput(digits);
+    
+    if (this.editBudgetAmount !== formatted) {
+      const cursor = input.selectionStart || 0;
+      const digitsBeforeCursor = originalValue.substring(0, cursor).replace(/\D/g, '').length;
+      this.editBudgetAmount = formatted;
+      input.value = formatted;
+      let newCursor = 0;
+      let digitsFound = 0;
+      for (let i = 0; i < formatted.length && digitsFound < digitsBeforeCursor; i++) {
+        if (/\d/.test(formatted[i])) digitsFound++;
+        newCursor = i + 1;
+      }
+      input.setSelectionRange(newCursor, newCursor);
+    }
   }
 
   get canUpdateJar(): boolean {
@@ -336,19 +486,33 @@ export class JarDetailPage implements OnInit {
     return this.getPeriodOptionLabel(this.editBudgetPeriod);
   }
 
-  openCategorySelector(): void {
+  async openCategorySelector(): Promise<void> {
     if (!this.jarId) {
       return;
     }
 
-    this.router.navigate(['/tabs/categories'], {
-      queryParams: {
-        selectMode: '1',
-        type: 'expense',
-        returnUrl: `/tabs/budgets/${this.jarId}`,
-        returnMode: 'editBudget',
+    const modal = await this.modalController.create({
+      component: CategoriesPage,
+      componentProps: {
+        isModal: true,
+        initialSelectMode: true,
+        initialTab: 'expense',
+        initialJarId: this.jarId,
+        initialReturnUrl: `/tabs/budgets/${this.jarId}`,
+        initialReturnMode: 'editBudget',
       },
     });
+
+    await modal.present();
+
+    const { data } = await modal.onDidDismiss();
+    if (data && data.selectedCategory) {
+      this.selectedBudgetCategoryValue = data.selectedCategory;
+      this.isEditJarOpen = true;
+    } else {
+      // Re-open the edit budget modal if canceled
+      this.isEditJarOpen = true;
+    }
   }
 
   get budgetCategoryOptions(): BudgetCategoryOption[] {

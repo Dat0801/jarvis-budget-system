@@ -34,11 +34,14 @@ class JarController extends Controller
         $data = $request->validate([
             'name' => 'nullable|string|max:255|required_without:category',
             'category' => 'nullable|string|max:255|required_without:name',
+            'icon' => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'balance' => 'nullable|numeric|min:0',
             'amount' => 'nullable|numeric|min:0',
+            'currency_unit' => 'nullable|string|max:10',
             'budget_date' => 'nullable|date',
             'repeat_this_budget' => 'sometimes|boolean',
+            'wallet_id' => 'nullable|exists:jars,id',
         ]);
 
         $resolvedName = $data['name'] ?? $data['category'];
@@ -47,13 +50,15 @@ class JarController extends Controller
         $jar = $request->user()->jars()->create([
             'name' => $resolvedName,
             'category' => $data['category'] ?? $resolvedName,
+            'icon' => $data['icon'] ?? 'basket-outline',
             'description' => $data['description'] ?? null,
             'balance' => $resolvedBalance,
             'budget_date' => $data['budget_date'] ?? null,
             'repeat_this_budget' => $data['repeat_this_budget'] ?? false,
             'wallet_type' => Jar::TYPE_BUDGET,
-            'currency_unit' => 'VND',
+            'currency_unit' => $data['currency_unit'] ?? 'VND',
             'notifications_enabled' => false,
+            'wallet_id' => $data['wallet_id'] ?? null,
         ]);
 
         return response()->json($jar, 201);
@@ -66,11 +71,14 @@ class JarController extends Controller
         $data = $request->validate([
             'name' => 'sometimes|required|string|max:255',
             'category' => 'sometimes|nullable|string|max:255',
+            'icon' => 'sometimes|nullable|string|max:255',
             'description' => 'nullable|string',
             'balance' => 'sometimes|numeric|min:0',
             'amount' => 'sometimes|numeric|min:0',
+            'currency_unit' => 'sometimes|nullable|string|max:10',
             'budget_date' => 'sometimes|nullable|date',
             'repeat_this_budget' => 'sometimes|boolean',
+            'wallet_id' => 'sometimes|nullable|exists:jars,id',
         ]);
 
         if (array_key_exists('amount', $data)) {
@@ -102,13 +110,28 @@ class JarController extends Controller
         $page = max((int) $request->query('page', 1), 1);
         $perPage = min(max((int) $request->query('per_page', 20), 1), 100);
 
-        $expenseQuery = Expense::query()
-            ->where('jar_id', $jar->id)
-            ->selectRaw("id, 'expense' as type, amount, category, note, null as source, spent_at as date, created_at");
+        $expenseQuery = Expense::query()->where('user_id', $request->user()->id);
+        $incomeQuery = Income::query()->where('user_id', $request->user()->id);
 
-        $incomeQuery = Income::query()
-            ->where('jar_id', $jar->id)
-            ->selectRaw("id, 'income' as type, amount, null as category, null as note, source, received_at as date, created_at");
+        if ($jar->wallet_type === Jar::TYPE_BUDGET) {
+            $categoryName = $jar->category ?: $jar->name;
+
+            $expenseQuery->where(function ($q) use ($jar, $categoryName) {
+                $q->where('jar_id', $jar->id)
+                  ->orWhere('category', $categoryName);
+            });
+
+            $incomeQuery->where(function ($q) use ($jar, $categoryName) {
+                $q->where('jar_id', $jar->id)
+                  ->orWhere('category', $categoryName);
+            });
+        } else {
+            $expenseQuery->where('jar_id', $jar->id);
+            $incomeQuery->where('jar_id', $jar->id);
+        }
+
+        $expenseQuery->selectRaw("id, 'expense' as type, amount, category, note, null as source, spent_at as date, created_at");
+        $incomeQuery->selectRaw("id, 'income' as type, amount, category, null as note, source, received_at as date, created_at");
 
         $combinedQuery = $expenseQuery->unionAll($incomeQuery);
 

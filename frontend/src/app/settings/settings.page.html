@@ -140,15 +140,42 @@
       <form class="modal-form" (ngSubmit)="submitChangePassword()">
         <ion-item>
           <ion-label position="stacked">Current Password</ion-label>
-          <ion-input [(ngModel)]="currentPassword" name="currentPassword" type="password" required></ion-input>
+          <ion-input [(ngModel)]="currentPassword" name="currentPassword" [type]="showCurrentPassword ? 'text' : 'password'" required></ion-input>
+          <ion-button
+            fill="clear"
+            slot="end"
+            type="button"
+            (click)="toggleCurrentPasswordVisibility()"
+            aria-label="Toggle current password visibility"
+          >
+            <ion-icon [name]="showCurrentPassword ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
+          </ion-button>
         </ion-item>
         <ion-item>
           <ion-label position="stacked">New Password</ion-label>
-          <ion-input [(ngModel)]="newPassword" name="newPassword" type="password" required></ion-input>
+          <ion-input [(ngModel)]="newPassword" name="newPassword" [type]="showNewPassword ? 'text' : 'password'" required></ion-input>
+          <ion-button
+            fill="clear"
+            slot="end"
+            type="button"
+            (click)="toggleNewPasswordVisibility()"
+            aria-label="Toggle new password visibility"
+          >
+            <ion-icon [name]="showNewPassword ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
+          </ion-button>
         </ion-item>
         <ion-item>
           <ion-label position="stacked">Confirm New Password</ion-label>
-          <ion-input [(ngModel)]="confirmPassword" name="confirmPassword" type="password" required></ion-input>
+          <ion-input [(ngModel)]="confirmPassword" name="confirmPassword" [type]="showConfirmPassword ? 'text' : 'password'" required></ion-input>
+          <ion-button
+            fill="clear"
+            slot="end"
+            type="button"
+            (click)="toggleConfirmPasswordVisibility()"
+            aria-label="Toggle confirm new password visibility"
+          >
+            <ion-icon [name]="showConfirmPassword ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
+          </ion-button>
         </ion-item>
         <ion-button expand="block" type="submit">Update Password</ion-button>
       </form>
