@@ -12,6 +12,7 @@ $defaultOrigins = [
     'https://localhost',
     'capacitor://localhost',
     'ionic://localhost',
+    'https://jarvis-budget.onrender.com',
 ];
 
 return [

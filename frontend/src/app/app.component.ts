@@ -5,6 +5,7 @@ import { addIcons } from 'ionicons';
 import { add } from 'ionicons/icons';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs/operators';
+import { SwUpdate, VersionReadyEvent } from '@angular/service-worker';
 
 @Component({
   selector: 'app-root',
@@ -15,9 +16,14 @@ import { filter } from 'rxjs/operators';
 export class AppComponent implements OnInit {
   fabConfig$: Observable<FabConfig>;
 
-  constructor(private fabService: FabService, private router: Router) {
+  constructor(
+    private fabService: FabService,
+    private router: Router,
+    private swUpdate: SwUpdate
+  ) {
     addIcons({ add });
     this.fabConfig$ = this.fabService.fabConfig$;
+    this.checkUpdate();
   }
 
   ngOnInit() {
@@ -28,6 +34,18 @@ export class AppComponent implements OnInit {
       });
 
     this.sanitizeInteractionLayers();
+  }
+
+  private checkUpdate() {
+    if (this.swUpdate.isEnabled) {
+      this.swUpdate.versionUpdates
+        .pipe(filter((evt): evt is VersionReadyEvent => evt.type === 'VERSION_READY'))
+        .subscribe(() => {
+          if (confirm('New version available. Update now?')) {
+            window.location.reload();
+          }
+        });
+    }
   }
 
   onFabClick(config: FabConfig) {
