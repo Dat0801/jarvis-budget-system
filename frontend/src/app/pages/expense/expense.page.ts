@@ -2,8 +2,9 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { IonicModule } from '@ionic/angular';
+import { IonicModule, ModalController } from '@ionic/angular';
 import { PageHeaderComponent } from '../../shared/page-header/page-header.component';
+import { CategoriesPage } from '../categories/categories.page';
 import { ExpenseService } from '../../services/expense.service';
 import { IncomeService } from '../../services/income.service';
 import { Wallet, WalletService } from '../../services/wallet.service';
@@ -81,7 +82,8 @@ export class ExpensePage implements OnInit {
     private walletService: WalletService,
     private categoryService: CategoryService,
     private route: ActivatedRoute,
-    private router: Router
+    private router: Router,
+    private modalController: ModalController
   ) {}
 
   ngOnInit(): void {
@@ -318,15 +320,27 @@ export class ExpensePage implements OnInit {
       });
   }
 
-  openCategorySelector(): void {
-    this.router.navigate(['/tabs/categories'], {
-      queryParams: {
-        selectMode: '1',
-        type: this.segmentValue === 'income' ? 'income' : this.segmentValue === 'debtLoan' ? 'debtLoan' : 'expense',
-        ...(this.amount ? { amount: this.amount } : {}),
-        returnUrl: '/expense',
+  async openCategorySelector(): Promise<void> {
+    const modal = await this.modalController.create({
+      component: CategoriesPage,
+      componentProps: {
+        isModal: true,
+        initialSelectMode: true,
+        initialTab: this.segmentValue === 'income' ? 'income' : this.segmentValue === 'debtLoan' ? 'debtLoan' : 'expense',
+        initialJarId: this.jarId || undefined,
+        initialReturnUrl: '/expense',
       },
     });
+
+    await modal.present();
+
+    const { data } = await modal.onDidDismiss();
+    if (data && data.selectedCategory) {
+      this.selectedExpenseCategoryValue = data.selectedCategory;
+      if (data.tab) {
+        this.segmentValue = data.tab;
+      }
+    }
   }
 
   openDatePicker(): void {
@@ -419,12 +433,25 @@ export class ExpensePage implements OnInit {
     }).format(date);
   }
 
-  onAmountChange(value: string | number | null | undefined): void {
-    this.amount = String(value ?? '').replace(/\D+/g, '');
-  }
-
-  onAmountBlur(): void {
-    this.amount = formatVndAmountInput(this.amount);
+  onAmountInput(event: any): void {
+    const input = event.target as HTMLInputElement;
+    const originalValue = input.value || '';
+    const digits = originalValue.replace(/\D/g, '');
+    const formatted = formatVndAmountInput(digits);
+    
+    if (this.amount !== formatted) {
+      const cursor = input.selectionStart || 0;
+      const digitsBeforeCursor = originalValue.substring(0, cursor).replace(/\D/g, '').length;
+      this.amount = formatted;
+      input.value = formatted;
+      let newCursor = 0;
+      let digitsFound = 0;
+      for (let i = 0; i < formatted.length && digitsFound < digitsBeforeCursor; i++) {
+        if (/\d/.test(formatted[i])) digitsFound++;
+        newCursor = i + 1;
+      }
+      input.setSelectionRange(newCursor, newCursor);
+    }
   }
 
   loadExpenses(): void {
@@ -476,8 +503,25 @@ export class ExpensePage implements OnInit {
     });
   }
 
-  onEditAmountInput(event: CustomEvent): void {
-    this.editAmount = formatVndAmountInput(event.detail?.value);
+  onEditAmountInput(event: any): void {
+    const input = event.target as HTMLInputElement;
+    const originalValue = input.value || '';
+    const digits = originalValue.replace(/\D/g, '');
+    const formatted = formatVndAmountInput(digits);
+    
+    if (this.editAmount !== formatted) {
+      const cursor = input.selectionStart || 0;
+      const digitsBeforeCursor = originalValue.substring(0, cursor).replace(/\D/g, '').length;
+      this.editAmount = formatted;
+      input.value = formatted;
+      let newCursor = 0;
+      let digitsFound = 0;
+      for (let i = 0; i < formatted.length && digitsFound < digitsBeforeCursor; i++) {
+        if (/\d/.test(formatted[i])) digitsFound++;
+        newCursor = i + 1;
+      }
+      input.setSelectionRange(newCursor, newCursor);
+    }
   }
 
   deleteExpense(id: number): void {

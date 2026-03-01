@@ -173,8 +173,8 @@ export class HomePage implements OnInit {
     this.router.navigate(['/tabs/wallets']);
   }
 
-  openWalletDetail(): void {
-    this.router.navigate(['/tabs/transactions']);
+  openWalletDetail(jar: Wallet): void {
+    this.router.navigate(['/tabs/transactions'], { queryParams: { jarId: jar.id } });
   }
 
   openTransactionDetail(transaction: Transaction): void {

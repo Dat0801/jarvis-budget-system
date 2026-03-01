@@ -2,6 +2,7 @@
   title="Add Transaction"
   [translucent]="true"
   [showBack]="true"
+  [useCloseIcon]="true"
   backHref="/tabs/transactions"
   headerClass="transaction-header"
 ></app-page-header>
@@ -30,7 +31,7 @@
             type="text"
             inputmode="numeric"
             placeholder="0"
-            [(ngModel)]="amount"
+            [value]="amount"
             (ionInput)="onAmountInput($event)"
             name="amount"
             required

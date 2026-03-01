@@ -1,16 +1,53 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { IonicModule } from '@ionic/angular';
+import { IonicModule, ModalController } from '@ionic/angular';
 import { PageHeaderComponent } from '../../shared/page-header/page-header.component';
+import { CategoriesPage } from '../categories/categories.page';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Budget, BudgetService } from '../../services/budget.service';
 import { CategoryService, CategoryTreeNode } from '../../services/category.service';
 import { FabService } from '../../services/fab.service';
 import { ExpenseService } from '../../services/expense.service';
+import { WalletService, Wallet } from '../../services/wallet.service';
 import { formatVndAmountInput, parseVndAmount } from '../../utils/vnd-amount.util';
 import { catchError, finalize, forkJoin, of } from 'rxjs';
 import { formatCurrencyAmount, getStoredCurrencyCode } from '../../utils/currency.util';
+import { addIcons } from 'ionicons';
+import {
+  closeOutline,
+  chevronForwardOutline,
+  basketOutline,
+  walletOutline,
+  cashOutline,
+  cardOutline,
+  briefcaseOutline,
+  homeOutline,
+  carOutline,
+  airplaneOutline,
+  giftOutline,
+  heartOutline,
+  fitnessOutline,
+  schoolOutline,
+  restaurantOutline,
+  cartOutline,
+  shirtOutline,
+  constructOutline,
+  hammerOutline,
+  flashOutline,
+  waterOutline,
+  wifiOutline,
+  tvOutline,
+  phonePortraitOutline,
+  gameControllerOutline,
+  musicalNotesOutline,
+  cameraOutline,
+  brushOutline,
+  colorWandOutline,
+  starOutline,
+  happyOutline,
+  shieldCheckmarkOutline,
+} from 'ionicons/icons';
 
 type BudgetPeriod = 'week' | 'month' | 'quarter' | 'year';
 
@@ -37,13 +74,29 @@ export class JarsPage implements OnInit {
   totalSpent = 0;
   isLoadingJars = false;
   isCreateJarOpen = false;
+  isIconPickerOpen = false;
   selectedBudgetCategoryValue = '';
   budgetAmount = '';
+  budgetIcon = 'basket-outline';
+  budgetCurrency = 'VND';
+  budgetWalletId: number | null = null;
   budgetPeriod: BudgetPeriod = 'month';
   repeatThisBudget = false;
   budgetCategories: CategoryTreeNode[] = [];
+  wallets: Wallet[] = [];
   readonly categorySelectInterfaceOptions = { cssClass: 'category-tree-sheet' };
   readonly budgetPeriodOptions: BudgetPeriod[] = ['week', 'month', 'quarter', 'year'];
+  readonly currencyOptions = ['VND', 'USD', 'EUR', 'JPY', 'GBP'];
+  readonly budgetIcons = [
+    'basket-outline', 'cart-outline', 'restaurant-outline', 'cafe-outline',
+    'home-outline', 'car-outline', 'airplane-outline', 'bus-outline',
+    'shirt-outline', 'gift-outline', 'heart-outline', 'fitness-outline',
+    'school-outline', 'briefcase-outline', 'wallet-outline', 'cash-outline',
+    'card-outline', 'game-controller-outline', 'musical-notes-outline', 'tv-outline',
+    'phone-portrait-outline', 'wifi-outline', 'flash-outline', 'water-outline',
+    'hammer-outline', 'construct-outline', 'brush-outline', 'color-wand-outline',
+    'camera-outline', 'star-outline', 'happy-outline', 'shield-checkmark-outline'
+  ];
   private readonly targetOverrides = [
     { match: 'emergency', target: 10000 },
     { match: 'car', target: 45000 },
@@ -55,10 +108,47 @@ export class JarsPage implements OnInit {
     private budgetService: BudgetService,
     private expenseService: ExpenseService,
     private categoryService: CategoryService,
+    private walletService: WalletService,
     private fabService: FabService,
     private route: ActivatedRoute,
-    private router: Router
-  ) {}
+    private router: Router,
+    private modalController: ModalController
+  ) {
+    addIcons({
+      closeOutline,
+      chevronForwardOutline,
+      basketOutline,
+      walletOutline,
+      cashOutline,
+      cardOutline,
+      briefcaseOutline,
+      homeOutline,
+      carOutline,
+      airplaneOutline,
+      giftOutline,
+      heartOutline,
+      fitnessOutline,
+      schoolOutline,
+      restaurantOutline,
+      cartOutline,
+      shirtOutline,
+      constructOutline,
+      hammerOutline,
+      flashOutline,
+      waterOutline,
+      wifiOutline,
+      tvOutline,
+      phonePortraitOutline,
+      gameControllerOutline,
+      musicalNotesOutline,
+      cameraOutline,
+      brushOutline,
+      colorWandOutline,
+      starOutline,
+      happyOutline,
+      shieldCheckmarkOutline,
+    });
+  }
 
   ngOnInit(): void {
     this.route.queryParamMap.subscribe((params) => {
@@ -84,7 +174,25 @@ export class JarsPage implements OnInit {
     });
 
     this.loadBudgetCategories();
+    this.loadWallets();
     this.loadJars();
+  }
+
+  loadWallets(): void {
+    this.walletService.list().subscribe((wallets) => {
+      this.wallets = wallets;
+      
+      // Set default wallet to 'Cash' if available
+      if (this.wallets.length > 0 && !this.budgetWalletId) {
+        const cashWallet = this.wallets.find(w => 
+          w.name.toLowerCase().includes('cash') || 
+          w.name.toLowerCase().includes('tiền mặt')
+        );
+        if (cashWallet) {
+          this.budgetWalletId = cashWallet.id;
+        }
+      }
+    });
   }
 
   ionViewWillEnter(): void {
@@ -120,6 +228,19 @@ export class JarsPage implements OnInit {
     this.resetCreateForm();
   }
 
+  openIconPicker(): void {
+    this.isIconPickerOpen = true;
+  }
+
+  closeIconPicker(): void {
+    this.isIconPickerOpen = false;
+  }
+
+  selectIcon(icon: string): void {
+    this.budgetIcon = icon;
+    this.closeIconPicker();
+  }
+
   submitCreateJar(): void {
     const category = this.selectedBudgetCategoryLabel;
     const amount = parseVndAmount(this.budgetAmount);
@@ -129,18 +250,42 @@ export class JarsPage implements OnInit {
     this.createJar({
       category,
       amount,
+      icon: this.budgetIcon,
+      currency_unit: this.budgetCurrency,
+      wallet_id: this.budgetWalletId,
       budget_date: this.getSelectedPeriodStartDate(),
       repeat_this_budget: this.repeatThisBudget,
     });
     this.closeCreateJar();
   }
 
-  onBudgetAmountChange(value: string | number | null | undefined): void {
-    this.budgetAmount = String(value ?? '').replace(/\D+/g, '');
-  }
-
-  onBudgetAmountBlur(): void {
-    this.budgetAmount = formatVndAmountInput(this.budgetAmount);
+  onBudgetAmountInput(event: any): void {
+    const input = event.target as HTMLInputElement;
+    const originalValue = input.value || '';
+    
+    // Extract only digits
+    const digits = originalValue.replace(/\D/g, '');
+    const formatted = formatVndAmountInput(digits);
+    
+    if (this.budgetAmount !== formatted) {
+      // Save cursor position
+      const cursor = input.selectionStart || 0;
+      const digitsBeforeCursor = originalValue.substring(0, cursor).replace(/\D/g, '').length;
+      
+      this.budgetAmount = formatted;
+      input.value = formatted;
+      
+      // Restore cursor position
+      let newCursor = 0;
+      let digitsFound = 0;
+      for (let i = 0; i < formatted.length && digitsFound < digitsBeforeCursor; i++) {
+        if (/\d/.test(formatted[i])) {
+          digitsFound++;
+        }
+        newCursor = i + 1;
+      }
+      input.setSelectionRange(newCursor, newCursor);
+    }
   }
 
   get canSaveJar(): boolean {
@@ -184,20 +329,28 @@ export class JarsPage implements OnInit {
     return selected.subCategoryName || selected.categoryName;
   }
 
-  openCategorySelector(): void {
-    this.isCreateJarOpen = false;
-
-    const urlTree = this.router.createUrlTree(['/tabs/categories'], {
-      queryParams: {
-        selectMode: '1',
-        type: 'expense',
-        returnUrl: '/tabs/budgets',
-        returnMode: 'createBudget',
+  async openCategorySelector(): Promise<void> {
+    const modal = await this.modalController.create({
+      component: CategoriesPage,
+      componentProps: {
+        isModal: true,
+        initialSelectMode: true,
+        initialTab: 'expense',
+        initialReturnUrl: '/tabs/budgets',
+        initialReturnMode: 'createBudget',
       },
     });
 
-    const url = this.router.serializeUrl(urlTree);
-    window.location.href = url;
+    await modal.present();
+
+    const { data } = await modal.onDidDismiss();
+    if (data && data.selectedCategory) {
+      this.selectedBudgetCategoryValue = data.selectedCategory;
+      this.isCreateJarOpen = true;
+    } else {
+      // Re-open the create budget modal if canceled
+      this.isCreateJarOpen = true;
+    }
   }
 
   get selectedPeriodLabel(): string {
@@ -313,6 +466,10 @@ export class JarsPage implements OnInit {
   }
 
   getJarIcon(jar: Budget): string {
+    if (jar.icon) {
+      return jar.icon;
+    }
+
     const name = jar.name.toLowerCase();
     if (name.includes('emergency')) {
       return 'shield-checkmark';
@@ -323,7 +480,7 @@ export class JarsPage implements OnInit {
     if (name.includes('trip')) {
       return 'airplane';
     }
-    return 'wallet';
+    return 'basket-outline';
   }
 
   getJarIconClass(jar: Budget): string {
@@ -367,6 +524,9 @@ export class JarsPage implements OnInit {
   private createJar(payload: {
     category: string;
     amount: number;
+    icon?: string;
+    currency_unit?: string;
+    wallet_id?: number | null;
     budget_date: string;
     repeat_this_budget: boolean;
   }): void {
@@ -387,6 +547,20 @@ export class JarsPage implements OnInit {
   private resetCreateForm(): void {
     this.selectedBudgetCategoryValue = '';
     this.budgetAmount = '';
+    this.budgetIcon = 'basket-outline';
+    this.budgetCurrency = 'VND';
+    
+    // Default to 'Cash' wallet if available
+    if (this.wallets.length > 0) {
+      const cashWallet = this.wallets.find(w => 
+        w.name.toLowerCase().includes('cash') || 
+        w.name.toLowerCase().includes('tiền mặt')
+      );
+      this.budgetWalletId = cashWallet ? cashWallet.id : null;
+    } else {
+      this.budgetWalletId = null;
+    }
+    
     this.budgetPeriod = 'month';
     this.repeatThisBudget = false;
   }

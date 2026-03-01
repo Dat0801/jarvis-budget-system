@@ -6,7 +6,18 @@ const routes: Routes = [
   {
     path: '',
     component: CategoriesPage,
+    title: 'Categories',
   },
+  {
+    path: 'new',
+    loadComponent: () => import('./category-detail/category-detail.page').then(m => m.CategoryDetailPage),
+    title: 'Add Category',
+  },
+  {
+    path: ':id',
+    loadComponent: () => import('./category-detail/category-detail.page').then(m => m.CategoryDetailPage),
+    title: 'Category Detail',
+  }
 ];
 
 @NgModule({

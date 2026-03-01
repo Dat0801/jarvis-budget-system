@@ -4,9 +4,11 @@
       <ion-back-button
         [defaultHref]="backHref || undefined"
         text=""
-        icon="chevron-back-outline"
+        [icon]="backIcon"
       ></ion-back-button>
     </ion-buttons>
+
+    <ng-content select="[slot='start']"></ng-content>
 
     <ion-title>{{ title }}</ion-title>
 

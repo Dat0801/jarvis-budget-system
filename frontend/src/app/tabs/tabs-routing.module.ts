@@ -6,14 +6,17 @@ const routes: Routes = [
   {
     path: 'tabs',
     component: TabsPage,
+    title: 'Jarvis Budget',
     children: [
       {
         path: 'dashboard',
-        loadChildren: () => import('../home/home.module').then(m => m.HomePageModule)
+        loadChildren: () => import('../home/home.module').then(m => m.HomePageModule),
+        title: 'Dashboard',
       },
       {
         path: 'transactions',
-        loadChildren: () => import('../transactions/transactions.module').then(m => m.TransactionsPageModule)
+        loadChildren: () => import('../transactions/transactions.module').then(m => m.TransactionsPageModule),
+        title: 'Transactions',
       },
       {
         path: 'stats',
@@ -22,23 +25,28 @@ const routes: Routes = [
       },
       {
         path: 'notes',
-        loadChildren: () => import('../pages/notes/notes.module').then(m => m.NotesPageModule)
+        loadChildren: () => import('../pages/notes/notes.module').then(m => m.NotesPageModule),
+        title: 'Notes',
       },
       {
         path: 'budgets',
-        loadChildren: () => import('../pages/jars/jars.module').then(m => m.JarsPageModule)
+        loadChildren: () => import('../pages/jars/jars.module').then(m => m.JarsPageModule),
+        title: 'Budget Jars',
       },
       {
         path: 'settings',
-        loadChildren: () => import('../settings/settings.module').then(m => m.SettingsPageModule)
+        loadChildren: () => import('../settings/settings.module').then(m => m.SettingsPageModule),
+        title: 'Settings',
       },
       {
         path: 'categories',
-        loadChildren: () => import('../pages/categories/categories.module').then(m => m.CategoriesPageModule)
+        loadChildren: () => import('../pages/categories/categories.module').then(m => m.CategoriesPageModule),
+        title: 'Categories',
       },
       {
         path: 'wallets',
-        loadChildren: () => import('../pages/wallets/wallets.module').then(m => m.WalletsPageModule)
+        loadChildren: () => import('../pages/wallets/wallets.module').then(m => m.WalletsPageModule),
+        title: 'Wallets',
       },
       {
         path: '',

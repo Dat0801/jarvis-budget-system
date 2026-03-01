@@ -45,7 +45,7 @@
         type="button"
         class="wallet-card"
         *ngFor="let jar of jars; let i = index; trackBy: trackByWalletId"
-        (click)="openWalletDetail()"
+        (click)="openWalletDetail(jar)"
       >
         <div class="wallet-head">
           <div class="wallet-icon" [class.alt]="i % 2 === 1">

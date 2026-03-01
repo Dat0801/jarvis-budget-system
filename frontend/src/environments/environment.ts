@@ -4,7 +4,8 @@
 
 export const environment = {
   production: false,
-  apiUrl: 'https://jarvis-budget-system.onrender.com/api'
+  // apiUrl: 'https://jarvis-budget-system.onrender.com/api'
+  apiUrl: 'http://localhost:8000/api',
 };
 
 /*

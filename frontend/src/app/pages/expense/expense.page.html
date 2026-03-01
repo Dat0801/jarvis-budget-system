@@ -2,6 +2,7 @@
   [title]="isEditMode ? 'Edit Transaction' : 'Add Transaction'"
   [translucent]="true"
   [showBack]="true"
+  [useCloseIcon]="true"
   backHref="/tabs/transactions"
   headerClass="transaction-header"
 ></app-page-header>
@@ -38,9 +39,8 @@
             type="text"
             inputmode="numeric"
             placeholder="0"
-            [(ngModel)]="amount"
-            (ngModelChange)="onAmountChange($event)"
-            (ionBlur)="onAmountBlur()"
+            [value]="amount"
+            (ionInput)="onAmountInput($event)"
             name="amount"
             required
           ></ion-input>
@@ -156,7 +156,7 @@
           <ion-input
             type="text"
             inputmode="numeric"
-            [(ngModel)]="editAmount"
+            [value]="editAmount"
             (ionInput)="onEditAmountInput($event)"
             name="editAmount"
             required

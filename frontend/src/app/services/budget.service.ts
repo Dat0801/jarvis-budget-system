@@ -4,12 +4,15 @@ import { ApiService } from './api.service';
 export interface Budget {
   id: number;
   name: string;
+  icon?: string | null;
   category?: string | null;
   balance: string;
   description?: string | null;
   target?: number;
   budget_date?: string | null;
   repeat_this_budget?: boolean;
+  currency_unit?: string;
+  wallet_id?: number | null;
 }
 
 export interface Transaction {
@@ -23,6 +26,7 @@ export interface Transaction {
   created_at: string;
   spent_at?: string;
   received_at?: string;
+  date?: string;
 }
 
 export interface PaginatedTransactions {
@@ -48,11 +52,14 @@ export class BudgetService {
   create(payload: {
     name?: string;
     category?: string;
+    icon?: string;
     description?: string | null;
     balance?: number;
     amount?: number;
+    currency_unit?: string;
     budget_date?: string;
     repeat_this_budget?: boolean;
+    wallet_id?: number | null;
   }) {
     return this.api.post<Budget>('budgets', payload);
   }
@@ -60,11 +67,14 @@ export class BudgetService {
   update(id: number, payload: {
     name?: string;
     category?: string;
+    icon?: string;
     description?: string | null;
     balance?: number;
     amount?: number;
+    currency_unit?: string;
     budget_date?: string | null;
     repeat_this_budget?: boolean;
+    wallet_id?: number | null;
   }) {
     return this.api.patch<Budget>(`budgets/${id}`, payload);
   }

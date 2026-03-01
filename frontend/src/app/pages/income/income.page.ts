@@ -141,8 +141,25 @@ export class IncomePage implements OnInit {
     this.closeDatePicker();
   }
 
-  onAmountInput(event: CustomEvent): void {
-    this.amount = formatVndAmountInput(event.detail?.value);
+  onAmountInput(event: any): void {
+    const input = event.target as HTMLInputElement;
+    const originalValue = input.value || '';
+    const digits = originalValue.replace(/\D/g, '');
+    const formatted = formatVndAmountInput(digits);
+    
+    if (this.amount !== formatted) {
+      const cursor = input.selectionStart || 0;
+      const digitsBeforeCursor = originalValue.substring(0, cursor).replace(/\D/g, '').length;
+      this.amount = formatted;
+      input.value = formatted;
+      let newCursor = 0;
+      let digitsFound = 0;
+      for (let i = 0; i < formatted.length && digitsFound < digitsBeforeCursor; i++) {
+        if (/\d/.test(formatted[i])) digitsFound++;
+        newCursor = i + 1;
+      }
+      input.setSelectionRange(newCursor, newCursor);
+    }
   }
 
   private getTodayDate(): string {

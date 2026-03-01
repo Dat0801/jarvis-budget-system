@@ -28,4 +28,9 @@ class TransactionCategory extends Model
     {
         return $this->hasMany(TransactionCategory::class, 'parent_id');
     }
+
+    public function jars()
+    {
+        return $this->belongsToMany(Jar::class, 'category_jar', 'transaction_category_id', 'jar_id');
+    }
 }

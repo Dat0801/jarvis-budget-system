@@ -5,11 +5,13 @@ import { AuthGuard } from './guards/auth.guard';
 const routes: Routes = [
   {
     path: 'auth/login',
-    loadChildren: () => import('./pages/auth/login/login.module').then(m => m.LoginPageModule)
+    loadChildren: () => import('./pages/auth/login/login.module').then(m => m.LoginPageModule),
+    title: 'Login',
   },
   {
     path: 'auth/register',
-    loadChildren: () => import('./pages/auth/register/register.module').then(m => m.RegisterPageModule)
+    loadChildren: () => import('./pages/auth/register/register.module').then(m => m.RegisterPageModule),
+    title: 'Register',
   },
   {
     path: 'income',
@@ -19,7 +21,8 @@ const routes: Routes = [
   {
     path: 'expense',
     canActivate: [AuthGuard],
-    loadChildren: () => import('./pages/expense/expense.module').then(m => m.ExpensePageModule)
+    loadChildren: () => import('./pages/expense/expense.module').then(m => m.ExpensePageModule),
+    title: 'Add Expense',
   },
   {
     path: 'notes',
@@ -29,7 +32,8 @@ const routes: Routes = [
   {
     path: '',
     canActivate: [AuthGuard],
-    loadChildren: () => import('./tabs/tabs.module').then(m => m.TabsPageModule)
+    loadChildren: () => import('./tabs/tabs.module').then(m => m.TabsPageModule),
+    title: 'Jarvis Budget',
   }
 ];
 @NgModule({

@@ -1,42 +1,33 @@
 export function formatVndAmountInput(value: string | number | null | undefined): string {
-  const raw = String(value ?? '').trim();
+  if (value === null || value === undefined) {
+    return '';
+  }
 
+  const raw = String(value).trim();
   if (!raw) {
     return '';
   }
 
-  const decimalPattern = /^-?\d+(\.\d{1,2})$/;
-
-  let amount: number | null = null;
-
-  if (typeof value === 'number') {
-    amount = value;
-  } else if (decimalPattern.test(raw)) {
-    amount = Number.parseFloat(raw);
-  } else {
-    const digits = raw.replace(/\D+/g, '');
-    if (!digits) {
-      return '';
-    }
-    amount = Number(digits);
-  }
-
-  if (!Number.isFinite(amount) || amount <= 0) {
+  // Extract only digits
+  const digits = raw.replace(/\D/g, '');
+  if (!digits) {
     return '';
   }
 
-  return new Intl.NumberFormat('vi-VN', {
-    maximumFractionDigits: 0,
-  }).format(Math.round(amount));
+  // Simple regex-based thousand separator for VND
+  // This is more stable than Intl.NumberFormat in some environments
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 }
 
 export function parseVndAmount(value: string | number | null | undefined): number | null {
-  const digits = String(value ?? '').replace(/\D+/g, '');
+  if (value === null || value === undefined) return null;
+  const raw = String(value).trim();
+  const digits = raw.replace(/\D/g, '');
 
   if (!digits) {
     return null;
   }
 
-  const amount = Number(digits);
-  return Number.isFinite(amount) && amount > 0 ? amount : null;
+  const amount = parseInt(digits, 10);
+  return isNaN(amount) || amount <= 0 ? null : amount;
 }
