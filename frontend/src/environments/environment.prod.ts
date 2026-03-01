@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://jarvis-budget-system.onrender.com/api'
+  apiUrl: 'https://api-jarvis-budget.onrender.com/api'
 };
