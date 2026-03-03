@@ -236,7 +236,7 @@ export class HomePage implements OnInit {
             jarId: income.jar_id ?? null,
             jarName: income?.jar?.name || 'Wallet',
             title: income.source || 'Income',
-            note: '',
+            note: income.note || '',
             timeLabel: this.formatDateLabel(transactionDate),
             date: transactionDate,
             amount: Math.abs(Number(income.amount) || 0),

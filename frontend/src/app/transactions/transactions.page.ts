@@ -239,10 +239,11 @@ export class TransactionsPage implements OnInit {
           .filter(item => !this.selectedJarId || Number(item.jar_id) === this.selectedJarId)
           .map((item) => {
           const date = this.parseDate(item.spent_at || item.created_at);
+          const walletName = jarById[Number(item.jar_id)] || 'Wallet';
           return {
             id: `expense-${item.id}`,
-            title: item.note || item.category || 'Expense',
-            subtitle: `${item.category || jarById[Number(item.jar_id)] || 'Expense'} • ${this.formatDate(
+            title: item.category || 'Expense',
+            subtitle: `${item.note ? item.note + ' • ' : ''}${walletName} • ${this.formatDate(
               date
             )} • ${this.formatTime(date)}`,
             amount: Math.abs(Number(item.amount) || 0),
@@ -257,10 +258,11 @@ export class TransactionsPage implements OnInit {
           .filter(item => !this.selectedJarId || Number(item.jar_id) === this.selectedJarId)
           .map((item) => {
           const date = this.parseDate(item.received_at || item.created_at);
+          const walletName = jarById[Number(item.jar_id)] || 'Wallet';
           return {
             id: `income-${item.id}`,
             title: item.source || 'Income',
-            subtitle: `Income • ${this.formatDate(date)} • ${this.formatTime(date)}`,
+            subtitle: `${(item as any).note ? (item as any).note + ' • ' : ''}${walletName} • ${this.formatDate(date)} • ${this.formatTime(date)}`,
             amount: Math.abs(Number(item.amount) || 0),
             type: 'income' as const,
             icon: 'cash-outline',

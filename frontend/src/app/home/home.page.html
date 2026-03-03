@@ -273,7 +273,10 @@
         </div>
         <div class="tx-meta">
           <div class="tx-title">{{ tx.title }}</div>
-          <div class="tx-sub">{{ tx.jarName }} • {{ tx.timeLabel }}</div>
+          <div class="tx-sub">
+            <span *ngIf="tx.note">{{ tx.note }} • </span>
+            {{ tx.jarName }} • {{ tx.timeLabel }}
+          </div>
         </div>
         <div class="tx-amount" [class.income]="tx.type === 'income'" [class.expense]="tx.type === 'expense'">
           {{ formatCurrency(tx.amount) }}

@@ -619,21 +619,19 @@ export class ExpensePage implements OnInit {
     if (this.editModeType === 'income') {
       this.isSaving = true;
       const jarId = this.jarId || undefined;
-      const source = this.source || undefined;
+      const source = this.source || '';
       const receivedAt = this.receivedAt || undefined;
+      const category = selectedCategory;
 
       this.incomeService
-        .remove(this.editModeId)
+        .update(this.editModeId, {
+          jar_id: jarId,
+          amount: parsedAmount,
+          category: category,
+          source,
+          received_at: receivedAt,
+        })
         .pipe(
-          switchMap(() =>
-            this.incomeService.create({
-              jar_id: jarId,
-              amount: parsedAmount,
-              category: selectedCategory,
-              source,
-              received_at: receivedAt,
-            })
-          ),
           finalize(() => {
             this.isSaving = false;
           })
@@ -650,7 +648,7 @@ export class ExpensePage implements OnInit {
         jar_id: this.jarId || undefined,
         amount: parsedAmount,
         category: selectedCategory,
-        note: this.note || undefined,
+        note: this.note || '',
         spent_at: this.spentAt || undefined,
       })
       .pipe(

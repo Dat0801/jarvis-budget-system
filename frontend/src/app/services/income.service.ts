@@ -17,7 +17,7 @@ export class IncomeService {
     return this.api.post('incomes', payload);
   }
 
-  update(id: number, payload: { source?: string; received_at?: string }) {
+  update(id: number, payload: { jar_id?: number; amount?: number; category?: string; source?: string; received_at?: string }) {
     return this.api.patch(`incomes/${id}`, payload);
   }
 
