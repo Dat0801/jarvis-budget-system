@@ -78,6 +78,13 @@
 	padding: 16px;
 	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 	position: relative;
+	cursor: pointer;
+	transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+	&:active {
+		transform: scale(0.98);
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	}
 
 	.note-header {
 		display: flex;
@@ -101,8 +108,54 @@
 		}
 
 		&.badge-done {
-			background: #d1fae5;
-			color: #065f46;
+			background: #dcfce7;
+			color: #166534;
+		}
+	}
+
+	.note-type-badge {
+		margin-left: 8px;
+		display: inline-block;
+		padding: 4px 12px;
+		border-radius: 6px;
+		font-size: 11px;
+		font-weight: 700;
+		letter-spacing: 0.5px;
+		text-transform: uppercase;
+		background: #fee2e2;
+		color: #991b1b;
+	}
+
+	.debt-info {
+		margin-top: 8px;
+		margin-bottom: 8px;
+		padding: 10px;
+		background: #f9fafb;
+		border-radius: 8px;
+		border-left: 3px solid #ef4444;
+
+		.debt-row {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			color: #4b5563;
+			font-size: 13px;
+			margin-bottom: 4px;
+
+			&:last-child {
+				margin-bottom: 0;
+			}
+
+			ion-icon {
+				font-size: 16px;
+				color: #6b7280;
+			}
+
+			.interest-rate {
+				color: #991b1b;
+				font-weight: 600;
+				margin-left: 4px;
+			}
 		}
 	}
 
@@ -157,6 +210,45 @@
 		color: #9ca3af;
 		line-height: 1.5;
 	}
+}
+
+.date-select-item {
+	--padding-top: 6px;
+	--padding-bottom: 6px;
+
+	.field-title {
+		font-size: 12px;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+		color: var(--ion-color-medium);
+		margin-bottom: 2px;
+	}
+
+	.field-value {
+		font-size: 16px;
+		font-weight: 500;
+		color: #1f1f1f;
+	}
+
+	ion-icon[slot='end'] {
+		font-size: 18px;
+		color: #9a9a9a;
+	}
+}
+
+.date-picker-modal-card {
+	// Global styles in global.scss now handle full screen
+}
+
+.date-picker-modal-card ion-content {
+	--background: #ffffff;
+	--overflow: auto;
+}
+
+.date-picker-modal-card ion-datetime {
+	width: 100%;
+	max-width: 100%;
+	height: 100%;
 }
 
 /* Floating Action Button */

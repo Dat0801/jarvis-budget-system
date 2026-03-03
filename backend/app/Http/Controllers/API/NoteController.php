@@ -13,6 +13,12 @@ class NoteController extends Controller
         return response()->json($request->user()->notes()->latest()->get());
     }
 
+    public function show(Request $request, Note $note)
+    {
+        $this->authorizeNote($request, $note);
+        return response()->json($note);
+    }
+
     public function reminderCount(Request $request)
     {
         $count = $request->user()
@@ -26,10 +32,30 @@ class NoteController extends Controller
         return response()->json(['count' => $count]);
     }
 
+    public function dueReminders(Request $request)
+    {
+        $notes = $request->user()
+            ->notes()
+            ->whereNotNull('reminder_date')
+            ->whereDate('reminder_date', '<=', now()->toDateString())
+            ->where(function ($query) {
+                $query->whereNull('is_completed')->orWhere('is_completed', false);
+            })
+            ->latest()
+            ->get();
+
+        return response()->json($notes);
+    }
+
     public function store(Request $request)
     {
         $data = $request->validate([
+            'type' => 'nullable|string|in:general,debt',
             'title' => 'required|string|max:255',
+            'debtor_name' => 'nullable|string|max:255',
+            'amount' => 'nullable|numeric',
+            'interest_rate' => 'nullable|numeric',
+            'interest_amount' => 'nullable|numeric',
             'body' => 'nullable|string',
             'reminder_date' => 'nullable|date',
             'is_completed' => 'nullable|boolean',
@@ -45,7 +71,12 @@ class NoteController extends Controller
         $this->authorizeNote($request, $note);
 
         $data = $request->validate([
+            'type' => 'sometimes|string|in:general,debt',
             'title' => 'sometimes|required|string|max:255',
+            'debtor_name' => 'nullable|string|max:255',
+            'amount' => 'nullable|numeric',
+            'interest_rate' => 'nullable|numeric',
+            'interest_amount' => 'nullable|numeric',
             'body' => 'nullable|string',
             'reminder_date' => 'nullable|date',
             'is_notified' => 'nullable|boolean',

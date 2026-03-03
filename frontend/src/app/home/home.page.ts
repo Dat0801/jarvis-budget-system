@@ -8,7 +8,7 @@ import { catchError, finalize, forkJoin, of } from 'rxjs';
 import { Wallet, WalletService } from '../services/wallet.service';
 import { ExpenseService } from '../services/expense.service';
 import { IncomeService } from '../services/income.service';
-import { NoteService } from '../services/note.service';
+import { Note, NoteService } from '../services/note.service';
 import { IncomeVsExpenses, StatsService } from '../services/stats.service';
 import { CategoryService, CategoryTreeNode } from '../services/category.service';
 import { PageHeaderComponent } from '../shared/page-header/page-header.component';
@@ -57,6 +57,7 @@ export class HomePage implements OnInit {
   filteredTransactions: Transaction[] = [];
   searchTerm = '';
   notificationCount = 0;
+  dueNotes: Note[] = [];
   isLoadingDashboard = false;
 
   monthLabel = '';
@@ -193,6 +194,7 @@ export class HomePage implements OnInit {
       expensesResponse: this.expenseService.list().pipe(catchError(() => of([]))),
       incomesResponse: this.incomeService.list().pipe(catchError(() => of([]))),
       reminders: this.noteService.reminderCount().pipe(catchError(() => of({ count: 0 }))),
+      dueNotes: this.noteService.dueReminders().pipe(catchError(() => of([]))),
       incomeVsExpenses: this.statsService.getIncomeVsExpenses().pipe(catchError(() => of(null))),
       expenseCategories: this.categoryService
         .getTree('expense')
@@ -203,8 +205,9 @@ export class HomePage implements OnInit {
           this.isLoadingDashboard = false;
         })
       )
-      .subscribe(({ jars, expensesResponse, incomesResponse, reminders, incomeVsExpenses, expenseCategories }) => {
+      .subscribe(({ jars, expensesResponse, incomesResponse, reminders, dueNotes, incomeVsExpenses, expenseCategories }) => {
         this.notificationCount = Number(reminders?.count) || 0;
+        this.dueNotes = Array.isArray(dueNotes) ? dueNotes : [];
         this.jars = Array.isArray(jars) ? jars : [];
 
         const categoriesData = Array.isArray(expenseCategories?.data)

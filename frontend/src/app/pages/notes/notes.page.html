@@ -49,20 +49,37 @@
       <span>Loading notes...</span>
     </div>
 
-    <div class="note-card" *ngFor="let note of notes">
+    <div class="note-card" *ngFor="let note of notes" (click)="openEditNoteModal(note)">
       <div class="note-header">
         <span class="note-badge" [class]="getStatusBadge(note).class">
           {{ getStatusBadge(note).text }}
         </span>
+        <span class="note-type-badge" *ngIf="note.type === 'debt'">DEBT</span>
         <span class="note-date">{{ formatDate(note.reminder_date) }}</span>
       </div>
       <div class="note-title">{{ note.title }}</div>
+
+      <div class="debt-info" *ngIf="note.type === 'debt'">
+        <div class="debt-row" *ngIf="note.debtor_name">
+          <ion-icon name="person-outline"></ion-icon>
+          <span>{{ note.debtor_name }}</span>
+        </div>
+        <div class="debt-row" *ngIf="note.amount">
+          <ion-icon name="cash-outline"></ion-icon>
+          <span>{{ note.amount | number:'1.0-0' }} VND</span>
+          <span class="interest-rate" *ngIf="note.interest_rate">({{ note.interest_rate }}%)</span>
+          <div class="calculated-interest" *ngIf="note.interest_amount">
+            = {{ note.interest_amount | number:'1.0-0' }} VND (interest/month)
+          </div>
+        </div>
+      </div>
+
       <div class="note-body">{{ note.body || 'No details added yet.' }}</div>
       <div class="note-actions">
-        <ion-button fill="clear" size="small" (click)="toggleCompleted(note)">
+        <ion-button fill="clear" size="small" (click)="toggleCompleted(note); $event.stopPropagation()">
           <ion-icon [name]="note.is_completed ? 'refresh-outline' : 'checkmark-done-outline'" aria-hidden="true"></ion-icon>
         </ion-button>
-        <ion-button fill="clear" color="danger" size="small" (click)="deleteNote(note)">
+        <ion-button fill="clear" color="danger" size="small" (click)="deleteNote(note); $event.stopPropagation()">
           <ion-icon name="trash-outline" aria-hidden="true"></ion-icon>
         </ion-button>
       </div>
@@ -89,18 +106,63 @@
 
     <ion-content class="ion-padding">
       <ion-item>
-        <ion-label position="stacked">Title</ion-label>
-        <ion-input [(ngModel)]="newTitle"></ion-input>
+        <ion-label position="stacked">Note Type</ion-label>
+        <ion-select [(ngModel)]="newType">
+          <ion-select-option value="general">General Note</ion-select-option>
+          <ion-select-option value="debt">Debt/Interest Note</ion-select-option>
+        </ion-select>
       </ion-item>
+
+      <ion-item>
+        <ion-label position="stacked">Title</ion-label>
+        <ion-input [(ngModel)]="newTitle" placeholder="e.g., Loan for project"></ion-input>
+      </ion-item>
+
+      <div *ngIf="newType === 'debt'">
+        <ion-item>
+          <ion-label position="stacked">Debtor Name</ion-label>
+          <ion-input [(ngModel)]="newDebtorName" placeholder="Who is this debt with?"></ion-input>
+        </ion-item>
+
+        <ion-item>
+          <ion-label position="stacked">Amount (VND)</ion-label>
+          <ion-input
+            type="text"
+            inputmode="numeric"
+            [(ngModel)]="newAmount"
+            placeholder="Amount owed"
+            (ionInput)="onAmountInput($event, 'amount')"
+          ></ion-input>
+        </ion-item>
+
+        <ion-item>
+          <ion-label position="stacked">Interest Rate (%) - per month</ion-label>
+          <ion-input type="number" [(ngModel)]="newInterestRate" placeholder="Interest rate per month" (ionInput)="onInterestRateChange()"></ion-input>
+        </ion-item>
+
+        <ion-item>
+          <ion-label position="stacked">Interest Amount (VND) - per month</ion-label>
+          <ion-input
+            type="text"
+            inputmode="numeric"
+            [(ngModel)]="newInterestAmount"
+            placeholder="Fixed interest amount per month"
+            (ionInput)="onAmountInput($event, 'interestAmount')"
+          ></ion-input>
+        </ion-item>
+      </div>
 
       <ion-item>
         <ion-label position="stacked">Details</ion-label>
-        <ion-textarea rows="4" [(ngModel)]="newBody"></ion-textarea>
+        <ion-textarea rows="4" [(ngModel)]="newBody" placeholder="Additional details..."></ion-textarea>
       </ion-item>
 
-      <ion-item>
-        <ion-label position="stacked">Reminder Date</ion-label>
-        <ion-input type="date" [(ngModel)]="newReminderDate"></ion-input>
+      <ion-item button detail="false" class="date-select-item" (click)="openDatePicker()">
+        <ion-label>
+          <div class="field-title">{{ newType === 'debt' ? 'Interest Due Date' : 'Reminder Date' }}</div>
+          <div class="field-value">{{ reminderDateDisplay }}</div>
+        </ion-label>
+        <ion-icon slot="end" name="chevron-forward-outline"></ion-icon>
       </ion-item>
 
       <ion-button
@@ -111,6 +173,130 @@
       >
         Create Note
       </ion-button>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<ion-modal [isOpen]="isEditNoteOpen" (didDismiss)="closeEditNoteModal()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>Edit Note</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closeEditNoteModal()">Close</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+
+    <ion-content class="ion-padding">
+      <ion-item>
+        <ion-label position="stacked">Note Type</ion-label>
+        <ion-select [(ngModel)]="editType">
+          <ion-select-option value="general">General Note</ion-select-option>
+          <ion-select-option value="debt">Debt/Interest Note</ion-select-option>
+        </ion-select>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="stacked">Title</ion-label>
+        <ion-input [(ngModel)]="editTitle" placeholder="e.g., Loan for project"></ion-input>
+      </ion-item>
+
+      <div *ngIf="editType === 'debt'">
+        <ion-item>
+          <ion-label position="stacked">Debtor Name</ion-label>
+          <ion-input [(ngModel)]="editDebtorName" placeholder="Who is this debt with?"></ion-input>
+        </ion-item>
+
+        <ion-item>
+          <ion-label position="stacked">Amount (VND)</ion-label>
+          <ion-input
+            type="text"
+            inputmode="numeric"
+            [(ngModel)]="editAmount"
+            placeholder="Amount owed"
+            (ionInput)="onAmountInput($event, 'amount', 'edit')"
+          ></ion-input>
+        </ion-item>
+
+        <ion-item>
+          <ion-label position="stacked">Interest Rate (%) - per month</ion-label>
+          <ion-input type="number" [(ngModel)]="editInterestRate" placeholder="Interest rate per month" (ionInput)="onInterestRateChange('edit')"></ion-input>
+        </ion-item>
+
+        <ion-item>
+          <ion-label position="stacked">Interest Amount (VND) - per month</ion-label>
+          <ion-input
+            type="text"
+            inputmode="numeric"
+            [(ngModel)]="editInterestAmount"
+            placeholder="Fixed interest amount per month"
+            (ionInput)="onAmountInput($event, 'interestAmount', 'edit')"
+          ></ion-input>
+        </ion-item>
+      </div>
+
+      <ion-item>
+        <ion-label position="stacked">Details</ion-label>
+        <ion-textarea rows="4" [(ngModel)]="editBody" placeholder="Additional details..."></ion-textarea>
+      </ion-item>
+
+      <ion-item button detail="false" class="date-select-item" (click)="openDatePicker('edit')">
+        <ion-label>
+          <div class="field-title">{{ editType === 'debt' ? 'Interest Due Date' : 'Reminder Date' }}</div>
+          <div class="field-value">{{ editReminderDateDisplay }}</div>
+        </ion-label>
+        <ion-icon slot="end" name="chevron-forward-outline"></ion-icon>
+      </ion-item>
+
+      <ion-item lines="none">
+        <ion-label>Mark as Completed</ion-label>
+        <ion-checkbox slot="start" [(ngModel)]="editIsCompleted"></ion-checkbox>
+      </ion-item>
+
+      <div class="modal-actions ion-margin-top">
+        <ion-button
+          expand="block"
+          [disabled]="!editTitle.trim() || isSubmitting"
+          (click)="saveEditNote()"
+        >
+          Save Changes
+        </ion-button>
+        
+        <ion-button
+          expand="block"
+          fill="outline"
+          color="danger"
+          class="ion-margin-top"
+          (click)="deleteNote(editingNote!); closeEditNoteModal()"
+        >
+          Delete Note
+        </ion-button>
+      </div>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<ion-modal class="date-picker-modal-card" [isOpen]="isDatePickerOpen" (didDismiss)="closeDatePicker()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-buttons slot="start">
+          <ion-button (click)="closeDatePicker()">Cancel</ion-button>
+        </ion-buttons>
+        <ion-title>Select Date</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="confirmDatePicker()">Done</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content [fullscreen]="true">
+      <ion-datetime
+        locale="en-US"
+        presentation="date"
+        [value]="tempReminderDate"
+        (ionChange)="onDateValueChange($event)"
+      ></ion-datetime>
     </ion-content>
   </ng-template>
 </ion-modal>

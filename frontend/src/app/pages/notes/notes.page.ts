@@ -5,6 +5,7 @@ import { IonicModule } from '@ionic/angular';
 import { PageHeaderComponent } from '../../shared/page-header/page-header.component';
 import { Note, NoteService } from '../../services/note.service';
 import { FabService } from '../../services/fab.service';
+import { formatVndAmountInput, parseVndAmount } from '../../utils/vnd-amount.util';
 import { finalize, take } from 'rxjs';
 
 @Component({
@@ -21,9 +22,33 @@ export class NotesPage implements OnInit {
   selectedTab: 'all' | 'reminders' | 'archived' = 'all';
   searchTerm: string = '';
   isCreateNoteOpen = false;
+  isEditNoteOpen = false;
+  editingNote: Note | null = null;
+  
+  // New note form
+  newType: 'general' | 'debt' = 'general';
   newTitle = '';
+  newDebtorName = '';
+  newAmount = '';
+  newInterestRate: number | null = null;
+  newInterestAmount = '';
   newBody = '';
   newReminderDate = '';
+
+  // Edit note form
+  editType: 'general' | 'debt' = 'general';
+  editTitle = '';
+  editDebtorName = '';
+  editAmount = '';
+  editInterestRate: number | null = null;
+  editInterestAmount = '';
+  editBody = '';
+  editReminderDate = '';
+  editIsCompleted = false;
+
+  tempReminderDate = '';
+  isDatePickerOpen = false;
+  datePickerMode: 'create' | 'edit' = 'create';
   isSubmitting = false;
   isLoadingNotes = false;
 
@@ -31,6 +56,65 @@ export class NotesPage implements OnInit {
 
   ngOnInit(): void {
     this.loadNotes();
+  }
+
+  get reminderDateDisplay(): string {
+    return this.formatDateWithWeekday(this.newReminderDate);
+  }
+
+  get editReminderDateDisplay(): string {
+    return this.formatDateWithWeekday(this.editReminderDate);
+  }
+
+  private formatDateWithWeekday(value: string): string {
+    if (!value) {
+      return 'Select date';
+    }
+
+    const date = new Date(`${value}T00:00:00`);
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  }
+
+  openDatePicker(mode: 'create' | 'edit' = 'create'): void {
+    this.datePickerMode = mode;
+    this.tempReminderDate = (mode === 'create' ? this.newReminderDate : this.editReminderDate) || this.getTodayDate();
+    this.isDatePickerOpen = true;
+  }
+
+  closeDatePicker(): void {
+    this.isDatePickerOpen = false;
+  }
+
+  onDateValueChange(event: CustomEvent): void {
+    const value = event.detail?.value;
+    if (typeof value === 'string' && value.length > 0) {
+      this.tempReminderDate = this.normalizeDateValue(value);
+    }
+  }
+
+  confirmDatePicker(): void {
+    const normalized = this.normalizeDateValue(this.tempReminderDate || this.getTodayDate());
+    if (this.datePickerMode === 'create') {
+      this.newReminderDate = normalized;
+    } else {
+      this.editReminderDate = normalized;
+    }
+    this.closeDatePicker();
+  }
+
+  private getTodayDate(): string {
+    return new Date().toISOString().split('T')[0];
+  }
+
+  private normalizeDateValue(value: string): string {
+    return value.split('T')[0];
   }
 
   ionViewWillEnter(): void {
@@ -93,46 +177,183 @@ export class NotesPage implements OnInit {
   formatDate(dateString: string | null | undefined): string {
     if (!dateString) return '';
     const date = new Date(dateString);
-    return new Intl.DateTimeFormat('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    }).format(date);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  }
+
+  getCalculatedInterest(amount: number | null | undefined, rate: number | null | undefined): number {
+    if (!amount || !rate) return 0;
+    return amount * (rate / 100);
+  }
+
+  onInterestRateChange(mode: 'create' | 'edit' = 'create'): void {
+    const amountStr = mode === 'create' ? this.newAmount : this.editAmount;
+    const rate = mode === 'create' ? this.newInterestRate : this.editInterestRate;
+    const amount = parseVndAmount(amountStr);
+    
+    if (amount && rate !== null) {
+      const calculated = amount * (rate / 100);
+      const formatted = formatVndAmountInput(calculated.toFixed(0));
+      if (mode === 'create') {
+        this.newInterestAmount = formatted;
+      } else {
+        this.editInterestAmount = formatted;
+      }
+    }
+  }
+
+  onInterestAmountChange(mode: 'create' | 'edit' = 'create'): void {
+    const amountStr = mode === 'create' ? this.newAmount : this.editAmount;
+    const interestAmountStr = mode === 'create' ? this.newInterestAmount : this.editInterestAmount;
+    const amount = parseVndAmount(amountStr);
+    const interestAmount = parseVndAmount(interestAmountStr);
+    
+    if (amount && interestAmount !== null) {
+      const rate = Number(((interestAmount / amount) * 100).toFixed(2));
+      if (mode === 'create') {
+        this.newInterestRate = rate;
+      } else {
+        this.editInterestRate = rate;
+      }
+    }
+  }
+
+  async onAmountInput(event: any, field: 'amount' | 'interestAmount', mode: 'create' | 'edit' = 'create'): Promise<void> {
+    const ionInput = event.target as HTMLIonInputElement;
+    const input = await ionInput.getInputElement();
+    const originalValue = input.value || '';
+    const digits = originalValue.replace(/\D/g, '');
+    const formatted = formatVndAmountInput(digits);
+    
+    if (field === 'amount') {
+      if (mode === 'create') {
+        if (this.newAmount !== formatted) {
+          this.newAmount = formatted;
+          input.value = formatted;
+          this.onInterestRateChange('create');
+        }
+      } else {
+        if (this.editAmount !== formatted) {
+          this.editAmount = formatted;
+          input.value = formatted;
+          this.onInterestRateChange('edit');
+        }
+      }
+    } else {
+      if (mode === 'create') {
+        if (this.newInterestAmount !== formatted) {
+          this.newInterestAmount = formatted;
+          input.value = formatted;
+          this.onInterestAmountChange('create');
+        }
+      } else {
+        if (this.editInterestAmount !== formatted) {
+          this.editInterestAmount = formatted;
+          input.value = formatted;
+          this.onInterestAmountChange('edit');
+        }
+      }
+    }
   }
 
   openNewNoteModal(): void {
     this.isCreateNoteOpen = true;
+    this.newType = 'general';
+    this.newTitle = '';
+    this.newDebtorName = '';
+    this.newAmount = '';
+    this.newInterestRate = null;
+    this.newInterestAmount = '';
+    this.newBody = '';
+    this.newReminderDate = '';
   }
 
   closeNewNoteModal(): void {
     this.isCreateNoteOpen = false;
-    this.newTitle = '';
-    this.newBody = '';
-    this.newReminderDate = '';
-    this.isSubmitting = false;
+  }
+
+  openEditNoteModal(note: Note): void {
+    this.editingNote = note;
+    this.editType = note.type;
+    this.editTitle = note.title;
+    this.editDebtorName = note.debtor_name || '';
+    this.editAmount = note.amount ? formatVndAmountInput(note.amount.toString()) : '';
+    this.editInterestRate = note.interest_rate || null;
+    this.editInterestAmount = note.interest_amount ? formatVndAmountInput(note.interest_amount.toString()) : '';
+    this.editBody = note.body || '';
+    this.editReminderDate = note.reminder_date || '';
+    this.editIsCompleted = !!note.is_completed;
+    this.isEditNoteOpen = true;
+  }
+
+  closeEditNoteModal(): void {
+    this.isEditNoteOpen = false;
+    this.editingNote = null;
+  }
+
+  saveEditNote(): void {
+    if (!this.editingNote || !this.editTitle.trim()) return;
+
+    this.isSubmitting = true;
+    const payload: any = {
+      type: this.editType,
+      title: this.editTitle,
+      body: this.editBody,
+      reminder_date: this.editReminderDate || null,
+      is_completed: this.editIsCompleted,
+    };
+
+    if (this.editType === 'debt') {
+      payload.debtor_name = this.editDebtorName;
+      payload.amount = parseVndAmount(this.editAmount);
+      payload.interest_rate = this.editInterestRate;
+      payload.interest_amount = parseVndAmount(this.editInterestAmount);
+    } else {
+      payload.debtor_name = null;
+      payload.amount = null;
+      payload.interest_rate = null;
+      payload.interest_amount = null;
+    }
+
+    this.noteService.update(this.editingNote.id, payload).pipe(
+      finalize(() => {
+        this.isSubmitting = false;
+      })
+    ).subscribe((updatedNote) => {
+      this.allNotes = this.allNotes.map((n) => (n.id === updatedNote.id ? updatedNote : n));
+      this.filterNotes();
+      this.closeEditNoteModal();
+    });
   }
 
   submitNewNote(): void {
-    const title = this.newTitle.trim();
-    if (!title || this.isSubmitting) {
-      return;
-    }
+    if (!this.newTitle.trim()) return;
 
     this.isSubmitting = true;
+    const payload: any = {
+      type: this.newType,
+      title: this.newTitle,
+      body: this.newBody,
+      reminder_date: this.newReminderDate || null,
+    };
 
-    this.noteService.create({
-      title,
-      body: this.newBody.trim() || undefined,
-      reminder_date: this.newReminderDate || undefined,
-    }).subscribe({
-      next: (createdNote) => {
-        this.allNotes = [createdNote, ...this.allNotes];
-        this.filterNotes();
-        this.closeNewNoteModal();
-      },
-      error: () => {
+    if (this.newType === 'debt') {
+      payload.debtor_name = this.newDebtorName;
+      payload.amount = parseVndAmount(this.newAmount);
+      payload.interest_rate = this.newInterestRate;
+      payload.interest_amount = parseVndAmount(this.newInterestAmount);
+    }
+
+    this.noteService.create(payload).pipe(
+      finalize(() => {
         this.isSubmitting = false;
-      }
+      })
+    ).subscribe((note) => {
+      this.allNotes.unshift(note);
+      this.filterNotes();
+      this.closeNewNoteModal();
     });
   }
 

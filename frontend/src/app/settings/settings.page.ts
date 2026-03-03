@@ -356,6 +356,10 @@ export class SettingsPage implements OnInit {
     this.router.navigate(['/tabs/categories']);
   }
 
+  openNotes() {
+    this.router.navigate(['/tabs/notes']);
+  }
+
   openWallets() {
     this.router.navigate(['/tabs/wallets']);
   }

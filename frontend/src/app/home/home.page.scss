@@ -134,11 +134,85 @@ ion-content.dashboard::part(background) {
 	gap: 8px;
 }
 
+/* Due Reminders Section */
+.reminders-section {
+	margin-top: 24px;
+	background: #ffffff;
+	border-radius: 20px;
+	padding: 16px;
+	box-shadow: var(--soft-shadow);
+
+	.section-header {
+		margin-top: 0;
+		margin-bottom: 12px;
+		padding: 0;
+	}
+
+	.reminder-cards {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+	}
+
+	.reminder-card {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		padding: 10px;
+		background: #f8faff;
+		border-radius: 14px;
+		transition: transform 0.2s ease;
+
+		&:active {
+			transform: scale(0.98);
+		}
+
+		.reminder-icon {
+			width: 40px;
+			height: 40px;
+			border-radius: 10px;
+			background: #e0e7ff;
+			color: #4338ca;
+			display: grid;
+			place-items: center;
+			font-size: 20px;
+
+			&.debt {
+				background: #fee2e2;
+				color: #dc2626;
+			}
+		}
+
+		.reminder-info {
+			flex: 1;
+
+			.reminder-title {
+				font-size: 14px;
+				font-weight: 700;
+				color: var(--text-strong);
+			}
+
+			.reminder-subtitle {
+				font-size: 12px;
+				color: var(--text-muted);
+				margin-top: 2px;
+			}
+		}
+
+		.reminder-arrow {
+			font-size: 18px;
+			color: var(--text-muted);
+			opacity: 0.5;
+		}
+	}
+}
+
 .section-header {
-	margin-top: 22px;
+	margin-top: 28px;
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
+	padding: 0 4px 12px;
 }
 
 .section-title {

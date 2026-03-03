@@ -35,6 +35,31 @@
       </div>
     </div>
 
+    <!-- Due Reminders Section -->
+    <div class="reminders-section" *ngIf="dueNotes.length > 0">
+      <div class="section-header">
+        <div class="section-title">Reminders Due</div>
+        <button type="button" class="section-link" (click)="openNotifications()">View All</button>
+      </div>
+      <div class="reminder-cards">
+        <div class="reminder-card" *ngFor="let note of dueNotes" (click)="openNotifications()">
+          <div class="reminder-icon" [class.debt]="note.type === 'debt'">
+            <ion-icon [name]="note.type === 'debt' ? 'cash-outline' : 'notifications-outline'"></ion-icon>
+          </div>
+          <div class="reminder-info">
+            <div class="reminder-title">{{ note.title }}</div>
+            <div class="reminder-subtitle" *ngIf="note.type === 'debt'">
+              {{ note.debtor_name }}: {{ note.interest_amount | number:'1.0-0' }} VND
+            </div>
+            <div class="reminder-subtitle" *ngIf="note.type === 'general' && note.body">
+              {{ note.body }}
+            </div>
+          </div>
+          <ion-icon name="chevron-forward-outline" class="reminder-arrow"></ion-icon>
+        </div>
+      </div>
+    </div>
+
     <div class="section-header">
       <div class="section-title">My Wallets</div>
       <button type="button" class="section-link" (click)="openWallets()">See All</button>
