@@ -110,7 +110,11 @@
 
             <div class="activity-info">
               <div class="activity-title">{{ transaction.title }}</div>
-              <div class="activity-date">{{ transaction.subtitle }}</div>
+              <div class="activity-note" *ngIf="transaction.note">{{ transaction.note }}</div>
+              <div class="activity-meta">
+                <span class="wallet-badge">{{ transaction.walletName }}</span>
+                <span class="activity-date">{{ transaction.dateLabel }}</span>
+              </div>
             </div>
 
             <div class="activity-amount" [class.amount-success]="transaction.type === 'income'" [class.amount-danger]="transaction.type === 'expense'">

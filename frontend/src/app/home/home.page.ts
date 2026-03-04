@@ -210,6 +210,11 @@ export class HomePage implements OnInit {
         this.dueNotes = Array.isArray(dueNotes) ? dueNotes : [];
         this.jars = Array.isArray(jars) ? jars : [];
 
+        const jarById = this.jars.reduce<Record<number, string>>((accumulator, jar) => {
+          accumulator[jar.id] = jar.name;
+          return accumulator;
+        }, {});
+
         const categoriesData = Array.isArray(expenseCategories?.data)
           ? expenseCategories.data
           : [];
@@ -221,7 +226,7 @@ export class HomePage implements OnInit {
           return {
             id: Number(expense.id),
             jarId: expense.jar_id ?? null,
-            jarName: expense?.jar?.name || 'Wallet',
+            jarName: expense?.jar?.name || jarById[expense.jar_id] || 'Wallet',
             title: expense.category || 'Expense',
             note: expense.note || '',
             timeLabel: this.formatDateLabel(transactionDate),
@@ -237,7 +242,7 @@ export class HomePage implements OnInit {
           return {
             id: Number(income.id),
             jarId: income.jar_id ?? null,
-            jarName: income?.jar?.name || 'Wallet',
+            jarName: income?.jar?.name || jarById[income.jar_id] || 'Wallet',
             title: income.source || 'Income',
             note: income.note || '',
             timeLabel: this.formatDateLabel(transactionDate),

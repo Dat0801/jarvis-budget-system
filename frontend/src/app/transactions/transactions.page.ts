@@ -33,6 +33,7 @@ import {
 interface ExpenseItem {
   id: number;
   jar_id?: number | null;
+  jar?: { id: number; name: string } | null;
   amount: number | string;
   category?: string;
   note?: string;
@@ -43,6 +44,7 @@ interface ExpenseItem {
 interface IncomeItem {
   id: number;
   jar_id?: number | null;
+  jar?: { id: number; name: string } | null;
   amount: number | string;
   source?: string;
   received_at?: string;
@@ -52,7 +54,9 @@ interface IncomeItem {
 interface TransactionItem {
   id: string;
   title: string;
-  subtitle: string;
+  note?: string;
+  walletName: string;
+  dateLabel: string;
   amount: number;
   type: 'income' | 'expense';
   icon: string;
@@ -222,15 +226,17 @@ export class TransactionsPage implements OnInit {
 
     forkJoin({
       jars: this.budgetService.list().pipe(catchError(() => of([]))),
+      wallets: this.walletService.list().pipe(catchError(() => of([]))),
       expensesResponse: this.expenseService.list().pipe(catchError(() => of([]))),
       incomesResponse: this.incomeService.list().pipe(catchError(() => of([]))),
       reportsResponse: this.statsService.getMonthlyReports().pipe(catchError(() => of({ data: [] }))),
     }).subscribe({
-      next: ({ jars, expensesResponse, incomesResponse, reportsResponse }) => {
+      next: ({ jars, wallets, expensesResponse, incomesResponse, reportsResponse }) => {
         this.jars = Array.isArray(jars) ? jars : [];
+        this.wallets = Array.isArray(wallets) ? wallets : [];
         this.monthlyReports = Array.isArray(reportsResponse?.data) ? reportsResponse.data : [];
 
-        const jarById = this.jars.reduce<Record<number, string>>((accumulator, jar) => {
+        const jarById = [...this.jars, ...this.wallets].reduce<Record<number, string>>((accumulator, jar) => {
           accumulator[jar.id] = jar.name;
           return accumulator;
         }, {});
@@ -239,13 +245,13 @@ export class TransactionsPage implements OnInit {
           .filter(item => !this.selectedJarId || Number(item.jar_id) === this.selectedJarId)
           .map((item) => {
           const date = this.parseDate(item.spent_at || item.created_at);
-          const walletName = jarById[Number(item.jar_id)] || 'Wallet';
+          const walletName = item.jar?.name || jarById[Number(item.jar_id)] || 'Wallet';
           return {
             id: `expense-${item.id}`,
             title: item.category || 'Expense',
-            subtitle: `${item.note ? item.note + ' • ' : ''}${walletName} • ${this.formatDate(
-              date
-            )} • ${this.formatTime(date)}`,
+            note: item.note || undefined,
+            walletName: walletName,
+            dateLabel: `${this.formatDate(date)} • ${this.formatTime(date)}`,
             amount: Math.abs(Number(item.amount) || 0),
             type: 'expense' as const,
             icon: this.getExpenseIcon(item),
@@ -258,11 +264,13 @@ export class TransactionsPage implements OnInit {
           .filter(item => !this.selectedJarId || Number(item.jar_id) === this.selectedJarId)
           .map((item) => {
           const date = this.parseDate(item.received_at || item.created_at);
-          const walletName = jarById[Number(item.jar_id)] || 'Wallet';
+          const walletName = item.jar?.name || jarById[Number(item.jar_id)] || 'Wallet';
           return {
             id: `income-${item.id}`,
             title: item.source || 'Income',
-            subtitle: `${(item as any).note ? (item as any).note + ' • ' : ''}${walletName} • ${this.formatDate(date)} • ${this.formatTime(date)}`,
+            note: (item as any).note || undefined,
+            walletName: walletName,
+            dateLabel: `${this.formatDate(date)} • ${this.formatTime(date)}`,
             amount: Math.abs(Number(item.amount) || 0),
             type: 'income' as const,
             icon: 'cash-outline',
@@ -315,7 +323,8 @@ export class TransactionsPage implements OnInit {
       const query = this.searchQuery.toLowerCase();
       filtered = filtered.filter(tx => 
         tx.title.toLowerCase().includes(query) || 
-        tx.subtitle.toLowerCase().includes(query)
+        (tx.note && tx.note.toLowerCase().includes(query)) ||
+        tx.walletName.toLowerCase().includes(query)
       );
     }
     return filtered;
