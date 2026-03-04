@@ -83,6 +83,34 @@
 	}
 }
 
+.transfer-wallets {
+	background: #ffffff;
+	padding: 0;
+
+	.transfer-item {
+		--min-height: 56px;
+	}
+
+	.swap-divider {
+		display: flex;
+		justify-content: flex-end;
+		padding-right: 16px;
+		margin: -12px 0;
+		position: relative;
+		z-index: 10;
+
+		ion-button {
+			--padding-start: 4px;
+			--padding-end: 4px;
+			height: 24px;
+			margin: 0;
+			background: white;
+			border-radius: 50%;
+			box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+		}
+	}
+}
+
 .category-select-item.is-selected {
 	.field-value {
 		color: #1f1f1f;

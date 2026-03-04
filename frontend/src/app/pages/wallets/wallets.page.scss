@@ -102,3 +102,41 @@
     margin-bottom: 12px;
   }
 }
+
+.transfer-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--ion-color-light);
+  border-radius: 16px;
+  margin: 16px;
+  gap: 8px;
+}
+
+.transfer-wallet-item {
+  width: 100%;
+  --background: transparent;
+  --padding-start: 0;
+  --inner-padding-end: 0;
+}
+
+.swap-button-container {
+  display: flex;
+  justify-content: center;
+  margin: -8px 0;
+  z-index: 2;
+
+  ion-button {
+    --padding-start: 8px;
+    --padding-end: 8px;
+    height: 36px;
+    background: white;
+    border-radius: 50%;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.full-width-select {
+  width: 100%;
+  max-width: 100%;
+}

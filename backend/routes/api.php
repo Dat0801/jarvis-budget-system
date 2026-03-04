@@ -34,6 +34,7 @@ Route::middleware('auth:api')->group(function () {
 
     Route::get('/wallets', [WalletController::class, 'index']);
     Route::post('/wallets', [WalletController::class, 'store']);
+    Route::post('/wallets/transfer', [WalletController::class, 'transfer']);
     Route::patch('/wallets/{id}', [WalletController::class, 'update']);
     Route::delete('/wallets/{id}', [WalletController::class, 'destroy']);
     Route::get('/wallets/{id}/categories', [WalletController::class, 'categories']);

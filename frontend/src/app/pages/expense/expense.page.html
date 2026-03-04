@@ -21,6 +21,9 @@
       <ion-segment-button value="income">
         <ion-label>Income</ion-label>
       </ion-segment-button>
+      <ion-segment-button value="transfer">
+        <ion-label>Transfer</ion-label>
+      </ion-segment-button>
       <ion-segment-button value="debtLoan">
         <ion-label>Debt/Loan</ion-label>
       </ion-segment-button>
@@ -62,7 +65,7 @@
         <ion-icon slot="end" name="chevron-forward-outline"></ion-icon>
       </ion-item>
 
-      <ion-item>
+      <ion-item *ngIf="!isTransferTab">
         <ion-label position="stacked">Wallet</ion-label>
         <ion-select [(ngModel)]="jarId" name="jarId" interface="popover">
           <ion-select-option *ngFor="let wallet of wallets" [value]="wallet.id">
@@ -70,6 +73,32 @@
           </ion-select-option>
         </ion-select>
       </ion-item>
+
+      <div class="transfer-wallets" *ngIf="isTransferTab">
+        <ion-item class="transfer-item">
+          <ion-label position="stacked">From Wallet</ion-label>
+          <ion-select [(ngModel)]="jarId" name="jarId" interface="popover">
+            <ion-select-option *ngFor="let wallet of wallets" [value]="wallet.id">
+              {{ wallet.name }}
+            </ion-select-option>
+          </ion-select>
+        </ion-item>
+        
+        <div class="swap-divider">
+          <ion-button fill="clear" size="small" (click)="swapTransfer()">
+            <ion-icon name="swap-vertical-outline"></ion-icon>
+          </ion-button>
+        </div>
+
+        <ion-item class="transfer-item">
+          <ion-label position="stacked">To Wallet</ion-label>
+          <ion-select [(ngModel)]="transferToId" name="transferToId" interface="popover">
+            <ion-select-option *ngFor="let wallet of wallets" [value]="wallet.id">
+              {{ wallet.name }}
+            </ion-select-option>
+          </ion-select>
+        </ion-item>
+      </div>
 
 
       <ion-item button detail="false" class="date-select-item" (click)="openDatePicker()">

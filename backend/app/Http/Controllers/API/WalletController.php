@@ -4,7 +4,10 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Models\Jar;
+use App\Models\Expense;
+use App\Models\Income;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class WalletController extends Controller
 {
@@ -20,6 +23,63 @@ class WalletController extends Controller
                 ->orderBy('created_at')
                 ->get()
         );
+    }
+
+    public function transfer(Request $request)
+    {
+        $request->validate([
+            'from_wallet_id' => 'required|exists:jars,id',
+            'to_wallet_id' => 'required|exists:jars,id|different:from_wallet_id',
+            'amount' => 'required|numeric|min:0.01',
+            'description' => 'nullable|string|max:255',
+            'date' => 'nullable|date',
+        ]);
+
+        $user = $request->user();
+        $fromWallet = $user->jars()->where('wallet_type', Jar::TYPE_WALLET)->findOrFail($request->from_wallet_id);
+        $toWallet = $user->jars()->where('wallet_type', Jar::TYPE_WALLET)->findOrFail($request->to_wallet_id);
+
+        if ($fromWallet->balance < $request->amount) {
+            return response()->json(['message' => 'Insufficient balance in source wallet'], 422);
+        }
+
+        DB::transaction(function () use ($fromWallet, $toWallet, $request, $user) {
+            if ($fromWallet->currency_unit !== $toWallet->currency_unit) {
+                throw new \Exception('Cannot transfer between wallets with different currencies');
+            }
+
+            $amount = $request->amount;
+            $date = $request->date ?: now();
+            $description = $request->description;
+            $customDescription = $description ? " - {$description}" : "";
+
+            // 1. Update balances
+            $fromWallet->decrement('balance', $amount);
+            $toWallet->increment('balance', $amount);
+
+            // 2. Create transactions
+            // Expense for fromWallet (Outgoing)
+            Expense::create([
+                'user_id' => $user->id,
+                'jar_id' => $fromWallet->id,
+                'amount' => $amount,
+                'category' => 'Transfer (Outgoing)',
+                'note' => "Transfer to {$toWallet->name}{$customDescription}",
+                'spent_at' => $date,
+            ]);
+
+            // Income for toWallet (Incoming)
+            Income::create([
+                'user_id' => $user->id,
+                'jar_id' => $toWallet->id,
+                'amount' => $amount,
+                'category' => 'Transfer (Incoming)',
+                'source' => "Transfer from {$fromWallet->name}{$customDescription}",
+                'received_at' => $date,
+            ]);
+        });
+
+        return response()->json(['message' => 'Transfer completed successfully']);
     }
 
     public function store(Request $request)

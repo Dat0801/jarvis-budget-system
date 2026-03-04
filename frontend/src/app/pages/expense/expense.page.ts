@@ -33,7 +33,7 @@ interface ExpenseCategoryOption {
   subCategoryName?: string;
 }
 
-type TransactionTab = 'expense' | 'income' | 'debtLoan';
+type TransactionTab = 'expense' | 'income' | 'debtLoan' | 'transfer';
 
 @Component({
   selector: 'app-expense',
@@ -51,6 +51,7 @@ export class ExpensePage implements OnInit {
   note = '';
   source = '';
   jarId: number | null = null;
+  transferToId: number | null = null;
   spentAt = this.getTodayDate();
   tempSpentAt = this.getTodayDate();
   receivedAt = this.getTodayDate();
@@ -147,6 +148,13 @@ export class ExpensePage implements OnInit {
     })).subscribe((jars) => {
       this.wallets = jars;
       this.setDefaultWalletId();
+      
+      if (this.segmentValue === 'transfer' && this.wallets.length >= 2) {
+        if (this.jarId === null) this.jarId = this.wallets[0].id;
+        if (this.transferToId === null) {
+          this.transferToId = this.wallets.find(w => w.id !== this.jarId)?.id || this.wallets[1].id;
+        }
+      }
     });
   }
 
@@ -173,7 +181,21 @@ export class ExpensePage implements OnInit {
 
     this.segmentValue = value;
     this.resetFormForTabChange();
-    this.loadCategories();
+    
+    if (this.segmentValue === 'transfer') {
+      if (this.wallets.length >= 2) {
+        if (this.jarId === null) this.jarId = this.wallets[0].id;
+        this.transferToId = this.wallets.find(w => w.id !== this.jarId)?.id || this.wallets[1].id;
+      }
+    } else {
+      this.loadCategories();
+    }
+  }
+
+  swapTransfer(): void {
+    const temp = this.jarId;
+    this.jarId = this.transferToId;
+    this.transferToId = temp;
   }
 
   get expenseCategoryOptions(): ExpenseCategoryOption[] {
@@ -222,8 +244,12 @@ export class ExpensePage implements OnInit {
     return this.segmentValue === 'income';
   }
 
+  get isTransferTab(): boolean {
+    return this.segmentValue === 'transfer';
+  }
+
   get showCategorySelector(): boolean {
-    return true;
+    return this.segmentValue !== 'transfer';
   }
 
   get activeDateDisplay(): string {
@@ -248,6 +274,10 @@ export class ExpensePage implements OnInit {
       return true;
     }
 
+    if (this.segmentValue === 'transfer') {
+      return !this.jarId || !this.transferToId || this.jarId === this.transferToId;
+    }
+
     if (this.segmentValue === 'income') {
       return !this.selectedExpenseCategoryLabel;
     }
@@ -270,12 +300,30 @@ export class ExpensePage implements OnInit {
     }
 
     const selectedCategory = this.selectedExpenseCategoryLabel;
-    if (!selectedCategory) {
+
+    if (this.isEditMode) {
+      this.submitEditTransaction(parsedAmount, selectedCategory || '');
       return;
     }
 
-    if (this.isEditMode) {
-      this.submitEditTransaction(parsedAmount, selectedCategory);
+    if (this.segmentValue === 'transfer') {
+      if (!this.jarId || !this.transferToId) return;
+      this.isSaving = true;
+      this.walletService.transfer({
+        from_wallet_id: this.jarId,
+        to_wallet_id: this.transferToId,
+        amount: parsedAmount,
+        description: this.note || undefined,
+        date: this.spentAt || undefined,
+      }).pipe(finalize(() => {
+        this.isSaving = false;
+      })).subscribe(() => {
+        this.router.navigateByUrl('/tabs/transactions');
+      });
+      return;
+    }
+
+    if (!selectedCategory) {
       return;
     }
 

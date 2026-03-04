@@ -3,7 +3,13 @@
   [translucent]="true"
   [showBack]="true"
   backHref="/tabs/settings"
-></app-page-header>
+>
+  <ion-buttons slot="end">
+    <ion-button (click)="openTransfer()" [disabled]="wallets.length < 2">
+      <ion-icon slot="icon-only" name="swap-horizontal-outline"></ion-icon>
+    </ion-button>
+  </ion-buttons>
+</app-page-header>
 
 <ion-content [fullscreen]="true">
   <ion-list *ngIf="!isLoading" lines="full">
@@ -192,6 +198,96 @@
           <ion-icon [name]="icon"></ion-icon>
         </div>
       </div>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<!-- Transfer Modal -->
+<ion-modal [isOpen]="isTransferOpen" (didDismiss)="closeTransfer()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-buttons slot="start">
+          <ion-button (click)="closeTransfer()">
+            <ion-icon slot="icon-only" name="close-outline"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+        <ion-title>Transfer Money</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="submitTransfer()" [disabled]="!canTransfer" color="primary">Transfer</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+
+    <ion-content>
+      <form (ngSubmit)="submitTransfer()" class="wallet-form">
+        <div class="transfer-header ion-padding">
+          <ion-item lines="none" class="transfer-wallet-item">
+            <ion-label position="stacked">From Wallet</ion-label>
+            <ion-select [(ngModel)]="transferFromId" name="transferFromId" interface="popover" class="full-width-select">
+              <ion-select-option *ngFor="let wallet of wallets" [value]="wallet.id">
+                {{ wallet.name }} ({{ formatBalance(wallet) }})
+              </ion-select-option>
+            </ion-select>
+          </ion-item>
+
+          <div class="swap-button-container">
+            <ion-button fill="clear" (click)="swapTransfer()">
+              <ion-icon name="swap-horizontal-outline"></ion-icon>
+            </ion-button>
+          </div>
+
+          <ion-item lines="none" class="transfer-wallet-item">
+            <ion-label position="stacked">To Wallet</ion-label>
+            <ion-select [(ngModel)]="transferToId" name="transferToId" interface="popover" class="full-width-select">
+              <ion-select-option *ngFor="let wallet of wallets" [value]="wallet.id">
+                {{ wallet.name }} ({{ formatBalance(wallet) }})
+              </ion-select-option>
+            </ion-select>
+          </ion-item>
+        </div>
+
+        <ion-item>
+          <ion-label position="stacked">Amount</ion-label>
+          <ion-input
+            type="text"
+            inputmode="numeric"
+            [value]="transferAmount"
+            (ionInput)="onTransferAmountInput($event)"
+            name="transferAmount"
+            placeholder="0"
+            required
+          ></ion-input>
+          <ion-note slot="helper">Enter the amount to transfer</ion-note>
+        </ion-item>
+
+        <ion-item>
+          <ion-label position="stacked">Date</ion-label>
+          <ion-datetime-button datetime="transfer-date"></ion-datetime-button>
+          <ion-modal>
+            <ng-template>
+              <ion-datetime id="transfer-date" presentation="date" [(ngModel)]="transferDate" name="transferDate"></ion-datetime>
+            </ng-template>
+          </ion-modal>
+        </ion-item>
+
+        <ion-item>
+          <ion-label position="stacked">Description</ion-label>
+          <ion-textarea
+            [(ngModel)]="transferDescription"
+            name="transferDescription"
+            placeholder="What is this transfer for?"
+            rows="3"
+          ></ion-textarea>
+        </ion-item>
+
+        <div class="ion-padding">
+          <ion-button expand="block" type="submit" [disabled]="!canTransfer">
+            <ion-spinner slot="start" name="crescent" *ngIf="isSaving"></ion-spinner>
+            {{ isSaving ? 'Transferring...' : 'Complete Transfer' }}
+          </ion-button>
+        </div>
+      </form>
     </ion-content>
   </ng-template>
 </ion-modal>

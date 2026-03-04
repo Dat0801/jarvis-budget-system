@@ -11,7 +11,7 @@ import { formatCurrencyAmount, normalizeCurrencyCode } from '../../utils/currenc
 import { PageHeaderComponent } from '../../shared/page-header/page-header.component';
 import { CategoryService, CategoryTreeNode } from '../../services/category.service';
 import { addIcons } from 'ionicons';
-import { arrowBackOutline, closeOutline, walletOutline, pencil, notificationsOutline, alertCircleOutline, searchOutline, chevronForwardOutline, chevronBackOutline, trashOutline } from 'ionicons/icons';
+import { arrowBackOutline, closeOutline, walletOutline, pencil, notificationsOutline, alertCircleOutline, searchOutline, chevronForwardOutline, chevronBackOutline, trashOutline, swapHorizontalOutline, calendarOutline, chatboxOutline } from 'ionicons/icons';
 
 @Component({
   selector: 'app-wallets',
@@ -26,6 +26,7 @@ export class WalletsPage implements OnInit {
   isLoading = false;
   isCreateOpen = false;
   isEditOpen = false;
+  isTransferOpen = false;
   isSaving = false;
   isIconModalOpen = false;
   isCategoryModalOpen = false;
@@ -46,6 +47,13 @@ export class WalletsPage implements OnInit {
   editBalance = '';
   editNotificationsEnabled = false;
   editCategoriesCount = 0;
+
+  // Transfer fields
+  transferFromId: number | null = null;
+  transferToId: number | null = null;
+  transferAmount = '';
+  transferDescription = '';
+  transferDate = new Date().toISOString();
 
   // Category management
   categories: CategoryTreeNode[] = [];
@@ -79,7 +87,10 @@ export class WalletsPage implements OnInit {
       searchOutline,
       chevronForwardOutline,
       chevronBackOutline,
-      trashOutline
+      trashOutline,
+      swapHorizontalOutline,
+      calendarOutline,
+      chatboxOutline
     });
   }
 
@@ -162,6 +173,86 @@ export class WalletsPage implements OnInit {
   closeEditWallet(): void {
     this.isEditOpen = false;
     this.editWalletId = null;
+  }
+
+  openTransfer(): void {
+    if (this.wallets.length < 2) {
+      this.showToast('You need at least 2 wallets to perform a transfer');
+      return;
+    }
+    this.transferFromId = this.wallets[0].id;
+    this.transferToId = this.wallets[1].id;
+    this.transferAmount = '';
+    this.transferDescription = '';
+    this.transferDate = new Date().toISOString();
+    this.isTransferOpen = true;
+  }
+
+  closeTransfer(): void {
+    this.isTransferOpen = false;
+  }
+
+  swapTransfer(): void {
+    const temp = this.transferFromId;
+    this.transferFromId = this.transferToId;
+    this.transferToId = temp;
+  }
+
+  get canTransfer(): boolean {
+    const amount = parseVndAmount(this.transferAmount);
+    return !!this.transferFromId && 
+           !!this.transferToId && 
+           this.transferFromId !== this.transferToId && 
+           amount !== null && amount > 0 && 
+           !this.isSaving;
+  }
+
+  submitTransfer(): void {
+    const amount = parseVndAmount(this.transferAmount);
+    if (!this.canTransfer || this.transferFromId === null || this.transferToId === null || amount === null) return;
+
+    this.isSaving = true;
+    this.walletService.transfer({
+      from_wallet_id: this.transferFromId,
+      to_wallet_id: this.transferToId,
+      amount: amount,
+      description: this.transferDescription.trim(),
+      date: this.transferDate,
+    }).pipe(finalize(() => {
+      this.isSaving = false;
+    })).subscribe({
+      next: async () => {
+        this.closeTransfer();
+        this.loadWallets();
+        await this.showToast('Transfer successful');
+      },
+      error: async (err) => {
+        const message = err.error?.message || 'Transfer failed';
+        await this.showToast(message);
+      },
+    });
+  }
+
+  async onTransferAmountInput(event: any): Promise<void> {
+    const ionInput = event.target as HTMLIonInputElement;
+    const input = await ionInput.getInputElement();
+    const originalValue = input.value || '';
+    const digits = originalValue.replace(/\D/g, '');
+    const formatted = formatVndAmountInput(digits);
+    
+    if (this.transferAmount !== formatted) {
+      const cursor = input.selectionStart || 0;
+      const digitsBeforeCursor = originalValue.substring(0, cursor).replace(/\D/g, '').length;
+      this.transferAmount = formatted;
+      input.value = formatted;
+      let newCursor = 0;
+      let digitsFound = 0;
+      for (let i = 0; i < formatted.length && digitsFound < digitsBeforeCursor; i++) {
+        if (/\d/.test(formatted[i])) digitsFound++;
+        newCursor = i + 1;
+      }
+      input.setSelectionRange(newCursor, newCursor);
+    }
   }
 
   async onBalanceInput(event: any, isEdit = false): Promise<void> {

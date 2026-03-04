@@ -45,6 +45,16 @@ export class WalletService {
     return this.api.delete<{ message: string }>(`wallets/${id}`);
   }
 
+  transfer(payload: {
+    from_wallet_id: number;
+    to_wallet_id: number;
+    amount: number;
+    description?: string;
+    date?: string;
+  }) {
+    return this.api.post<{ message: string }>('wallets/transfer', payload);
+  }
+
   getCategories(id: number) {
     return this.api.get<any[]>(`wallets/${id}/categories`);
   }
