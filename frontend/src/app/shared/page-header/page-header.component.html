@@ -2,10 +2,14 @@
   <ion-toolbar>
     <ion-buttons slot="start" *ngIf="showBack || backHref">
       <ion-back-button
+        *ngIf="!useCloseIcon"
         [defaultHref]="backHref || undefined"
         text=""
         [icon]="backIcon"
       ></ion-back-button>
+      <ion-button *ngIf="useCloseIcon" (click)="onBack()">
+        <ion-icon slot="icon-only" [name]="backIcon"></ion-icon>
+      </ion-button>
     </ion-buttons>
 
     <ng-content select="[slot='start']"></ng-content>

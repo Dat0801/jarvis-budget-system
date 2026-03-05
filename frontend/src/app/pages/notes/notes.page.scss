@@ -170,6 +170,34 @@
 		font-weight: 700;
 		color: #1f2a44;
 		margin-bottom: 8px;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+
+		.category-icon {
+			font-size: 20px;
+			color: #10b981;
+		}
+	}
+
+	.selected-category-display {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		padding: 8px 0;
+		color: #1f2a44;
+		font-weight: 500;
+
+		ion-icon {
+			font-size: 24px;
+			color: #10b981;
+		}
+	}
+
+	.placeholder-text {
+		color: #9ca3af;
+		padding: 8px 0;
+		font-size: 14px;
 	}
 
 	.note-body {

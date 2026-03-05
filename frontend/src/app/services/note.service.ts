@@ -4,7 +4,9 @@ import { ApiService } from './api.service';
 export interface Note {
   id: number;
   type: 'general' | 'debt';
-  title: string;
+  title?: string | null;
+  category_id?: number | null;
+  jar_id?: number | null;
   debtor_name?: string | null;
   amount?: number | null;
   interest_rate?: number | null;
@@ -13,6 +15,16 @@ export interface Note {
   reminder_date?: string | null;
   is_notified?: boolean;
   is_completed?: boolean;
+  is_repeat?: boolean;
+  category?: {
+    id: number;
+    name: string;
+    icon: string;
+  } | null;
+  jar?: {
+    id: number;
+    name: string;
+  } | null;
 }
 
 @Injectable({ providedIn: 'root' })

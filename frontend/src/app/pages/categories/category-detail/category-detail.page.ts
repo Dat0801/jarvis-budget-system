@@ -1,13 +1,13 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, Input } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { IonicModule, AlertController, ToastController } from '@ionic/angular';
+import { IonicModule, AlertController, ToastController, ModalController } from '@ionic/angular';
 import { CategoryService, CategoryTreeNode, CategoryType } from '../../../services/category.service';
 import { WalletService, Wallet } from '../../../services/wallet.service';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
 import { addIcons } from 'ionicons';
-import { closeOutline, trashOutline, walletOutline, searchOutline } from 'ionicons/icons';
+import { closeOutline, trashOutline, walletOutline, searchOutline, addOutline } from 'ionicons/icons';
 
 @Component({
   selector: 'app-category-detail',
@@ -17,6 +17,10 @@ import { closeOutline, trashOutline, walletOutline, searchOutline } from 'ionico
   styleUrls: ['./category-detail.page.scss'],
 })
 export class CategoryDetailPage implements OnInit {
+  @Input() isModal = false;
+  @Input() initialCategoryId: number | null = null;
+  @Input() initialType: CategoryType = 'expense';
+
   categoryId: number | null = null;
   type: CategoryType = 'expense';
   name = '';
@@ -67,26 +71,33 @@ export class CategoryDetailPage implements OnInit {
     private categoryService: CategoryService,
     private walletService: WalletService,
     private alertCtrl: AlertController,
-    private toastCtrl: ToastController
+    private toastCtrl: ToastController,
+    private modalCtrl: ModalController
   ) {
-    addIcons({ closeOutline, trashOutline, walletOutline, searchOutline });
+    addIcons({ closeOutline, trashOutline, walletOutline, searchOutline, addOutline });
   }
 
   ngOnInit() {
-    this.route.paramMap.subscribe(params => {
-      const id = params.get('id');
-      if (id && id !== 'new') {
-        this.categoryId = Number(id);
-      }
-    });
-
-    this.route.queryParamMap.subscribe(params => {
-      const typeParam = params.get('type') as CategoryType;
-      if (typeParam) {
-        this.type = typeParam;
-      }
+    if (this.isModal) {
+      this.categoryId = this.initialCategoryId;
+      this.type = this.initialType;
       this.fetchInitialData();
-    });
+    } else {
+      this.route.paramMap.subscribe(params => {
+        const id = params.get('id');
+        if (id && id !== 'new') {
+          this.categoryId = Number(id);
+        }
+      });
+
+      this.route.queryParamMap.subscribe(params => {
+        const typeParam = params.get('type') as CategoryType;
+        if (typeParam) {
+          this.type = typeParam;
+        }
+        this.fetchInitialData();
+      });
+    }
   }
 
   async fetchInitialData() {
@@ -227,9 +238,13 @@ export class CategoryDetailPage implements OnInit {
       : this.categoryService.create(payload);
 
     request.subscribe({
-      next: () => {
+      next: (res) => {
         this.isSaving = false;
-        this.router.navigate(['/tabs/categories'], { queryParams: { type: this.type } });
+        if (this.isModal) {
+          this.modalCtrl.dismiss(res);
+        } else {
+          this.router.navigate(['/tabs/categories'], { queryParams: { type: this.type } });
+        }
       },
       error: (err) => {
         this.isSaving = false;
@@ -251,12 +266,24 @@ export class CategoryDetailPage implements OnInit {
           role: 'destructive',
           handler: () => {
             this.categoryService.delete(this.categoryId!).subscribe(() => {
-              this.router.navigate(['/tabs/categories'], { queryParams: { type: this.type } });
+              if (this.isModal) {
+                this.modalCtrl.dismiss({ deleted: true });
+              } else {
+                this.router.navigate(['/tabs/categories'], { queryParams: { type: this.type } });
+              }
             });
           }
         }
       ]
     });
     await alert.present();
+  }
+
+  closeModal() {
+    if (this.isModal) {
+      this.modalCtrl.dismiss();
+    } else {
+      this.router.navigate(['/tabs/categories'], { queryParams: { type: this.type } });
+    }
   }
 }

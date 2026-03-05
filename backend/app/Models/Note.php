@@ -10,6 +10,8 @@ class Note extends Model
         'user_id',
         'type',
         'title',
+        'category_id',
+        'jar_id',
         'debtor_name',
         'amount',
         'interest_rate',
@@ -18,6 +20,8 @@ class Note extends Model
         'reminder_date',
         'is_notified',
         'is_completed',
+        'is_repeat',
+        'has_transaction',
     ];
 
     protected $casts = [
@@ -27,10 +31,22 @@ class Note extends Model
         'reminder_date' => 'date',
         'is_notified' => 'boolean',
         'is_completed' => 'boolean',
+        'is_repeat' => 'boolean',
+        'has_transaction' => 'boolean',
     ];
 
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function category()
+    {
+        return $this->belongsTo(TransactionCategory::class, 'category_id');
+    }
+
+    public function jar()
+    {
+        return $this->belongsTo(Jar::class, 'jar_id');
     }
 }

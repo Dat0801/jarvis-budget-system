@@ -57,9 +57,22 @@
         <span class="note-type-badge" *ngIf="note.type === 'debt'">DEBT</span>
         <span class="note-date">{{ formatDate(note.reminder_date) }}</span>
       </div>
-      <div class="note-title">{{ note.title }}</div>
+      <div class="note-title">
+        <ng-container *ngIf="note.title">{{ note.title }}</ng-container>
+        <ng-container *ngIf="!note.title && note.category">
+          <ion-icon [name]="note.category.icon || 'cash-outline'" class="category-icon"></ion-icon>
+          {{ note.category.name }}
+        </ng-container>
+      </div>
 
       <div class="debt-info" *ngIf="note.type === 'debt'">
+        <div class="debt-row" *ngIf="note.is_repeat">
+          <ion-badge color="primary" mode="ios">REPEAT MONTHLY</ion-badge>
+        </div>
+        <div class="debt-row" *ngIf="note.category && note.title">
+          <ion-icon [name]="note.category.icon || 'pricetag-outline'"></ion-icon>
+          <span>{{ note.category.name }}</span>
+        </div>
         <div class="debt-row" *ngIf="note.debtor_name">
           <ion-icon name="person-outline"></ion-icon>
           <span>{{ note.debtor_name }}</span>
@@ -71,6 +84,10 @@
           <div class="calculated-interest" *ngIf="note.interest_amount">
             = {{ note.interest_amount | number:'1.0-0' }} VND (interest/month)
           </div>
+        </div>
+        <div class="debt-row" *ngIf="note.jar">
+          <ion-icon name="wallet-outline"></ion-icon>
+          <span>To: {{ note.jar.name }}</span>
         </div>
       </div>
 
@@ -113,12 +130,35 @@
         </ion-select>
       </ion-item>
 
-      <ion-item>
+      <ion-item *ngIf="newType === 'general' || (newType === 'debt' && !newCategoryId)">
         <ion-label position="stacked">Title</ion-label>
         <ion-input [(ngModel)]="newTitle" placeholder="e.g., Loan for project"></ion-input>
       </ion-item>
 
       <div *ngIf="newType === 'debt'">
+        <ion-item button detail="true" (click)="selectCategoryModal('create')">
+          <ion-label position="stacked">Category (Debt/Loan)</ion-label>
+          <div class="selected-category-display" *ngIf="newCategoryId">
+            <ion-icon [name]="newCategoryIcon || 'cash-outline'"></ion-icon>
+            <span>{{ newCategoryName }}</span>
+          </div>
+          <div class="placeholder-text" *ngIf="!newCategoryId">Select interest category</div>
+        </ion-item>
+
+        <ion-item>
+          <ion-label position="stacked">Deposit Wallet</ion-label>
+          <ion-select [(ngModel)]="newJarId" placeholder="Select destination wallet">
+            <ion-select-option *ngFor="let wallet of wallets" [value]="wallet.id">
+              {{ wallet.name }}
+            </ion-select-option>
+          </ion-select>
+        </ion-item>
+
+        <ion-item lines="none">
+          <ion-label>Repeat every month</ion-label>
+          <ion-toggle [(ngModel)]="newIsRepeat"></ion-toggle>
+        </ion-item>
+
         <ion-item>
           <ion-label position="stacked">Debtor Name</ion-label>
           <ion-input [(ngModel)]="newDebtorName" placeholder="Who is this debt with?"></ion-input>
@@ -168,7 +208,7 @@
       <ion-button
         expand="block"
         class="ion-margin-top"
-        [disabled]="!newTitle.trim() || isSubmitting"
+        [disabled]="isSubmitting || (newType === 'general' && !newTitle.trim()) || (newType === 'debt' && !newCategoryId)"
         (click)="submitNewNote()"
       >
         Create Note
@@ -197,12 +237,35 @@
         </ion-select>
       </ion-item>
 
-      <ion-item>
+      <ion-item *ngIf="editType === 'general' || (editType === 'debt' && !editCategoryId)">
         <ion-label position="stacked">Title</ion-label>
         <ion-input [(ngModel)]="editTitle" placeholder="e.g., Loan for project"></ion-input>
       </ion-item>
 
       <div *ngIf="editType === 'debt'">
+        <ion-item button detail="true" (click)="selectCategoryModal('edit')">
+          <ion-label position="stacked">Category (Debt/Loan)</ion-label>
+          <div class="selected-category-display" *ngIf="editCategoryId">
+            <ion-icon [name]="editCategoryIcon || 'cash-outline'"></ion-icon>
+            <span>{{ editCategoryName }}</span>
+          </div>
+          <div class="placeholder-text" *ngIf="!editCategoryId">Select interest category</div>
+        </ion-item>
+
+        <ion-item>
+          <ion-label position="stacked">Deposit Wallet</ion-label>
+          <ion-select [(ngModel)]="editJarId" placeholder="Select destination wallet">
+            <ion-select-option *ngFor="let wallet of wallets" [value]="wallet.id">
+              {{ wallet.name }}
+            </ion-select-option>
+          </ion-select>
+        </ion-item>
+
+        <ion-item lines="none">
+          <ion-label>Repeat every month</ion-label>
+          <ion-toggle [(ngModel)]="editIsRepeat"></ion-toggle>
+        </ion-item>
+
         <ion-item>
           <ion-label position="stacked">Debtor Name</ion-label>
           <ion-input [(ngModel)]="editDebtorName" placeholder="Who is this debt with?"></ion-input>
@@ -257,7 +320,7 @@
       <div class="modal-actions ion-margin-top">
         <ion-button
           expand="block"
-          [disabled]="!editTitle.trim() || isSubmitting"
+          [disabled]="isSubmitting || (editType === 'general' && !editTitle.trim()) || (editType === 'debt' && !editCategoryId)"
           (click)="saveEditNote()"
         >
           Save Changes

@@ -1,8 +1,9 @@
 <app-page-header
   [title]="categoryId ? 'Edit Category' : 'Add Category'"
   [showBack]="true"
-  [useCloseIcon]="true"
-  backHref="/tabs/categories"
+  [useCloseIcon]="isModal"
+  [backHref]="isModal ? null : '/tabs/categories'"
+  (backClick)="closeModal()"
 >
   <ion-buttons slot="end" *ngIf="categoryId">
     <ion-button color="danger" (click)="deleteCategory()">

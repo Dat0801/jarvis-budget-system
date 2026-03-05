@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input } from '@angular/core';
+import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { IonicModule } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { arrowBackOutline, closeOutline } from 'ionicons/icons';
@@ -18,6 +18,8 @@ export class PageHeaderComponent {
   @Input() backHref: string | null = null;
   @Input() headerClass = '';
   @Input() useCloseIcon = false;
+  
+  @Output() backClick = new EventEmitter<void>();
 
   constructor() {
     addIcons({ arrowBackOutline, closeOutline });
@@ -33,6 +35,10 @@ export class PageHeaderComponent {
 
   get backIcon(): string {
     return this.useCloseIcon ? 'close-outline' : 'arrow-back-outline';
+  }
+
+  onBack(): void {
+    this.backClick.emit();
   }
 }
 

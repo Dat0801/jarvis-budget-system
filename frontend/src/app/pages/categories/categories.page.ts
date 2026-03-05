@@ -8,8 +8,9 @@ import { PageHeaderComponent } from '../../shared/page-header/page-header.compon
 import { FabService } from '../../services/fab.service';
 import { FormsModule } from '@angular/forms';
 import { addIcons } from 'ionicons';
-import { searchOutline, pricetagOutline, chevronDownOutline, chevronForwardOutline, returnDownForwardOutline, swapVerticalOutline, walletOutline } from 'ionicons/icons';
+import { searchOutline, pricetagOutline, chevronDownOutline, chevronForwardOutline, returnDownForwardOutline, swapVerticalOutline, walletOutline, addOutline } from 'ionicons/icons';
 import { CategorySortPopoverComponent } from './components/category-sort-popover/category-sort-popover.component';
+import { CategoryDetailPage } from './category-detail/category-detail.page';
 
 type CategoryTab = 'expense' | 'income' | 'debtLoan';
 type SourcePage = 'transaction' | 'budget' | 'account';
@@ -18,7 +19,7 @@ type SortType = 'frequency' | 'name';
 @Component({
   selector: 'app-categories',
   standalone: true,
-  imports: [CommonModule, IonicModule, PageHeaderComponent, FormsModule],
+  imports: [CommonModule, IonicModule, PageHeaderComponent, FormsModule, CategoryDetailPage],
   templateUrl: './categories.page.html',
   styleUrls: ['./categories.page.scss'],
 })
@@ -30,6 +31,7 @@ export class CategoriesPage implements OnInit {
   @Input() initialReturnUrl = '/expense';
   @Input() initialReturnMode = '';
   @Input() initialSelectMode = false;
+  @Input() restrictTab: CategoryTab | null = null;
 
   activeTab: CategoryTab = 'expense';
   categories: CategoryTreeNode[] = [];
@@ -56,7 +58,7 @@ export class CategoriesPage implements OnInit {
     private popoverController: PopoverController,
     private modalController: ModalController
   ) {
-    addIcons({ searchOutline, pricetagOutline, chevronDownOutline, chevronForwardOutline, returnDownForwardOutline, swapVerticalOutline, walletOutline });
+    addIcons({ searchOutline, pricetagOutline, chevronDownOutline, chevronForwardOutline, returnDownForwardOutline, swapVerticalOutline, walletOutline, addOutline });
   }
 
   ngOnInit(): void {
@@ -65,7 +67,7 @@ export class CategoriesPage implements OnInit {
     if (this.isModal) {
       this.isSelectMode = this.initialSelectMode;
       this.jarId = this.initialJarId;
-      this.activeTab = this.initialTab;
+      this.activeTab = this.restrictTab || this.initialTab;
       this.returnUrl = this.initialReturnUrl;
       this.returnMode = this.initialReturnMode;
       this.updateSourcePage();
@@ -111,7 +113,7 @@ export class CategoriesPage implements OnInit {
   }
 
   ionViewWillEnter(): void {
-    if (this.sourcePage === 'account') {
+    if (this.sourcePage === 'account' || this.isSelectMode) {
       this.fabService.showFab(() => this.addCategory(), 'add', this.fabOwner);
     }
   }
@@ -168,10 +170,25 @@ export class CategoriesPage implements OnInit {
     this.selectCategory(`sub:${subCategoryId}`, subCategory);
   }
 
-  addCategory(): void {
-    this.router.navigate(['/tabs/categories', 'new'], {
-      queryParams: { type: this.mapTabToType(this.activeTab) }
-    });
+  async addCategory() {
+    if (this.isModal) {
+      const modal = await this.modalController.create({
+        component: CategoryDetailPage,
+        componentProps: {
+          isModal: true,
+          initialType: this.mapTabToType(this.activeTab)
+        }
+      });
+      await modal.present();
+      const { data } = await modal.onDidDismiss();
+      if (data) {
+        this.fetchCategories();
+      }
+    } else {
+      this.router.navigate(['/tabs/categories', 'new'], {
+        queryParams: { type: this.mapTabToType(this.activeTab) }
+      });
+    }
   }
 
   getCurrentTabLabel(): string {

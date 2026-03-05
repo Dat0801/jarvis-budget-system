@@ -1,17 +1,20 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { IonicModule } from '@ionic/angular';
+import { IonicModule, ModalController } from '@ionic/angular';
 import { PageHeaderComponent } from '../../shared/page-header/page-header.component';
 import { Note, NoteService } from '../../services/note.service';
+import { CategoryService, CategoryTreeNode } from '../../services/category.service';
+import { WalletService, Wallet } from '../../services/wallet.service';
 import { FabService } from '../../services/fab.service';
+import { CategoriesPage } from '../categories/categories.page';
 import { formatVndAmountInput, parseVndAmount } from '../../utils/vnd-amount.util';
 import { finalize, take } from 'rxjs';
 
 @Component({
   selector: 'app-notes',
   standalone: true,
-  imports: [CommonModule, FormsModule, IonicModule, PageHeaderComponent],
+  imports: [CommonModule, FormsModule, IonicModule, PageHeaderComponent, CategoriesPage],
   templateUrl: './notes.page.html',
   styleUrls: ['./notes.page.scss'],
 })
@@ -19,6 +22,8 @@ export class NotesPage implements OnInit {
   private readonly fabOwner = 'notes';
   notes: Note[] = [];
   allNotes: Note[] = [];
+  categories: CategoryTreeNode[] = [];
+  wallets: Wallet[] = [];
   selectedTab: 'all' | 'reminders' | 'archived' = 'all';
   searchTerm: string = '';
   isCreateNoteOpen = false;
@@ -28,6 +33,11 @@ export class NotesPage implements OnInit {
   // New note form
   newType: 'general' | 'debt' = 'general';
   newTitle = '';
+  newCategoryId: number | null = null;
+  newCategoryName = '';
+  newCategoryIcon = '';
+  newJarId: number | null = null;
+  newIsRepeat = false;
   newDebtorName = '';
   newAmount = '';
   newInterestRate: number | null = null;
@@ -38,6 +48,11 @@ export class NotesPage implements OnInit {
   // Edit note form
   editType: 'general' | 'debt' = 'general';
   editTitle = '';
+  editCategoryId: number | null = null;
+  editCategoryName = '';
+  editCategoryIcon = '';
+  editJarId: number | null = null;
+  editIsRepeat = false;
   editDebtorName = '';
   editAmount = '';
   editInterestRate: number | null = null;
@@ -52,10 +67,51 @@ export class NotesPage implements OnInit {
   isSubmitting = false;
   isLoadingNotes = false;
 
-  constructor(private noteService: NoteService, private fabService: FabService) {}
+  constructor(
+    private noteService: NoteService,
+    private categoryService: CategoryService,
+    private walletService: WalletService,
+    private fabService: FabService,
+    private modalController: ModalController
+  ) {}
 
   ngOnInit(): void {
     this.loadNotes();
+    this.loadWallets();
+  }
+
+  loadWallets(): void {
+    this.walletService.list().subscribe((data) => {
+      this.wallets = data;
+    });
+  }
+
+  async selectCategoryModal(mode: 'create' | 'edit' = 'create') {
+    const modal = await this.modalController.create({
+      component: CategoriesPage,
+      componentProps: {
+        isModal: true,
+        initialTab: 'debtLoan',
+        restrictTab: 'debtLoan',
+        initialSelectMode: true,
+      }
+    });
+
+    await modal.present();
+
+    const { data } = await modal.onDidDismiss();
+    if (data && data.categoryData) {
+      const category = data.categoryData as CategoryTreeNode;
+      if (mode === 'create') {
+        this.newCategoryId = category.id;
+        this.newCategoryName = category.name;
+        this.newCategoryIcon = category.icon || 'cash-outline';
+      } else {
+        this.editCategoryId = category.id;
+        this.editCategoryName = category.name;
+        this.editCategoryIcon = category.icon || 'cash-outline';
+      }
+    }
   }
 
   get reminderDateDisplay(): string {
@@ -149,7 +205,8 @@ export class NotesPage implements OnInit {
 
     if (this.searchTerm.trim()) {
       filtered = filtered.filter(note =>
-        note.title.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
+        (note.title && note.title.toLowerCase().includes(this.searchTerm.toLowerCase())) ||
+        (note.category && note.category.name.toLowerCase().includes(this.searchTerm.toLowerCase())) ||
         (note.body && note.body.toLowerCase().includes(this.searchTerm.toLowerCase()))
       );
     }
@@ -262,6 +319,11 @@ export class NotesPage implements OnInit {
     this.isCreateNoteOpen = true;
     this.newType = 'general';
     this.newTitle = '';
+    this.newCategoryId = null;
+    this.newCategoryName = '';
+    this.newCategoryIcon = '';
+    this.newJarId = this.wallets.length > 0 ? this.wallets[0].id : null;
+    this.newIsRepeat = false;
     this.newDebtorName = '';
     this.newAmount = '';
     this.newInterestRate = null;
@@ -277,7 +339,12 @@ export class NotesPage implements OnInit {
   openEditNoteModal(note: Note): void {
     this.editingNote = note;
     this.editType = note.type;
-    this.editTitle = note.title;
+    this.editTitle = note.title || '';
+    this.editCategoryId = note.category_id || null;
+    this.editCategoryName = note.category?.name || '';
+    this.editCategoryIcon = note.category?.icon || '';
+    this.editJarId = note.jar_id || null;
+    this.editIsRepeat = !!note.is_repeat;
     this.editDebtorName = note.debtor_name || '';
     this.editAmount = note.amount ? formatVndAmountInput(note.amount.toString()) : '';
     this.editInterestRate = note.interest_rate || null;
@@ -294,7 +361,9 @@ export class NotesPage implements OnInit {
   }
 
   saveEditNote(): void {
-    if (!this.editingNote || !this.editTitle.trim()) return;
+    if (!this.editingNote) return;
+    if (this.editType === 'general' && !this.editTitle.trim()) return;
+    if (this.editType === 'debt' && !this.editCategoryId) return;
 
     this.isSubmitting = true;
     const payload: any = {
@@ -306,11 +375,17 @@ export class NotesPage implements OnInit {
     };
 
     if (this.editType === 'debt') {
+      payload.category_id = this.editCategoryId;
+      payload.jar_id = this.editJarId;
+      payload.is_repeat = this.editIsRepeat;
       payload.debtor_name = this.editDebtorName;
       payload.amount = parseVndAmount(this.editAmount);
       payload.interest_rate = this.editInterestRate;
       payload.interest_amount = parseVndAmount(this.editInterestAmount);
     } else {
+      payload.category_id = null;
+      payload.jar_id = null;
+      payload.is_repeat = false;
       payload.debtor_name = null;
       payload.amount = null;
       payload.interest_rate = null;
@@ -329,7 +404,8 @@ export class NotesPage implements OnInit {
   }
 
   submitNewNote(): void {
-    if (!this.newTitle.trim()) return;
+    if (this.newType === 'general' && !this.newTitle.trim()) return;
+    if (this.newType === 'debt' && !this.newCategoryId) return;
 
     this.isSubmitting = true;
     const payload: any = {
@@ -340,6 +416,9 @@ export class NotesPage implements OnInit {
     };
 
     if (this.newType === 'debt') {
+      payload.category_id = this.newCategoryId;
+      payload.jar_id = this.newJarId;
+      payload.is_repeat = this.newIsRepeat;
       payload.debtor_name = this.newDebtorName;
       payload.amount = parseVndAmount(this.newAmount);
       payload.interest_rate = this.newInterestRate;
@@ -359,13 +438,20 @@ export class NotesPage implements OnInit {
 
   toggleCompleted(note: Note): void {
     const previous = note.is_completed;
+    const isRepeat = note.is_repeat;
 
     this.noteService.update(note.id, {
       is_completed: !note.is_completed,
     }).pipe(take(1)).subscribe({
       next: (updatedNote) => {
-        this.allNotes = this.allNotes.map((item) => item.id === note.id ? { ...item, ...updatedNote } : item);
-        this.filterNotes();
+        if (isRepeat && !previous) {
+          // If it was a repeating note and we marked it as completed,
+          // a new note was created in the backend. We should reload the list.
+          this.loadNotes();
+        } else {
+          this.allNotes = this.allNotes.map((item) => item.id === note.id ? { ...item, ...updatedNote } : item);
+          this.filterNotes();
+        }
       },
       error: () => {
         note.is_completed = previous;

@@ -1,15 +1,11 @@
 <app-page-header
   [title]="pageTitle"
   [translucent]="true"
-  [showBack]="!isModal"
+  [showBack]="true"
   [backHref]="isModal ? null : backHref"
   [useCloseIcon]="isModal"
+  (backClick)="closeModal()"
 >
-  <ion-buttons slot="start" *ngIf="isModal">
-    <ion-button (click)="closeModal()">
-      <ion-icon slot="icon-only" name="close-outline"></ion-icon>
-    </ion-button>
-  </ion-buttons>
   <ion-buttons slot="end">
     <!-- Transaction Source: Sort Icon + Search Icon -->
     <ng-container *ngIf="sourcePage === 'transaction'">
@@ -53,7 +49,7 @@
     class="custom-searchbar"
   ></ion-searchbar>
 
-  <ion-segment [value]="activeTab" (ionChange)="selectTab($any($event.detail.value))">
+  <ion-segment *ngIf="!restrictTab" [value]="activeTab" (ionChange)="selectTab($any($event.detail.value))">
     <ion-segment-button value="expense">
       <ion-label>Expense</ion-label>
     </ion-segment-button>
@@ -94,4 +90,11 @@
     <span>Loading {{ getCurrentTabLabel() }} categories...</span>
   </div>
   <div class="status status-error" *ngIf="loadError">{{ loadError }}</div>
+
+  <!-- FAB for modal mode -->
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed" *ngIf="isModal">
+    <ion-fab-button (click)="addCategory()">
+      <ion-icon name="add"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
 </ion-content>
