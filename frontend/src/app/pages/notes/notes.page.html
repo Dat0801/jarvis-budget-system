@@ -85,6 +85,39 @@
             = {{ note.interest_amount | number:'1.0-0' }} VND (interest/month)
           </div>
         </div>
+        <div class="debt-row" *ngIf="note.current_month || note.total_months">
+          <ion-icon name="calendar-number-outline"></ion-icon>
+          <span>Months Owed: {{ note.current_month || 0 }} / Contract: {{ note.total_months || '?' }}</span>
+        </div>
+        <div class="debt-row total-interest" *ngIf="note.interest_amount && note.current_month" (click)="toggleNoteExpand(note.id, $event)">
+          <ion-icon name="calculator-outline"></ion-icon>
+          <span class="total-interest-label">Total Interest Owed:</span>
+          <span class="total-interest-value">{{ getTotalInterest(note) | number:'1.0-0' }} VND</span>
+          <ion-icon [name]="expandedNotes.has(note.id) ? 'chevron-up-outline' : 'chevron-down-outline'" class="expand-icon"></ion-icon>
+        </div>
+
+        <!-- Owed Months Breakdown -->
+        <div class="owed-months-breakdown" *ngIf="expandedNotes.has(note.id)">
+          <div class="month-breakdown-header">
+            {{ note.is_completed ? 'Breakdown of Paid Interest' : 'Breakdown of Unpaid Interest' }}
+          </div>
+          <div class="month-breakdown-item" *ngFor="let m of getOwedMonthsList(note)">
+            <div class="month-label">
+              <ion-icon name="calendar-outline"></ion-icon>
+              {{ m.label }}
+            </div>
+            <div class="month-status">
+              <span class="amount">{{ m.amount | number:'1.0-0' }} VND</span>
+              <ion-badge [color]="m.isOwed ? 'warning' : 'success'" mode="ios">
+                {{ m.isOwed ? 'OWED' : 'PAID' }}
+              </ion-badge>
+            </div>
+          </div>
+          <div class="no-months-owed" *ngIf="getOwedMonthsList(note).length === 0">
+            No interest months {{ note.is_completed ? 'paid' : 'owed' }}.
+          </div>
+        </div>
+
         <div class="debt-row" *ngIf="note.jar">
           <ion-icon name="wallet-outline"></ion-icon>
           <span>To: {{ note.jar.name }}</span>
@@ -190,6 +223,51 @@
             (ionInput)="onAmountInput($event, 'interestAmount')"
           ></ion-input>
         </ion-item>
+
+        <ion-item button detail="false" class="date-select-item" (click)="openNewDebtStartDatePicker()">
+          <ion-label>
+            <div class="field-title">Debt Start Date (First month of debt)</div>
+            <div class="field-value">{{ newDebtStartDate ? formatDate(newDebtStartDate) : 'Select start date' }}</div>
+          </ion-label>
+          <ion-icon slot="end" name="chevron-forward-outline"></ion-icon>
+        </ion-item>
+        <ion-modal [isOpen]="isNewDebtStartDatePickerOpen" (didDismiss)="closeNewDebtStartDatePicker()">
+          <ng-template>
+            <ion-header>
+              <ion-toolbar>
+                <ion-buttons slot="start">
+                  <ion-button (click)="closeNewDebtStartDatePicker()">Cancel</ion-button>
+                </ion-buttons>
+                <ion-title>Start Date</ion-title>
+                <ion-buttons slot="end">
+                  <ion-button (click)="confirmNewDebtStartDatePicker()">Done</ion-button>
+                </ion-buttons>
+              </ion-toolbar>
+            </ion-header>
+            <ion-content [fullscreen]="true">
+              <ion-datetime
+                presentation="date"
+                size="cover"
+                [(ngModel)]="tempDebtStartDate"
+              ></ion-datetime>
+            </ion-content>
+          </ng-template>
+        </ion-modal>
+
+        <ion-row>
+          <ion-col size="6">
+            <ion-item>
+              <ion-label position="stacked">Months Owed</ion-label>
+              <ion-input type="number" [(ngModel)]="newCurrentMonth" placeholder="e.g., 8"></ion-input>
+            </ion-item>
+          </ion-col>
+          <ion-col size="6">
+            <ion-item>
+              <ion-label position="stacked">Contract Duration</ion-label>
+              <ion-input type="number" [(ngModel)]="newTotalMonths" placeholder="e.g., 12"></ion-input>
+            </ion-item>
+          </ion-col>
+        </ion-row>
       </div>
 
       <ion-item>
@@ -297,6 +375,51 @@
             (ionInput)="onAmountInput($event, 'interestAmount', 'edit')"
           ></ion-input>
         </ion-item>
+
+        <ion-item button detail="false" class="date-select-item" (click)="openEditDebtStartDatePicker()">
+          <ion-label>
+            <div class="field-title">Debt Start Date (First month of debt)</div>
+            <div class="field-value">{{ editDebtStartDate ? formatDate(editDebtStartDate) : 'Select start date' }}</div>
+          </ion-label>
+          <ion-icon slot="end" name="chevron-forward-outline"></ion-icon>
+        </ion-item>
+        <ion-modal [isOpen]="isEditDebtStartDatePickerOpen" (didDismiss)="closeEditDebtStartDatePicker()">
+          <ng-template>
+            <ion-header>
+              <ion-toolbar>
+                <ion-buttons slot="start">
+                  <ion-button (click)="closeEditDebtStartDatePicker()">Cancel</ion-button>
+                </ion-buttons>
+                <ion-title>Start Date</ion-title>
+                <ion-buttons slot="end">
+                  <ion-button (click)="confirmEditDebtStartDatePicker()">Done</ion-button>
+                </ion-buttons>
+              </ion-toolbar>
+            </ion-header>
+            <ion-content [fullscreen]="true">
+              <ion-datetime
+                presentation="date"
+                size="cover"
+                [(ngModel)]="tempDebtStartDate"
+              ></ion-datetime>
+            </ion-content>
+          </ng-template>
+        </ion-modal>
+
+        <ion-row>
+          <ion-col size="6">
+            <ion-item>
+              <ion-label position="stacked">Months Owed</ion-label>
+              <ion-input type="number" [(ngModel)]="editCurrentMonth" placeholder="e.g., 8"></ion-input>
+            </ion-item>
+          </ion-col>
+          <ion-col size="6">
+            <ion-item>
+              <ion-label position="stacked">Contract Duration</ion-label>
+              <ion-input type="number" [(ngModel)]="editTotalMonths" placeholder="e.g., 12"></ion-input>
+            </ion-item>
+          </ion-col>
+        </ion-row>
       </div>
 
       <ion-item>
@@ -310,6 +433,11 @@
           <div class="field-value">{{ editReminderDateDisplay }}</div>
         </ion-label>
         <ion-icon slot="end" name="chevron-forward-outline"></ion-icon>
+      </ion-item>
+
+      <ion-item lines="none" *ngIf="editType === 'debt'">
+        <ion-label color="danger">Pay All (Reset Months Owed to 0)</ion-label>
+        <ion-checkbox slot="start" [(ngModel)]="editIsPayAll"></ion-checkbox>
       </ion-item>
 
       <ion-item lines="none">

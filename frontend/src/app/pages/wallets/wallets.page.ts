@@ -30,6 +30,7 @@ export class WalletsPage implements OnInit {
   isSaving = false;
   isIconModalOpen = false;
   isCategoryModalOpen = false;
+  isTransferDateModalOpen = false;
 
   // Create fields
   walletType: 'basic' = 'basic';
@@ -54,6 +55,7 @@ export class WalletsPage implements OnInit {
   transferAmount = '';
   transferDescription = '';
   transferDate = new Date().toISOString();
+  tempTransferDate = new Date().toISOString();
 
   // Category management
   categories: CategoryTreeNode[] = [];
@@ -196,6 +198,43 @@ export class WalletsPage implements OnInit {
     const temp = this.transferFromId;
     this.transferFromId = this.transferToId;
     this.transferToId = temp;
+  }
+
+  openTransferDateModal(): void {
+    this.tempTransferDate = this.transferDate;
+    this.isTransferDateModalOpen = true;
+  }
+
+  closeTransferDateModal(): void {
+    this.isTransferDateModalOpen = false;
+  }
+
+  confirmTransferDate(): void {
+    this.transferDate = this.tempTransferDate;
+    this.isTransferDateModalOpen = false;
+  }
+
+  onTransferDateChange(event: any): void {
+    const value = event.detail.value;
+    if (value) {
+      this.tempTransferDate = Array.isArray(value) ? value[0] : value;
+    }
+  }
+
+  get transferDateDisplay(): string {
+    return this.formatDateWithWeekday(this.transferDate);
+  }
+
+  private formatDateWithWeekday(value: string): string {
+    if (!value) return '';
+    const date = new Date(value);
+    const options: Intl.DateTimeFormatOptions = {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    };
+    return date.toLocaleDateString('en-US', options);
   }
 
   get canTransfer(): boolean {

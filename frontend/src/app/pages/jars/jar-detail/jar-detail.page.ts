@@ -493,6 +493,7 @@ export class JarDetailPage implements OnInit {
       if (data.categoryData?.icon) {
         this.editBudgetIcon = data.categoryData.icon;
       }
+      this.loadBudgetCategories();
       this.isEditJarOpen = true;
     } else {
       // Re-open the edit budget modal if canceled

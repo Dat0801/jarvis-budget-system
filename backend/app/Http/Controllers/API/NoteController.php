@@ -40,6 +40,7 @@ class NoteController extends Controller
     {
         $notes = $request->user()
             ->notes()
+            ->with('category')
             ->whereNotNull('reminder_date')
             ->whereDate('reminder_date', '<=', now()->toDateString())
             ->where(function ($query) {
@@ -62,6 +63,13 @@ class NoteController extends Controller
             'amount' => 'nullable|numeric',
             'interest_rate' => 'nullable|numeric',
             'interest_amount' => 'nullable|numeric',
+            'debt_start_date' => 'nullable|date',
+            'total_months' => 'nullable|integer',
+            'current_month' => 'nullable|integer',
+            'is_pay_all' => 'nullable|boolean',
+            'payment_mode' => 'nullable|string|in:scheduled,debt,all',
+            'is_scheduled_paid' => 'nullable|boolean',
+            'months_paid' => 'nullable|integer',
             'body' => 'nullable|string',
             'reminder_date' => 'nullable|date',
             'is_completed' => 'nullable|boolean',
@@ -86,6 +94,13 @@ class NoteController extends Controller
             'amount' => 'nullable|numeric',
             'interest_rate' => 'nullable|numeric',
             'interest_amount' => 'nullable|numeric',
+            'debt_start_date' => 'nullable|date',
+            'total_months' => 'nullable|integer',
+            'current_month' => 'nullable|integer',
+            'is_pay_all' => 'nullable|boolean',
+            'payment_mode' => 'nullable|string|in:scheduled,debt,all',
+            'is_scheduled_paid' => 'nullable|boolean',
+            'months_paid' => 'nullable|integer',
             'body' => 'nullable|string',
             'reminder_date' => 'nullable|date',
             'is_notified' => 'nullable|boolean',
@@ -104,8 +119,13 @@ class NoteController extends Controller
 
         if ($isMarkingCompleted && $note->type === 'debt' && !$note->has_transaction) {
             DB::transaction(function () use ($note, &$data) {
-                // For debt notes, we create a transaction if there's an amount
-                $amountToTransact = $note->interest_amount > 0 ? $note->interest_amount : $note->amount;
+                // Determine payment mode/months
+                $isPayAll = ($data['payment_mode'] ?? null) === 'all' || (isset($data['is_pay_all']) && $data['is_pay_all']);
+                $isScheduledPaid = $data['is_scheduled_paid'] ?? (($data['payment_mode'] ?? null) === 'scheduled' || $isPayAll);
+                $monthsPaid = $data['months_paid'] ?? (($data['payment_mode'] ?? null) === 'debt' ? 1 : ($isPayAll ? max(0, ($note->current_month ?: 0) - ($isScheduledPaid ? 1 : 0)) : 0));
+                
+                $totalMonthsToPay = $monthsPaid + ($isScheduledPaid ? 1 : 0);
+                $amountToTransact = ($note->interest_amount > 0 ? $note->interest_amount : $note->amount) * $totalMonthsToPay;
                 
                 if ($amountToTransact > 0) {
                     // ... Determine category name ...
@@ -160,9 +180,17 @@ class NoteController extends Controller
                     $newNoteData['is_completed'] = false;
                     $newNoteData['is_notified'] = false;
                     $newNoteData['has_transaction'] = false; // Reset for the new note
+
+                    // Update current_month for the new note
+                    $newNoteData['current_month'] = max(0, ($note->current_month ?: 0) - $totalMonthsToPay);
                     
-                    $currentDate = $note->reminder_date ? Carbon::parse($note->reminder_date) : now();
-                    $newNoteData['reminder_date'] = $currentDate->addMonth()->toDateString();
+                    // Update reminder_date if scheduled month was paid
+                    if ($isScheduledPaid) {
+                        $currentDate = $note->reminder_date ? Carbon::parse($note->reminder_date) : now();
+                        $newNoteData['reminder_date'] = $currentDate->addMonth()->toDateString();
+                    } else {
+                        $newNoteData['reminder_date'] = $note->reminder_date;
+                    }
                     
                     \App\Models\Note::create($newNoteData);
                     

@@ -330,6 +330,7 @@ export class JarsPage implements OnInit {
       if (data.categoryData?.icon) {
         this.budgetIcon = data.categoryData.icon;
       }
+      this.loadBudgetCategories();
       this.isCreateJarOpen = true;
     } else {
       // Re-open the create budget modal if canceled

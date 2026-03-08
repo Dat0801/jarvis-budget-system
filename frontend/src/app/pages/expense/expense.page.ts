@@ -388,6 +388,7 @@ export class ExpensePage implements OnInit {
       if (data.tab) {
         this.segmentValue = data.tab;
       }
+      this.loadCategories();
     }
   }
 

@@ -11,6 +11,9 @@ export interface Note {
   amount?: number | null;
   interest_rate?: number | null;
   interest_amount?: number | null;
+  debt_start_date?: string | null;
+  total_months?: number | null;
+  current_month?: number | null;
   body?: string | null;
   reminder_date?: string | null;
   is_notified?: boolean;

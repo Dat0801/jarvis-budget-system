@@ -688,6 +688,16 @@ export class HomePage implements OnInit {
     return formatCurrencyAmount(this.parseAmount(value), this.selectedCurrencyCode);
   }
 
+  formatDate(dateStr: string | null | undefined): string {
+    if (!dateStr) return 'No date';
+    const date = new Date(dateStr);
+    return new Intl.DateTimeFormat('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    }).format(date);
+  }
+
   private loadCurrencyPreference(): void {
     this.selectedCurrencyCode = getStoredCurrencyCode();
   }

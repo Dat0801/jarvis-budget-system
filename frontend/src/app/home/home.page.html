@@ -35,7 +35,6 @@
       </div>
     </div>
 
-    <!-- Due Reminders Section -->
     <div class="reminders-section" *ngIf="dueNotes.length > 0">
       <div class="section-header">
         <div class="section-title">Reminders Due</div>
@@ -44,15 +43,36 @@
       <div class="reminder-cards">
         <div class="reminder-card" *ngFor="let note of dueNotes" (click)="openNotifications()">
           <div class="reminder-icon" [class.debt]="note.type === 'debt'">
-            <ion-icon [name]="note.type === 'debt' ? 'cash-outline' : 'notifications-outline'"></ion-icon>
+            <ion-icon [name]="note.category?.icon || (note.type === 'debt' ? 'cash-outline' : 'notifications-outline')"></ion-icon>
           </div>
           <div class="reminder-info">
-            <div class="reminder-title">{{ note.title }}</div>
-            <div class="reminder-subtitle" *ngIf="note.type === 'debt'">
-              {{ note.debtor_name }}: {{ note.interest_amount | number:'1.0-0' }} VND
+            <div class="reminder-title">{{ note.title || note.category?.name }}</div>
+            
+            <div class="reminder-details" *ngIf="note.type === 'debt'">
+              <div class="detail-row" *ngIf="note.debtor_name">
+                <ion-icon name="person-outline"></ion-icon>
+                <span>{{ note.debtor_name }}</span>
+              </div>
+              <div class="detail-row" *ngIf="note.amount">
+                <ion-icon name="wallet-outline"></ion-icon>
+                <span>{{ formatCurrency(note.amount) }}</span>
+                <span class="interest-badge" *ngIf="note.interest_amount">
+                  + {{ formatCurrency(note.interest_amount) }} interest
+                </span>
+              </div>
+              <div class="detail-row" *ngIf="note.current_month || note.total_months">
+                <ion-icon name="calendar-number-outline"></ion-icon>
+                <span>Month: {{ note.current_month || '?' }}/{{ note.total_months || '?' }}</span>
+              </div>
             </div>
-            <div class="reminder-subtitle" *ngIf="note.type === 'general' && note.body">
+
+            <div class="reminder-body" *ngIf="note.type === 'general' && note.body">
               {{ note.body }}
+            </div>
+
+            <div class="reminder-date">
+              <ion-icon name="calendar-outline"></ion-icon>
+              <span>Due {{ formatDate(note.reminder_date) }}</span>
             </div>
           </div>
           <ion-icon name="chevron-forward-outline" class="reminder-arrow"></ion-icon>

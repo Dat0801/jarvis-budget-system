@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { IonicModule, ModalController } from '@ionic/angular';
+import { IonicModule, ModalController, AlertController } from '@ionic/angular';
 import { PageHeaderComponent } from '../../shared/page-header/page-header.component';
 import { Note, NoteService } from '../../services/note.service';
 import { CategoryService, CategoryTreeNode } from '../../services/category.service';
@@ -14,7 +14,7 @@ import { finalize, take } from 'rxjs';
 @Component({
   selector: 'app-notes',
   standalone: true,
-  imports: [CommonModule, FormsModule, IonicModule, PageHeaderComponent, CategoriesPage],
+  imports: [CommonModule, FormsModule, IonicModule, PageHeaderComponent],
   templateUrl: './notes.page.html',
   styleUrls: ['./notes.page.scss'],
 })
@@ -42,6 +42,9 @@ export class NotesPage implements OnInit {
   newAmount = '';
   newInterestRate: number | null = null;
   newInterestAmount = '';
+  newDebtStartDate = '';
+  newTotalMonths: number | null = null;
+  newCurrentMonth: number | null = null;
   newBody = '';
   newReminderDate = '';
 
@@ -57,22 +60,33 @@ export class NotesPage implements OnInit {
   editAmount = '';
   editInterestRate: number | null = null;
   editInterestAmount = '';
+  editDebtStartDate = '';
+  editTotalMonths: number | null = null;
+  editCurrentMonth: number | null = null;
   editBody = '';
   editReminderDate = '';
   editIsCompleted = false;
+  editIsPayAll = false;
+
+  isNewDebtStartDatePickerOpen = false;
+  isEditDebtStartDatePickerOpen = false;
+  tempDebtStartDate = '';
 
   tempReminderDate = '';
   isDatePickerOpen = false;
   datePickerMode: 'create' | 'edit' = 'create';
   isSubmitting = false;
   isLoadingNotes = false;
+  expandedNotes: Set<number> = new Set();
+  owedMonthsCache: Map<number, { label: string; amount: number; isOwed: boolean }[]> = new Map();
 
   constructor(
     private noteService: NoteService,
     private categoryService: CategoryService,
     private walletService: WalletService,
     private fabService: FabService,
-    private modalController: ModalController
+    private modalController: ModalController,
+    private alertController: AlertController
   ) {}
 
   ngOnInit(): void {
@@ -165,6 +179,36 @@ export class NotesPage implements OnInit {
     this.closeDatePicker();
   }
 
+  // Debt Start Date Picker - New Note
+  openNewDebtStartDatePicker(): void {
+    this.tempDebtStartDate = this.newDebtStartDate || this.getTodayDate();
+    this.isNewDebtStartDatePickerOpen = true;
+  }
+
+  closeNewDebtStartDatePicker(): void {
+    this.isNewDebtStartDatePickerOpen = false;
+  }
+
+  confirmNewDebtStartDatePicker(): void {
+    this.newDebtStartDate = this.tempDebtStartDate;
+    this.isNewDebtStartDatePickerOpen = false;
+  }
+
+  // Debt Start Date Picker - Edit Note
+  openEditDebtStartDatePicker(): void {
+    this.tempDebtStartDate = this.editDebtStartDate || this.getTodayDate();
+    this.isEditDebtStartDatePickerOpen = true;
+  }
+
+  closeEditDebtStartDatePicker(): void {
+    this.isEditDebtStartDatePickerOpen = false;
+  }
+
+  confirmEditDebtStartDatePicker(): void {
+    this.editDebtStartDate = this.tempDebtStartDate;
+    this.isEditDebtStartDatePickerOpen = false;
+  }
+
   private getTodayDate(): string {
     return new Date().toISOString().split('T')[0];
   }
@@ -190,6 +234,7 @@ export class NotesPage implements OnInit {
       })
     ).subscribe((data) => {
       this.allNotes = data;
+      this.owedMonthsCache.clear(); // Clear cache when reloading notes
       this.filterNotes();
     });
   }
@@ -238,6 +283,76 @@ export class NotesPage implements OnInit {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();
     return `${day}/${month}/${year}`;
+  }
+
+  getTotalInterest(note: Note): number {
+    if (!note.interest_amount || !note.current_month) return 0;
+    return note.interest_amount * note.current_month;
+  }
+
+  toggleNoteExpand(noteId: number, event: Event): void {
+    event.stopPropagation();
+    if (this.expandedNotes.has(noteId)) {
+      this.expandedNotes.delete(noteId);
+    } else {
+      const note = this.allNotes.find(n => n.id === noteId);
+      if (note) {
+        this.owedMonthsCache.set(noteId, this.calculateOwedMonths(note));
+      }
+      this.expandedNotes.add(noteId);
+    }
+  }
+
+  private calculateOwedMonths(note: Note): { label: string; amount: number; isOwed: boolean }[] {
+    if (!note.interest_amount) return [];
+    
+    const months: { label: string; amount: number; isOwed: boolean }[] = [];
+    
+    // Use debt_start_date as base if available, otherwise use reminder_date
+    const baseDate = note.debt_start_date ? new Date(note.debt_start_date) : 
+                    (note.reminder_date ? new Date(note.reminder_date) : null);
+    
+    if (!baseDate) return [];
+
+    // Limit to 120 months (10 years) to prevent hanging if data is huge
+    const monthsOwed = Math.min(note.current_month || 0, 120);
+    
+    for (let i = 0; i < monthsOwed; i++) {
+      const monthDate = new Date(baseDate);
+      
+      // If using debt_start_date, we count forward. 
+      // If using reminder_date, we count backward (backward is the old logic)
+      if (note.debt_start_date) {
+        monthDate.setMonth(baseDate.getMonth() + i);
+      } else {
+        monthDate.setMonth(baseDate.getMonth() - i);
+      }
+      
+      const monthLabel = monthDate.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+      months.push({
+        label: monthLabel,
+        amount: note.interest_amount,
+        isOwed: !note.is_completed
+      });
+    }
+
+    // Always ensure the reminder_date month is included in the list for active debt notes
+    if (!note.is_completed && note.reminder_date) {
+      const reminderLabel = new Date(note.reminder_date).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+      if (!months.some(m => m.label === reminderLabel)) {
+        months.push({
+          label: reminderLabel,
+          amount: note.interest_amount || 0,
+          isOwed: true
+        });
+      }
+    }
+    
+    return months;
+  }
+
+  getOwedMonthsList(note: Note): { label: string; amount: number; isOwed: boolean }[] {
+    return this.owedMonthsCache.get(note.id) || [];
   }
 
   getCalculatedInterest(amount: number | null | undefined, rate: number | null | undefined): number {
@@ -328,6 +443,9 @@ export class NotesPage implements OnInit {
     this.newAmount = '';
     this.newInterestRate = null;
     this.newInterestAmount = '';
+    this.newDebtStartDate = '';
+    this.newTotalMonths = null;
+    this.newCurrentMonth = null;
     this.newBody = '';
     this.newReminderDate = '';
   }
@@ -349,9 +467,13 @@ export class NotesPage implements OnInit {
     this.editAmount = note.amount ? formatVndAmountInput(note.amount.toString()) : '';
     this.editInterestRate = note.interest_rate || null;
     this.editInterestAmount = note.interest_amount ? formatVndAmountInput(note.interest_amount.toString()) : '';
+    this.editDebtStartDate = note.debt_start_date || '';
+    this.editTotalMonths = note.total_months || null;
+    this.editCurrentMonth = note.current_month || null;
     this.editBody = note.body || '';
     this.editReminderDate = note.reminder_date || '';
     this.editIsCompleted = !!note.is_completed;
+    this.editIsPayAll = false;
     this.isEditNoteOpen = true;
   }
 
@@ -372,6 +494,7 @@ export class NotesPage implements OnInit {
       body: this.editBody,
       reminder_date: this.editReminderDate || null,
       is_completed: this.editIsCompleted,
+      is_pay_all: this.editIsPayAll,
     };
 
     if (this.editType === 'debt') {
@@ -382,6 +505,9 @@ export class NotesPage implements OnInit {
       payload.amount = parseVndAmount(this.editAmount);
       payload.interest_rate = this.editInterestRate;
       payload.interest_amount = parseVndAmount(this.editInterestAmount);
+      payload.debt_start_date = this.editDebtStartDate || null;
+      payload.total_months = this.editTotalMonths;
+      payload.current_month = this.editCurrentMonth;
     } else {
       payload.category_id = null;
       payload.jar_id = null;
@@ -390,6 +516,9 @@ export class NotesPage implements OnInit {
       payload.amount = null;
       payload.interest_rate = null;
       payload.interest_amount = null;
+      payload.debt_start_date = null;
+      payload.total_months = null;
+      payload.current_month = null;
     }
 
     this.noteService.update(this.editingNote.id, payload).pipe(
@@ -423,6 +552,9 @@ export class NotesPage implements OnInit {
       payload.amount = parseVndAmount(this.newAmount);
       payload.interest_rate = this.newInterestRate;
       payload.interest_amount = parseVndAmount(this.newInterestAmount);
+      payload.debt_start_date = this.newDebtStartDate || null;
+      payload.total_months = this.newTotalMonths;
+      payload.current_month = this.newCurrentMonth;
     }
 
     this.noteService.create(payload).pipe(
@@ -436,13 +568,88 @@ export class NotesPage implements OnInit {
     });
   }
 
-  toggleCompleted(note: Note): void {
+  async toggleCompleted(note: Note): Promise<void> {
     const previous = note.is_completed;
     const isRepeat = note.is_repeat;
 
-    this.noteService.update(note.id, {
+    // If marking as completed a debt note, ask for payment type
+    if (note.type === 'debt' && !note.is_completed) {
+      const months = this.calculateOwedMonths(note);
+      const reminderMonthLabel = this.getReminderMonthLabel(note);
+      
+      const inputs: any[] = months.map((m, index) => ({
+        type: 'checkbox',
+        label: m.label + (m.label === reminderMonthLabel ? ' (Scheduled)' : ' (Past Debt)'),
+        value: index,
+        checked: m.label === reminderMonthLabel // Default check the scheduled one
+      }));
+
+      const alert = await this.alertController.create({
+        header: 'Select Months to Pay',
+        message: 'Choose which months you want to settle.',
+        inputs: [
+          {
+            type: 'checkbox',
+            label: 'ALL MONTHS',
+            value: 'all',
+            checked: false
+          },
+          ...inputs
+        ],
+        buttons: [
+          {
+            text: 'Cancel',
+            role: 'cancel'
+          },
+          {
+            text: 'Confirm Payment',
+            handler: (selectedValues: (number | string)[]) => {
+              if (selectedValues.length === 0) return false;
+              
+              if (selectedValues.includes('all')) {
+                this.performToggleCompleted(note, { payment_mode: 'all' });
+                return true;
+              }
+
+              const isScheduledPaid = selectedValues.some(val => 
+                typeof val === 'number' && months[val].label === reminderMonthLabel
+              );
+              const monthsPaid = selectedValues.filter(val => 
+                typeof val === 'number' && months[val].label !== reminderMonthLabel
+              ).length;
+
+              this.performToggleCompleted(note, {
+                is_scheduled_paid: isScheduledPaid,
+                months_paid: monthsPaid
+              });
+              
+              return true;
+            }
+          }
+        ]
+      });
+      await alert.present();
+    } else {
+      this.performToggleCompleted(note);
+    }
+  }
+
+  private getReminderMonthLabel(note: Note): string {
+    if (!note.reminder_date) return '';
+    const date = new Date(note.reminder_date);
+    return date.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+  }
+
+  private performToggleCompleted(note: Note, additionalPayload: any = {}): void {
+    const previous = note.is_completed;
+    const isRepeat = note.is_repeat;
+
+    const payload: any = {
       is_completed: !note.is_completed,
-    }).pipe(take(1)).subscribe({
+      ...additionalPayload
+    };
+
+    this.noteService.update(note.id, payload).pipe(take(1)).subscribe({
       next: (updatedNote) => {
         if (isRepeat && !previous) {
           // If it was a repeating note and we marked it as completed,

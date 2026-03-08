@@ -194,18 +194,3 @@
 		margin-bottom: 12px;
 	}
 }
-
-.date-picker-modal-card {
-	// Global styles in global.scss now handle full screen
-}
-
-.date-picker-modal-card ion-content {
-	--background: #ffffff;
-	--overflow: auto;
-}
-
-.date-picker-modal-card ion-datetime {
-	width: 100%;
-	max-width: 100%;
-	height: 100%;
-}

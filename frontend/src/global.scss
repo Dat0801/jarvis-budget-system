@@ -108,3 +108,15 @@ ion-action-sheet {
   max-height: 100% !important;
   border-radius: 0 !important;
 }
+
+/* Date picker modal styling for full screen */
+.date-picker-modal-card ion-content {
+	--background: #ffffff;
+	--overflow: auto;
+}
+
+.date-picker-modal-card ion-datetime {
+	width: 100%;
+	max-width: 100%;
+	height: 100%;
+}

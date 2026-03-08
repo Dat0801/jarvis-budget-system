@@ -19,7 +19,7 @@ type SortType = 'frequency' | 'name';
 @Component({
   selector: 'app-categories',
   standalone: true,
-  imports: [CommonModule, IonicModule, PageHeaderComponent, FormsModule, CategoryDetailPage],
+  imports: [CommonModule, IonicModule, PageHeaderComponent, FormsModule],
   templateUrl: './categories.page.html',
   styleUrls: ['./categories.page.scss'],
 })

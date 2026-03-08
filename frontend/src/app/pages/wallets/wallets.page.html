@@ -261,14 +261,12 @@
           <ion-note slot="helper">Enter the amount to transfer</ion-note>
         </ion-item>
 
-        <ion-item>
-          <ion-label position="stacked">Date</ion-label>
-          <ion-datetime-button datetime="transfer-date"></ion-datetime-button>
-          <ion-modal>
-            <ng-template>
-              <ion-datetime id="transfer-date" presentation="date" [(ngModel)]="transferDate" name="transferDate"></ion-datetime>
-            </ng-template>
-          </ion-modal>
+        <ion-item button detail="false" (click)="openTransferDateModal()">
+          <ion-label>
+            <div style="font-size: 12px; color: var(--ion-color-medium); margin-bottom: 4px;">Date</div>
+            <div style="font-size: 16px;">{{ transferDateDisplay }}</div>
+          </ion-label>
+          <ion-icon slot="end" name="calendar-outline"></ion-icon>
         </ion-item>
 
         <ion-item>
@@ -288,6 +286,31 @@
           </ion-button>
         </div>
       </form>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<!-- Date Picker Modal -->
+<ion-modal [isOpen]="isTransferDateModalOpen" (didDismiss)="closeTransferDateModal()" class="date-picker-modal-card">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-buttons slot="start">
+          <ion-button (click)="closeTransferDateModal()">Cancel</ion-button>
+        </ion-buttons>
+        <ion-title>Select Date</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="confirmTransferDate()" color="primary">Done</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content [fullscreen]="true">
+      <ion-datetime
+        locale="en-US"
+        presentation="date"
+        [value]="tempTransferDate"
+        (ionChange)="onTransferDateChange($event)"
+      ></ion-datetime>
     </ion-content>
   </ng-template>
 </ion-modal>

@@ -187,15 +187,62 @@ ion-content.dashboard::part(background) {
 			flex: 1;
 
 			.reminder-title {
-				font-size: 14px;
+				font-size: 15px;
 				font-weight: 700;
 				color: var(--text-strong);
+				margin-bottom: 4px;
 			}
 
-			.reminder-subtitle {
-				font-size: 12px;
-				color: var(--text-muted);
-				margin-top: 2px;
+			.reminder-details {
+				display: flex;
+				flex-direction: column;
+				gap: 4px;
+				margin-bottom: 6px;
+
+				.detail-row {
+					display: flex;
+					align-items: center;
+					gap: 6px;
+					font-size: 13px;
+					color: var(--text-medium);
+
+					ion-icon {
+						font-size: 14px;
+						color: var(--text-muted);
+					}
+
+					.interest-badge {
+						font-size: 11px;
+						padding: 2px 6px;
+						background: #fef2f2;
+						color: #dc2626;
+						border-radius: 4px;
+						font-weight: 600;
+						margin-left: 4px;
+					}
+				}
+			}
+
+			.reminder-body {
+				font-size: 13px;
+				color: var(--text-medium);
+				margin-bottom: 6px;
+				line-height: 1.4;
+			}
+
+			.reminder-date {
+				display: flex;
+				align-items: center;
+				gap: 6px;
+				font-size: 11px;
+				font-weight: 700;
+				color: #dc2626;
+				text-transform: uppercase;
+				letter-spacing: 0.5px;
+
+				ion-icon {
+					font-size: 13px;
+				}
 			}
 		}
 
