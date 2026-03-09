@@ -9,6 +9,7 @@ use App\Http\Controllers\API\JarController;
 use App\Http\Controllers\API\WalletController;
 use App\Http\Controllers\API\NoteController;
 use App\Http\Controllers\API\StatsController;
+use App\Http\Controllers\API\ReportController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/up', function () {
@@ -68,6 +69,7 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/stats/income-vs-expenses', [StatsController::class, 'getIncomeVsExpenses']);
     Route::get('/stats/summary', [StatsController::class, 'getSummary']);
     Route::get('/reports/monthly', [StatsController::class, 'getMonthlyReports']);
+    Route::get('/reports/export', [ReportController::class, 'export']);
 
     Route::patch('/account/profile', [AccountController::class, 'updateProfile']);
     Route::patch('/account/password', [AccountController::class, 'updatePassword']);

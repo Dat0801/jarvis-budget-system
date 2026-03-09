@@ -6,9 +6,10 @@ import { TransactionsPage } from './transactions.page';
 import { TransactionsPageRoutingModule } from './transactions-routing.module';
 import { TransactionDetailPage } from './transaction-detail.page';
 import { PageHeaderComponent } from '../shared/page-header/page-header.component';
+import { MonthSelectorComponent } from './month-selector/month-selector.component';
 
 @NgModule({
   imports: [IonicModule, CommonModule, FormsModule, TransactionsPageRoutingModule, TransactionDetailPage, PageHeaderComponent],
-  declarations: [TransactionsPage],
+  declarations: [TransactionsPage, MonthSelectorComponent],
 })
 export class TransactionsPageModule {}

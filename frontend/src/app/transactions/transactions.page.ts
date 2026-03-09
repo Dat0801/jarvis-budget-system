@@ -6,8 +6,10 @@ import { IncomeService } from '../services/income.service';
 import { MonthlyReport, StatsService } from '../services/stats.service';
 import { FabService } from '../services/fab.service';
 import { WalletService, Wallet } from '../services/wallet.service';
+import { ReportService } from '../services/report.service';
+import { MonthSelectorComponent } from './month-selector/month-selector.component';
 import { Router, ActivatedRoute } from '@angular/router';
-import { ActionSheetController, IonicModule } from '@ionic/angular';
+import { ActionSheetController, IonicModule, ModalController, LoadingController, ToastController } from '@ionic/angular';
 import { formatCurrencyAmount, getStoredCurrencyCode } from '../utils/currency.util';
 import { addIcons } from 'ionicons';
 import {
@@ -28,6 +30,7 @@ import {
   cardOutline,
   cashOutline,
   archiveOutline,
+  downloadOutline,
 } from 'ionicons/icons';
 
 interface ExpenseItem {
@@ -91,6 +94,7 @@ export class TransactionsPage implements OnInit {
   monthTabs: MonthTab[] = [];
   selectedTabKey = '';
   monthlyReports: MonthlyReport[] = [];
+  availableMonths: string[] = [];
   isReportsModalOpen = false;
 
   isLoading = true;
@@ -122,9 +126,13 @@ export class TransactionsPage implements OnInit {
     private statsService: StatsService,
     private fabService: FabService,
     private walletService: WalletService,
+    private reportService: ReportService,
     private router: Router,
     private route: ActivatedRoute,
-    private actionSheetCtrl: ActionSheetController
+    private actionSheetCtrl: ActionSheetController,
+    private modalController: ModalController,
+    private loadingController: LoadingController,
+    private toastController: ToastController
   ) {
     addIcons({
       searchOutline,
@@ -144,6 +152,7 @@ export class TransactionsPage implements OnInit {
       cardOutline,
       cashOutline,
       archiveOutline,
+      downloadOutline,
     });
   }
 
@@ -209,6 +218,52 @@ export class TransactionsPage implements OnInit {
       ]
     });
     await actionSheet.present();
+  }
+
+  async openExportModal() {
+    const modal = await this.modalController.create({
+      component: MonthSelectorComponent,
+      componentProps: {
+        availableMonths: this.availableMonths
+      }
+    });
+
+    await modal.present();
+
+    const { data } = await modal.onDidDismiss();
+    if (data && Array.isArray(data)) {
+      this.exportToExcel(data);
+    }
+  }
+
+  async exportToExcel(months: string[]) {
+    const loading = await this.loadingController.create({
+      message: 'Generating Excel report...',
+    });
+    await loading.present();
+
+    this.reportService.exportTransactions(months).subscribe({
+      next: (result) => {
+        this.reportService.downloadFile(result.blob, result.fileName);
+        loading.dismiss();
+        this.showToast('Report downloaded successfully');
+      },
+      error: (err) => {
+        console.error('Export error:', err);
+        loading.dismiss();
+        this.showToast('Failed to generate report', 'danger');
+      }
+    });
+  }
+
+  async showToast(message: string, color: string = 'success') {
+    const toast = await this.toastController.create({
+      message,
+      duration: 2000,
+      color,
+      position: 'bottom',
+    });
+    await toast.present();
   }
 
   ionViewWillEnter(): void {
@@ -282,6 +337,12 @@ export class TransactionsPage implements OnInit {
         const allTransactions = [...expenses, ...incomes].sort(
           (first, second) => second.date.getTime() - first.date.getTime()
         );
+
+        const monthSet = new Set<string>();
+        allTransactions.forEach(t => {
+            monthSet.add(`${t.date.getFullYear()}-${(t.date.getMonth() + 1).toString().padStart(2, '0')}`);
+        });
+        this.availableMonths = Array.from(monthSet);
 
         this.allTransactions = allTransactions;
         this.applyFilters();

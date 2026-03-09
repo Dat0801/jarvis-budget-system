@@ -1,0 +1,18 @@
+ion-list {
+  margin-top: 16px;
+}
+
+ion-item {
+  --padding-start: 0;
+  cursor: pointer;
+}
+
+p {
+  color: var(--ion-color-medium);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+ion-footer {
+  padding: 16px;
+}

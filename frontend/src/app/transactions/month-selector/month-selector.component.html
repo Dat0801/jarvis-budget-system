@@ -1,0 +1,27 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Select Months to Export</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="dismiss()">Cancel</ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <p>Choose the months you want to include in your Excel report. Each month will be in a separate sheet.</p>
+  
+  <ion-list lines="full">
+    <ion-item *ngFor="let month of months; let i = index" (click)="toggleMonth(i)">
+      <ion-label>{{ month.label }}</ion-label>
+      <ion-checkbox slot="start" [(ngModel)]="month.selected" (click)="$event.stopPropagation()"></ion-checkbox>
+    </ion-item>
+  </ion-list>
+</ion-content>
+
+<ion-footer>
+  <ion-toolbar>
+    <ion-button expand="block" (click)="export()">
+      Export Excel
+    </ion-button>
+  </ion-toolbar>
+</ion-footer>
