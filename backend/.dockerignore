@@ -1,0 +1,10 @@
+/vendor
+/node_modules
+.env
+.git
+/storage/*.key
+/public/storage
+/public/build
+phpunit.xml
+.editorconfig
+.gitattributes
