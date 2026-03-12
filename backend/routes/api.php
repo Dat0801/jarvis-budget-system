@@ -26,6 +26,7 @@ Route::prefix('auth')->group(function () {
 
 Route::middleware('auth:api')->group(function () {
     Route::get('/budgets', [JarController::class, 'index']);
+    Route::post('/budgets/merge', [JarController::class, 'merge']);
     Route::get('/budgets/{jar}', [JarController::class, 'show']);
     Route::post('/budgets', [JarController::class, 'store']);
     Route::get('/budgets/{jar}/transactions', [JarController::class, 'getTransactions']);

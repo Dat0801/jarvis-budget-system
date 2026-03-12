@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Expense;
 use App\Models\Income;
 use App\Models\Jar;
+use App\Models\TransactionCategory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -103,6 +104,64 @@ class JarController extends Controller
         return response()->json(['message' => 'Budget deleted']);
     }
 
+    public function merge(Request $request)
+    {
+        $data = $request->validate([
+            'source_jar_ids' => 'required|array|min:1',
+            'source_jar_ids.*' => 'exists:jars,id',
+            'target_jar_id' => 'nullable|exists:jars,id',
+            'new_jar_name' => 'required_without:target_jar_id|string|max:255',
+            'category_id' => 'nullable|exists:transaction_categories,id',
+        ]);
+
+        $user = $request->user();
+        $sourceJars = Jar::whereIn('id', $data['source_jar_ids'])
+            ->where('user_id', $user->id)
+            ->where('wallet_type', Jar::TYPE_BUDGET)
+            ->get();
+
+        if ($sourceJars->count() !== count($data['source_jar_ids'])) {
+            abort(403, 'Unauthorized access to some source jars');
+        }
+
+        $totalBalance = $sourceJars->sum('balance');
+
+        return DB::transaction(function () use ($user, $data, $sourceJars, $totalBalance) {
+            if (!empty($data['target_jar_id'])) {
+                $targetJar = Jar::where('id', $data['target_jar_id'])
+                    ->where('user_id', $user->id)
+                    ->where('wallet_type', Jar::TYPE_BUDGET)
+                    ->firstOrFail();
+                
+                $targetJar->update([
+                    'balance' => $targetJar->balance + $totalBalance,
+                ]);
+            } else {
+                $targetJar = $user->jars()->create([
+                    'name' => $data['new_jar_name'],
+                    'category' => $data['new_jar_name'],
+                    'balance' => $totalBalance,
+                    'wallet_type' => Jar::TYPE_BUDGET,
+                    'icon' => 'basket-outline',
+                    'currency_unit' => 'VND',
+                ]);
+            }
+
+            if (!empty($data['category_id'])) {
+                $targetJar->categories()->syncWithoutDetaching([$data['category_id']]);
+            }
+
+            // Transfer expenses/incomes if they were specifically linked to jar_id
+            foreach ($sourceJars as $sourceJar) {
+                Expense::where('jar_id', $sourceJar->id)->update(['jar_id' => $targetJar->id]);
+                Income::where('jar_id', $sourceJar->id)->update(['jar_id' => $targetJar->id]);
+                $sourceJar->delete();
+            }
+
+            return response()->json($targetJar->load('categories'));
+        });
+    }
+
     public function getTransactions(Request $request, Jar $jar)
     {
         $this->authorizeJarAccess($request, $jar);
@@ -114,16 +173,31 @@ class JarController extends Controller
         $incomeQuery = Income::query()->where('user_id', $request->user()->id);
 
         if ($jar->wallet_type === Jar::TYPE_BUDGET) {
-            $categoryName = $jar->category ?: $jar->name;
+            $categoryNames = [$jar->category ?: $jar->name];
 
-            $expenseQuery->where(function ($q) use ($jar, $categoryName) {
+            // Resolve all linked categories and their descendants
+            $linkedCategories = $jar->categories()->with('children')->get();
+            if ($linkedCategories->isNotEmpty()) {
+                foreach ($linkedCategories as $cat) {
+                    $categoryNames = array_merge($categoryNames, $cat->getAllDescendantNames());
+                }
+            } else {
+                // If no direct link in category_jar, try to find a category by name
+                $matchingCat = TransactionCategory::where('name', $jar->category ?: $jar->name)->first();
+                if ($matchingCat) {
+                    $categoryNames = array_merge($categoryNames, $matchingCat->getAllDescendantNames());
+                }
+            }
+            $categoryNames = array_unique(array_filter($categoryNames));
+
+            $expenseQuery->where(function ($q) use ($jar, $categoryNames) {
                 $q->where('jar_id', $jar->id)
-                  ->orWhere('category', $categoryName);
+                  ->orWhereIn('category', $categoryNames);
             });
 
-            $incomeQuery->where(function ($q) use ($jar, $categoryName) {
+            $incomeQuery->where(function ($q) use ($jar, $categoryNames) {
                 $q->where('jar_id', $jar->id)
-                  ->orWhere('category', $categoryName);
+                  ->orWhereIn('category', $categoryNames);
             });
         } else {
             $expenseQuery->where('jar_id', $jar->id);

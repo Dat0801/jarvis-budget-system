@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, HostListener } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { IonicModule, ModalController } from '@ionic/angular';
+import { AlertController, IonicModule, ModalController } from '@ionic/angular';
 import { PageHeaderComponent } from '../../shared/page-header/page-header.component';
 import { CategoriesPage } from '../categories/categories.page';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -47,6 +47,8 @@ import {
   starOutline,
   happyOutline,
   shieldCheckmarkOutline,
+  layersOutline,
+  checkmarkCircleOutline,
 } from 'ionicons/icons';
 
 type BudgetPeriod = 'week' | 'month' | 'quarter' | 'year';
@@ -74,6 +76,8 @@ export class JarsPage implements OnInit {
   totalSpent = 0;
   isLoadingJars = false;
   isCreateJarOpen = false;
+  isMergeMode = false;
+  selectedJarIds: number[] = [];
   selectedBudgetCategoryValue = '';
   budgetAmount = '';
   budgetIcon = 'basket-outline';
@@ -93,6 +97,13 @@ export class JarsPage implements OnInit {
   ];
   private readonly targetPattern = /\[target=(\d+(?:\.\d+)?)\]/;
 
+  @HostListener('document:keydown.escape', ['$event'])
+  handleEscapeKey(event: KeyboardEvent) {
+    if (this.isMergeMode) {
+      this.toggleMergeMode();
+    }
+  }
+
   constructor(
     private budgetService: BudgetService,
     private expenseService: ExpenseService,
@@ -101,7 +112,8 @@ export class JarsPage implements OnInit {
     private fabService: FabService,
     private route: ActivatedRoute,
     private router: Router,
-    private modalController: ModalController
+    private modalController: ModalController,
+    private alertController: AlertController
   ) {
     addIcons({
       closeOutline,
@@ -136,6 +148,8 @@ export class JarsPage implements OnInit {
       starOutline,
       happyOutline,
       shieldCheckmarkOutline,
+      layersOutline,
+      checkmarkCircleOutline,
     });
   }
 
@@ -502,8 +516,157 @@ export class JarsPage implements OnInit {
     return `${Math.round(amount)}`;
   }
 
-  navigateToJar(jarId: number): void {
-    this.router.navigate(['/tabs/budgets', jarId]);
+  navigateToJar(jar: Budget): void {
+    if (this.isMergeMode) {
+      this.toggleJarSelection(jar.id);
+      return;
+    }
+    this.router.navigate(['/tabs/budgets', jar.id]);
+  }
+
+  toggleMergeMode(): void {
+    this.isMergeMode = !this.isMergeMode;
+    if (!this.isMergeMode) {
+      this.selectedJarIds = [];
+      // Restore the 'add' FAB when exiting merge mode
+      this.fabService.showFab(() => this.openCreateJar(), 'add', this.fabOwner);
+    } else {
+      // Change FAB to 'layers' (merge icon) when entering merge mode
+      this.fabService.showFab(() => this.openMergeDialog(), 'layers-outline', this.fabOwner);
+    }
+  }
+
+  toggleJarSelection(jarId: number): void {
+    const index = this.selectedJarIds.indexOf(jarId);
+    if (index > -1) {
+      this.selectedJarIds.splice(index, 1);
+    } else {
+      this.selectedJarIds.push(jarId);
+    }
+    
+    // Update FAB visibility based on selection
+    if (this.isMergeMode) {
+      if (this.selectedJarIds.length > 0) {
+        this.fabService.showFab(() => this.openMergeDialog(), 'layers-outline', this.fabOwner);
+      } else {
+        // Optional: Hide or change FAB if nothing selected in merge mode
+        // For now keep it as merge icon but it will trigger validation inside openMergeDialog
+        this.fabService.showFab(() => this.openMergeDialog(), 'layers-outline', this.fabOwner);
+      }
+    }
+  }
+
+  isJarSelected(jarId: number): boolean {
+    return this.selectedJarIds.includes(jarId);
+  }
+
+  async openMergeDialog(): Promise<void> {
+    if (this.selectedJarIds.length < 1) {
+      return;
+    }
+
+    // Validation: Check if all selected jars share the same parent category
+    const selectedJars = this.jars.filter(j => this.selectedJarIds.includes(j.id));
+    
+    // We need to fetch the category hierarchy for selected jars to verify parents
+    this.categoryService.getTree('expense').subscribe(async (response) => {
+      const allCategories = response.data || [];
+      const parentNames = new Set<string>();
+
+      selectedJars.forEach(jar => {
+        const jarCategoryName = jar.category || jar.name;
+        // Find which parent this category belongs to
+        const parent = allCategories.find(p => 
+          p.name === jarCategoryName || 
+          (p.children && p.children.some(c => c.name === jarCategoryName))
+        );
+        
+        if (parent) {
+          parentNames.add(parent.name);
+        } else {
+          parentNames.add('Unknown'); // Category not found in tree
+        }
+      });
+
+      if (parentNames.size > 1) {
+        this.showValidationError('Cannot merge budgets from different parent categories. Please select budgets within the same group (e.g., only Food & Dining items).');
+        return;
+      }
+
+      const commonParentName = Array.from(parentNames)[0];
+
+      const modal = await this.modalController.create({
+        component: CategoriesPage,
+        componentProps: {
+          isModal: true,
+          initialSelectMode: true,
+          initialTab: 'expense',
+          restrictTab: 'expense',
+          restrictToParentOnly: true,
+          filterByCategories: commonParentName !== 'Unknown' ? [commonParentName] : []
+        },
+      });
+
+      await modal.present();
+
+      const { data } = await modal.onDidDismiss();
+      if (data && data.selectedCategory) {
+        const categoryId = Number(data.selectedCategory.split(':')[1] || data.selectedCategory);
+        const categoryName = data.categoryData?.name || 'Merged Budget';
+
+        const confirmAlert = await this.alertController.create({
+          header: 'Merge Budgets',
+          message: `Are you sure you want to merge these budgets into "${categoryName}"?`,
+          inputs: [
+            {
+              name: 'name',
+              type: 'text',
+              value: categoryName,
+              placeholder: 'Budget Name',
+            },
+          ],
+          buttons: [
+            {
+              text: 'Cancel',
+              role: 'cancel',
+            },
+            {
+              text: 'Confirm Merge',
+              handler: (alertData) => {
+                this.executeMerge(alertData.name || categoryName, categoryId);
+              },
+            },
+          ],
+        });
+        await confirmAlert.present();
+      }
+    });
+  }
+
+  async showValidationError(message: string): Promise<void> {
+    const alert = await this.alertController.create({
+      header: 'Error',
+      message: message,
+      buttons: ['OK']
+    });
+    await alert.present();
+  }
+
+  executeMerge(newName: string, categoryId: number): void {
+    this.budgetService.merge({
+      source_jar_ids: this.selectedJarIds,
+      new_jar_name: newName,
+      category_id: categoryId
+    }).subscribe({
+      next: () => {
+        this.isMergeMode = false;
+        this.selectedJarIds = [];
+        this.loadJars();
+      },
+      error: (err) => {
+        console.error('Merge failed', err);
+      }
+    });
   }
 
   private createJar(payload: {

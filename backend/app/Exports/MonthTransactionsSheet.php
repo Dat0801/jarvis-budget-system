@@ -5,12 +5,13 @@ namespace App\Exports;
 use App\Models\Expense;
 use App\Models\Income;
 use Maatwebsite\Excel\Concerns\FromCollection;
-use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithTitle;
-use Maatwebsite\Excel\Concerns\WithMapping;
+use Maatwebsite\Excel\Concerns\WithStyles;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use Carbon\Carbon;
 
-class MonthTransactionsSheet implements FromCollection, WithTitle, WithHeadings, WithMapping
+class MonthTransactionsSheet implements FromCollection, WithTitle, WithStyles, ShouldAutoSize
 {
     private $month;
     private $userId;
@@ -36,9 +37,16 @@ class MonthTransactionsSheet implements FromCollection, WithTitle, WithHeadings,
             ->with('jar')
             ->get()
             ->map(function ($item) {
-                $item->type = 'Expense';
-                $item->date = $item->spent_at;
-                return $item;
+                return [
+                    'id' => $item->id,
+                    'date' => $item->spent_at->format('Y-m-d'),
+                    'type' => 'Expense',
+                    'category' => $item->category,
+                    'amount' => $item->amount,
+                    'jar' => $item->jar ? $item->jar->name : 'N/A',
+                    'note' => $item->note,
+                    'sort_date' => $item->spent_at
+                ];
             });
 
         $incomes = Income::where('user_id', $this->userId)
@@ -47,40 +55,92 @@ class MonthTransactionsSheet implements FromCollection, WithTitle, WithHeadings,
             ->with('jar')
             ->get()
             ->map(function ($item) {
-                $item->type = 'Income';
-                $item->date = $item->received_at;
-                return $item;
+                return [
+                    'id' => $item->id,
+                    'date' => $item->received_at->format('Y-m-d'),
+                    'type' => 'Income',
+                    'category' => $item->category,
+                    'amount' => $item->amount,
+                    'jar' => $item->jar ? $item->jar->name : 'N/A',
+                    'note' => $item->source,
+                    'sort_date' => $item->received_at
+                ];
             });
 
-        return $expenses->concat($incomes)->sortBy('date');
-    }
+        // Use unique to prevent duplicates based on type and id
+        $transactions = $expenses->concat($incomes)
+            ->unique(function ($item) {
+                return $item['type'] . '-' . $item['id'];
+            })
+            ->sortBy('sort_date');
 
-    public function title(): string
-    {
-        return Carbon::parse($this->month)->format('M Y');
-    }
+        // Calculate totals
+        $totalIncome = $incomes->sum('amount');
+        $totalExpense = $expenses->sum('amount');
+        $balance = $totalIncome - $totalExpense;
 
-    public function headings(): array
-    {
-        return [
+        // Build the collection for display
+        $data = collect();
+
+        // Summary Information at the top
+        $data->push(['STATISTICS FOR ' . $date->format('F Y')]);
+        $data->push(['Total Income:', '', '', number_format($totalIncome, 0, ',', '.') . ' VND']);
+        $data->push(['Total Expenses:', '', '', number_format($totalExpense, 0, ',', '.') . ' VND']);
+        $data->push(['Balance:', '', '', number_format($balance, 0, ',', '.') . ' VND']);
+        $data->push(['']); // Empty row
+
+        // Headings for the transaction list
+        $data->push([
             'Date',
             'Type',
             'Category',
             'Amount',
             'Wallet/Jar',
             'Note/Source',
-        ];
+        ]);
+
+        // Transactions
+        foreach ($transactions as $t) {
+            $data->push([
+                $t['date'],
+                $t['type'],
+                $t['category'],
+                number_format($t['amount'], 0, ',', '.') . ' VND',
+                $t['jar'],
+                $t['note'],
+            ]);
+        }
+
+        // Total row at the bottom
+        $data->push(['']);
+        $data->push([
+            'TOTAL',
+            '',
+            '',
+            number_format($totalIncome - $totalExpense, 0, ',', '.') . ' VND (Balance)',
+            '',
+            '',
+        ]);
+
+        return $data;
     }
 
-    public function map($transaction): array
+    public function title(): string
+    {
+        return $date = Carbon::parse($this->month)->format('M Y');
+    }
+
+    public function styles(Worksheet $sheet)
     {
         return [
-            $transaction->date->format('Y-m-d'),
-            $transaction->type,
-            $transaction->category,
-            $transaction->amount,
-            $transaction->jar ? $transaction->jar->name : 'N/A',
-            $transaction->type === 'Expense' ? $transaction->note : $transaction->source,
+            // Style the summary rows
+            1 => ['font' => ['bold' => true, 'size' => 14]],
+            2 => ['font' => ['bold' => true]],
+            3 => ['font' => ['bold' => true]],
+            4 => ['font' => ['bold' => true]],
+            
+            // Style the transaction headings row (row 6 because of 4 summary rows + 1 empty row)
+            6 => ['font' => ['bold' => true], 'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => 'E2E8F0']]],
         ];
     }
 }

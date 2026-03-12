@@ -20,7 +20,12 @@ class ReportController extends Controller
         $months = $request->months;
         $userId = $request->user()->id;
 
-        $fileName = 'transactions_report_' . Carbon::now()->format('Ymd_His') . '.xlsx';
+        // Create filename based on selected months
+        if (count($months) === 1) {
+            $fileName = 'Monthly_Report_' . Carbon::parse($months[0])->format('m_Y') . '.xlsx';
+        } else {
+            $fileName = 'Consolidated_Report_' . Carbon::now()->format('m_Y') . '.xlsx';
+        }
 
         return Excel::download(new TransactionsExport($months, $userId), $fileName);
     }

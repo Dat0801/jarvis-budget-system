@@ -68,7 +68,7 @@
         <ion-label>{{ category.name }}</ion-label>
       </ion-item>
 
-      <ng-container *ngIf="category.children && category.children.length > 0">
+      <ng-container *ngIf="!restrictToParentOnly && category.children && category.children.length > 0">
         <ion-item
           button
           detail="false"

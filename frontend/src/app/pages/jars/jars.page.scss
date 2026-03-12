@@ -99,6 +99,11 @@ ion-content.jars-page {
 	gap: 16px;
 }
 
+.merge-fab {
+	--border-radius: 16px;
+	box-shadow: 0 8px 16px rgba(47, 111, 228, 0.3);
+}
+
 .jar-card {
 	display: grid;
 	grid-template-columns: auto 1fr;
@@ -109,11 +114,19 @@ ion-content.jars-page {
 	padding: 16px 18px;
 	box-shadow: 0 10px 20px rgba(16, 24, 40, 0.08);
 	cursor: pointer;
-	transition: box-shadow 0.2s ease, transform 0.2s ease;
+	transition: all 0.2s ease;
+	position: relative;
+	border: 2px solid transparent;
 
 	&:active {
 		transform: scale(0.98);
 		box-shadow: 0 4px 12px rgba(16, 24, 40, 0.12);
+	}
+
+	&.jar-card--selected {
+		border-color: #2f6fe4;
+		background: #f0f6ff;
+		transform: scale(1.02);
 	}
 }
 
@@ -125,6 +138,24 @@ ion-content.jars-page {
 	align-items: center;
 	justify-content: center;
 	font-size: 24px;
+	position: relative;
+}
+
+.selected-badge {
+	position: absolute;
+	top: -6px;
+	right: -6px;
+	background: #ffffff;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+
+	ion-icon {
+		font-size: 20px;
+		color: #2f6fe4;
+	}
 }
 
 .jar-icon ion-icon {

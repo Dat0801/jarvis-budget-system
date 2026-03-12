@@ -90,4 +90,13 @@ export class BudgetService {
   addMoney(budgetId: number, amount: number) {
     return this.api.post<Budget>(`budgets/${budgetId}/add-money`, { amount });
   }
+
+  merge(payload: {
+    source_jar_ids: number[];
+    target_jar_id?: number;
+    new_jar_name?: string;
+    category_id?: number;
+  }) {
+    return this.api.post<Budget>('budgets/merge', payload);
+  }
 }

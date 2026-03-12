@@ -32,6 +32,8 @@ export class CategoriesPage implements OnInit {
   @Input() initialReturnMode = '';
   @Input() initialSelectMode = false;
   @Input() restrictTab: CategoryTab | null = null;
+  @Input() restrictToParentOnly = false;
+  @Input() filterByCategories: string[] = [];
 
   activeTab: CategoryTab = 'expense';
   categories: CategoryTreeNode[] = [];
@@ -264,6 +266,11 @@ export class CategoriesPage implements OnInit {
       next: (response) => {
         let data = response.data;
         
+        // Filter by specific categories if provided (used in merge)
+        if (this.filterByCategories.length > 0) {
+          data = data.filter(category => this.filterByCategories.includes(category.name));
+        }
+
         // Filter by jarId if provided
         if (this.jarId) {
           data = data.filter(category => {

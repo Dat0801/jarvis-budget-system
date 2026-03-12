@@ -1,5 +1,8 @@
 <app-page-header title="My Budgets" headerClass="jars-header">
   <ion-buttons slot="end">
+    <ion-button fill="clear" class="icon-button" (click)="toggleMergeMode()" [color]="isMergeMode ? 'primary' : ''">
+      <ion-icon name="layers-outline"></ion-icon>
+    </ion-button>
     <ion-button fill="clear" class="icon-button">
       <ion-icon name="search-outline"></ion-icon>
     </ion-button>
@@ -34,7 +37,9 @@
       </div>
     </section>
 
-    <div class="section-title">ACTIVE BUDGETS</div>
+    <div class="section-title">
+      {{ isMergeMode ? 'SELECT BUDGETS TO MERGE (' + selectedJarIds.length + ')' : 'ACTIVE BUDGETS' }}
+    </div>
 
     <div class="loading-state" *ngIf="isLoadingJars">
       <ion-spinner name="crescent"></ion-spinner>
@@ -42,9 +47,17 @@
     </div>
 
     <section class="jars-list" *ngIf="!isLoadingJars">
-      <article class="jar-card" *ngFor="let jar of jars" (click)="navigateToJar(jar.id)">
+      <article 
+        class="jar-card" 
+        *ngFor="let jar of jars" 
+        (click)="navigateToJar(jar)"
+        [class.jar-card--selected]="isJarSelected(jar.id)"
+      >
         <div class="jar-icon" [ngClass]="getJarIconClass(jar)">
           <ion-icon [name]="getJarIcon(jar)"></ion-icon>
+          <div class="selected-badge" *ngIf="isJarSelected(jar.id)">
+            <ion-icon name="checkmark-circle"></ion-icon>
+          </div>
         </div>
         <div class="jar-info">
           <div class="jar-top-row">
