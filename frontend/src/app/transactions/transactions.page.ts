@@ -824,6 +824,26 @@ export class TransactionsPage implements OnInit {
       return this.categoryIconMap[sourceName];
     }
 
+    // 2. Fallback to hardcoded mapping
+    if (sourceName.includes('food') || sourceName.includes('drink') || sourceName.includes('coffee')) {
+      return 'fast-food-outline';
+    }
+    if (sourceName.includes('travel') || sourceName.includes('taxi') || sourceName.includes('flight')) {
+      return 'airplane-outline';
+    }
+    if (sourceName.includes('rent') || sourceName.includes('home')) {
+      return 'home-outline';
+    }
+    if (sourceName.includes('shopping') || sourceName.includes('market')) {
+      return 'cart-outline';
+    }
+    if (sourceName.includes('health') || sourceName.includes('hospital')) {
+      return 'medkit-outline';
+    }
+    if (sourceName.includes('education') || sourceName.includes('school')) {
+      return 'school-outline';
+    }
+
     return 'cash-outline';
   }
 

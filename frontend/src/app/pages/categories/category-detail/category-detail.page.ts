@@ -185,7 +185,7 @@ export class CategoryDetailPage implements OnInit {
       this.filteredIcons = [...this.allIcons];
     } else {
       this.filteredIcons = this.allIcons.filter(icon => 
-        icon.toLowerCase().includes(query)
+        (icon || '').toLowerCase().includes(query)
       );
     }
   }

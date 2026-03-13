@@ -649,9 +649,9 @@ export class ExpensePage implements OnInit {
     if (!this.pendingCategoryName) {
       return;
     }
-    const normalized = this.pendingCategoryName.trim().toLowerCase();
+    const normalized = (this.pendingCategoryName || '').trim().toLowerCase();
     const match = this.expenseCategoryOptions.find((option) => {
-      const label = (option.subCategoryName || option.categoryName).trim().toLowerCase();
+      const label = (option.subCategoryName || option.categoryName || '').trim().toLowerCase();
       return label === normalized;
     });
     if (match) {

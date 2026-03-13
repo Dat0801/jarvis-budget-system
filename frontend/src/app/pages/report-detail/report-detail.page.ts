@@ -631,7 +631,7 @@ export class ReportDetailPage implements OnInit {
   }
 
   private getTransactionIcon(item: any, type: 'income' | 'expense'): string {
-     const name = (type === 'income' ? item.source : item.category || '').toLowerCase();
+     const name = (type === 'income' ? item.source || '' : item.category || '').toLowerCase();
      
      // 1. Try to find in category icon map
      if (this.categoryIconMap[name]) {
