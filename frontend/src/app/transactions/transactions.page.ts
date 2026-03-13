@@ -4,6 +4,7 @@ import { BudgetService, Budget, Transaction } from '../services/budget.service';
 import { ExpenseService } from '../services/expense.service';
 import { IncomeService } from '../services/income.service';
 import { MonthlyReport, StatsService } from '../services/stats.service';
+import { CategoryService, CategoryTreeNode } from '../services/category.service';
 import { FabService } from '../services/fab.service';
 import { WalletService, Wallet } from '../services/wallet.service';
 import { ReportService } from '../services/report.service';
@@ -105,6 +106,7 @@ export class TransactionsPage implements OnInit {
   inflowTotal = 0;
   outflowTotal = 0;
   monthDeltaPercent = 0;
+  private categoryIconMap: Record<string, string> = {};
 
   // Search & Filter state
   showSearchBar = false;
@@ -124,6 +126,7 @@ export class TransactionsPage implements OnInit {
     private expenseService: ExpenseService,
     private incomeService: IncomeService,
     private statsService: StatsService,
+    private categoryService: CategoryService,
     private fabService: FabService,
     private walletService: WalletService,
     private reportService: ReportService,
@@ -285,11 +288,19 @@ export class TransactionsPage implements OnInit {
       expensesResponse: this.expenseService.list().pipe(catchError(() => of([]))),
       incomesResponse: this.incomeService.list().pipe(catchError(() => of([]))),
       reportsResponse: this.statsService.getMonthlyReports().pipe(catchError(() => of({ data: [] }))),
+      categories: this.categoryService
+        .getTree()
+        .pipe(catchError(() => of({ data: [] } as { data: CategoryTreeNode[] }))),
     }).subscribe({
-      next: ({ jars, wallets, expensesResponse, incomesResponse, reportsResponse }) => {
+      next: ({ jars, wallets, expensesResponse, incomesResponse, reportsResponse, categories }) => {
         this.jars = Array.isArray(jars) ? jars : [];
         this.wallets = Array.isArray(wallets) ? wallets : [];
         this.monthlyReports = Array.isArray(reportsResponse?.data) ? reportsResponse.data : [];
+
+        const categoriesData = Array.isArray(categories?.data)
+          ? categories.data
+          : [];
+        this.categoryIconMap = this.buildCategoryIconMap(categoriesData);
 
         const jarById = [...this.jars, ...this.wallets].reduce<Record<number, string>>((accumulator, jar) => {
           accumulator[jar.id] = jar.name;
@@ -328,7 +339,7 @@ export class TransactionsPage implements OnInit {
             dateLabel: `${this.formatDate(date)} • ${this.formatTime(date)}`,
             amount: Math.abs(Number(item.amount) || 0),
             type: 'income' as const,
-            icon: 'cash-outline',
+            icon: this.getIncomeIcon(item),
             date,
             timeLabel: this.formatTime(date),
           };
@@ -755,27 +766,65 @@ export class TransactionsPage implements OnInit {
     return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
   }
 
+  private buildCategoryIconMap(tree: CategoryTreeNode[]): Record<string, string> {
+    const map: Record<string, string> = {};
+
+    tree.forEach((parent) => {
+      const parentName = parent.name?.trim();
+      if (parentName && parent.icon) {
+        map[parentName.toLowerCase()] = parent.icon;
+      }
+
+      parent.children.forEach((child) => {
+        const childName = child.name?.trim();
+        if (childName && child.icon) {
+          map[childName.toLowerCase()] = child.icon;
+        }
+      });
+    });
+
+    return map;
+  }
+
   private getExpenseIcon(item: ExpenseItem): string {
-    const category = (item.category || '').toLowerCase();
-    if (category.includes('food') || category.includes('drink') || category.includes('coffee')) {
+    const categoryName = (item.category || '').toLowerCase();
+
+    // 1. Try to find in category icon map
+    if (this.categoryIconMap[categoryName]) {
+      return this.categoryIconMap[categoryName];
+    }
+
+    // 2. Fallback to hardcoded mapping
+    if (categoryName.includes('food') || categoryName.includes('drink') || categoryName.includes('coffee')) {
       return 'fast-food-outline';
     }
-    if (category.includes('travel') || category.includes('taxi') || category.includes('flight')) {
+    if (categoryName.includes('travel') || categoryName.includes('taxi') || categoryName.includes('flight')) {
       return 'airplane-outline';
     }
-    if (category.includes('rent') || category.includes('home')) {
+    if (categoryName.includes('rent') || categoryName.includes('home')) {
       return 'home-outline';
     }
-    if (category.includes('shopping') || category.includes('market')) {
+    if (categoryName.includes('shopping') || categoryName.includes('market')) {
       return 'cart-outline';
     }
-    if (category.includes('health') || category.includes('hospital')) {
+    if (categoryName.includes('health') || categoryName.includes('hospital')) {
       return 'medkit-outline';
     }
-    if (category.includes('education') || category.includes('school')) {
+    if (categoryName.includes('education') || categoryName.includes('school')) {
       return 'school-outline';
     }
     return 'card-outline';
+  }
+
+  private getIncomeIcon(item: IncomeItem): string {
+    const sourceName = (item.source || '').toLowerCase();
+
+    // 1. Try to find in category icon map (for income, 'source' is often used as category name in display)
+    if (this.categoryIconMap[sourceName]) {
+      return this.categoryIconMap[sourceName];
+    }
+
+    return 'cash-outline';
   }
 
   getWalletName(jarId: number): string {

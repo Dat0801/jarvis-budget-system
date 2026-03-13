@@ -1,22 +1,20 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
-import { Router } from '@angular/router';
-import { RouterModule } from '@angular/router';
+import { Component, OnInit, HostListener } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { IonicModule } from '@ionic/angular';
+import { IonicModule, NavController } from '@ionic/angular';
+import { Router } from '@angular/router';
 import { catchError, finalize, forkJoin, of } from 'rxjs';
-import { Wallet, WalletService } from '../services/wallet.service';
-import { ExpenseService } from '../services/expense.service';
-import { IncomeService } from '../services/income.service';
-import { Note, NoteService } from '../services/note.service';
-import { IncomeVsExpenses, StatsService } from '../services/stats.service';
-import { CategoryService, CategoryTreeNode } from '../services/category.service';
-import { PageHeaderComponent } from '../shared/page-header/page-header.component';
+import { Wallet, WalletService } from '../../services/wallet.service';
+import { ExpenseService } from '../../services/expense.service';
+import { IncomeService } from '../../services/income.service';
+import { StatsService, IncomeVsExpenses } from '../../services/stats.service';
+import { CategoryService, CategoryTreeNode } from '../../services/category.service';
+import { PageHeaderComponent } from '../../shared/page-header/page-header.component';
 import {
   CurrencyCode,
   formatCurrencyAmount,
   getStoredCurrencyCode,
-} from '../utils/currency.util';
+} from '../../utils/currency.util';
 
 interface Transaction {
   id: number;
@@ -31,52 +29,40 @@ interface Transaction {
   icon: string;
 }
 
-interface TopSpending {
-  title: string;
-  amount: number;
-  percentage: number;
-}
-
 interface ChartAxisTick {
   y: number;
   value: number;
 }
 
 @Component({
-  selector: 'app-home',
+  selector: 'app-report-detail',
   standalone: true,
-  imports: [CommonModule, FormsModule, IonicModule, RouterModule, PageHeaderComponent],
-  templateUrl: './home.page.html',
-  styleUrls: ['./home.page.scss'],
+  imports: [CommonModule, FormsModule, IonicModule, PageHeaderComponent],
+  templateUrl: './report-detail.page.html',
+  styleUrls: ['./report-detail.page.scss'],
 })
-export class HomePage implements OnInit {
-  jars: Wallet[] = [];
-  totalWalletBalance = 0;
+export class ReportDetailPage implements OnInit {
+  isLoadingDashboard = false;
   selectedCurrencyCode: CurrencyCode = 'VND';
   allTransactions: Transaction[] = [];
   filteredTransactions: Transaction[] = [];
-  searchTerm = '';
-  notificationCount = 0;
-  dueNotes: Note[] = [];
-  isLoadingDashboard = false;
-
   monthLabel = '';
-  totalTransaction = 0;
-  monthlyTransactionTotal = 0;
+  selectedMonth = ''; // YYYY-MM
+  isCalendarOpen = false;
   monthlyIncomeTotal = 0;
   monthlyExpenseTotal = 0;
 
-  weeklyTopSpending: TopSpending[] = [
-    { title: 'No spending this week', amount: 0, percentage: 0 },
-  ];
-  monthlyTopSpending: TopSpending[] = [
-    { title: 'No spending this month', amount: 0, percentage: 0 },
-  ];
-  selectedSpendingTab: 'week' | 'month' = 'week';
+  categoryBreakdown: { title: string; amount: number; percentage: number }[] = [];
+  jarBreakdown: { title: string; amount: number; percentage: number; color: string }[] = [];
+  breakdownType: 'category' | 'jar' = 'category';
 
-  expenseCategories: CategoryTreeNode[] = [];
-  private categoryParentMap: Record<string, string> = {};
-  private categoryIconMap: Record<string, string> = {};
+  summaryStats = {
+    totalIncome: 0,
+    totalExpense: 0,
+    netBalance: 0,
+    avgPerDay: 0,
+    transactionCount: 0
+  };
 
   reportLabels: string[] = [];
   reportPath = '';
@@ -93,43 +79,87 @@ export class HomePage implements OnInit {
   private weeklyLabels: string[] = [];
   private weeklyIncomeSeries: number[] = [];
   private weeklyExpenseSeries: number[] = [];
+  private categoryParentMap: Record<string, string> = {};
+  private categoryIconMap: Record<string, string> = {};
 
   constructor(
-    private router: Router,
     private walletService: WalletService,
     private expenseService: ExpenseService,
     private incomeService: IncomeService,
-    private noteService: NoteService,
     private statsService: StatsService,
-    private categoryService: CategoryService
+    private categoryService: CategoryService,
+    private navCtrl: NavController,
+    private router: Router
   ) {}
+
+  @HostListener('window:keydown.esc', ['$event'])
+  handleEscape(event: KeyboardEvent) {
+    this.goBack();
+  }
 
   ngOnInit(): void {
     this.loadCurrencyPreference();
-    this.monthLabel = this.getCurrentMonthLabel();
-    this.loadDashboardData();
+    this.selectedMonth = this.getCurrentMonthValue();
+    this.monthLabel = this.formatMonthLabel(this.selectedMonth);
+    this.loadReportData();
   }
 
   ionViewWillEnter(): void {
     this.loadCurrencyPreference();
-    this.loadDashboardData();
+    this.loadReportData();
   }
 
-  onSearchChange(event: CustomEvent): void {
-    this.searchTerm = (event.detail.value || '').toString();
-    this.applyTransactionSearch();
+  goBack(): void {
+    this.navCtrl.navigateBack('/tabs/dashboard');
   }
 
-  openNotifications(): void {
-    this.router.navigateByUrl('/tabs/notes');
+  onMonthChange(event: any): void {
+    const value = event.detail.value;
+    if (value) {
+      this.selectedMonth = value.substring(0, 7); // Ensure YYYY-MM
+      this.monthLabel = this.formatMonthLabel(this.selectedMonth);
+      this.isCalendarOpen = false;
+      this.loadReportData();
+    }
   }
 
-  openReportDetail(): void {
-    this.router.navigate(['/report-detail']);
+  openCalendar(): void {
+    this.isCalendarOpen = true;
   }
 
-  selectSpendingTab(tab: 'week' | 'month'): void {
-    this.selectedSpendingTab = tab;
+  prevMonth(): void {
+    const date = new Date(this.selectedMonth + '-01');
+    date.setMonth(date.getMonth() - 1);
+    this.selectedMonth = this.formatDateToYYYYMM(date);
+    this.monthLabel = this.formatMonthLabel(this.selectedMonth);
+    this.loadReportData();
+  }
+
+  nextMonth(): void {
+    const date = new Date(this.selectedMonth + '-01');
+    date.setMonth(date.getMonth() + 1);
+    this.selectedMonth = this.formatDateToYYYYMM(date);
+    this.monthLabel = this.formatMonthLabel(this.selectedMonth);
+    this.loadReportData();
+  }
+
+  private formatDateToYYYYMM(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    return `${year}-${month}`;
+  }
+
+  private getCurrentMonthValue(): string {
+    return this.formatDateToYYYYMM(new Date());
+  }
+
+  private formatMonthLabel(value: string): string {
+    const [year, month] = value.split('-');
+    const date = new Date(parseInt(year), parseInt(month) - 1, 1);
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'long',
+      year: 'numeric',
+    }).format(date);
   }
 
   selectReportMetricTab(tab: 'income' | 'expense'): void {
@@ -143,64 +173,39 @@ export class HomePage implements OnInit {
     this.updateReportChart();
   }
 
+  selectBreakdownType(type: 'category' | 'jar'): void {
+    this.breakdownType = type;
+  }
+
   selectReportPoint(index: number): void {
     if (index < 0 || index >= this.reportLabels.length) {
       this.reportActiveIndex = null;
+      this.updateFilteredTransactions();
       return;
     }
     this.reportActiveIndex = index;
+    this.updateFilteredTransactions();
   }
 
   get reportTotal(): number {
     if (this.reportMetricTab === 'income') {
-      return this.monthlyIncomeTotal;
+      return this.summaryStats.totalIncome;
     }
-    return this.monthlyExpenseTotal;
-  }
-
-  getWalletProgress(jar: Wallet): number {
-    const balance = Number(jar.balance);
-    const total = Math.abs(this.totalWalletBalance);
-    if (!total || Number.isNaN(balance)) {
-      return 0;
-    }
-    return Math.min(100, Math.max(0, (Math.abs(balance) / total) * 100));
+    return this.summaryStats.totalExpense;
   }
 
   trackByTransactionId(_index: number, transaction: Transaction): number {
     return transaction.id;
   }
 
-  trackByWalletId(_index: number, jar: Wallet): number {
-    return jar.id;
-  }
-
-  openWallets(): void {
-    this.router.navigate(['/tabs/wallets']);
-  }
-
-  openWalletDetail(jar: Wallet): void {
-    this.router.navigate(['/tabs/transactions'], { queryParams: { jarId: jar.id } });
-  }
-
-  openTransactionDetail(transaction: Transaction): void {
-    const type = transaction.type;
-    const id = transaction.id;
-    if ((type !== 'income' && type !== 'expense') || !Number.isFinite(id)) {
-      return;
-    }
-    this.router.navigate(['/tabs/transactions', type, id]);
-  }
-
-  private loadDashboardData(): void {
+  private loadReportData(): void {
     this.isLoadingDashboard = true;
     forkJoin({
       jars: this.walletService.list().pipe(catchError(() => of([]))),
       expensesResponse: this.expenseService.list().pipe(catchError(() => of([]))),
       incomesResponse: this.incomeService.list().pipe(catchError(() => of([]))),
-      reminders: this.noteService.reminderCount().pipe(catchError(() => of({ count: 0 }))),
-      dueNotes: this.noteService.dueReminders().pipe(catchError(() => of([]))),
       incomeVsExpenses: this.statsService.getIncomeVsExpenses().pipe(catchError(() => of(null))),
+      spendingAnalytics: this.statsService.getSpendingAnalytics(this.selectedMonth).pipe(catchError(() => of(null))),
       categories: this.categoryService
         .getTree()
         .pipe(catchError(() => of({ data: [] } as { data: CategoryTreeNode[] }))),
@@ -210,12 +215,8 @@ export class HomePage implements OnInit {
           this.isLoadingDashboard = false;
         })
       )
-      .subscribe(({ jars, expensesResponse, incomesResponse, reminders, dueNotes, incomeVsExpenses, categories }) => {
-        this.notificationCount = Number(reminders?.count) || 0;
-        this.dueNotes = Array.isArray(dueNotes) ? dueNotes : [];
-        this.jars = Array.isArray(jars) ? jars : [];
-
-        const jarById = this.jars.reduce<Record<number, string>>((accumulator, jar) => {
+      .subscribe(({ jars, expensesResponse, incomesResponse, incomeVsExpenses, spendingAnalytics, categories }) => {
+        const jarById = (Array.isArray(jars) ? jars : []).reduce<Record<number, string>>((accumulator, jar) => {
           accumulator[jar.id] = jar.name;
           return accumulator;
         }, {});
@@ -223,7 +224,6 @@ export class HomePage implements OnInit {
         const categoriesData = Array.isArray(categories?.data)
           ? categories.data
           : [];
-        this.expenseCategories = categoriesData.filter(c => c.type === 'expense');
         this.categoryParentMap = this.buildCategoryParentMap(categoriesData);
         this.categoryIconMap = this.buildCategoryIconMap(categoriesData);
 
@@ -263,226 +263,38 @@ export class HomePage implements OnInit {
           (first, second) => second.date.getTime() - first.date.getTime()
         );
 
-        this.totalWalletBalance = this.jars.reduce(
-          (sum, jar) => sum + this.parseAmount(jar.balance),
-          0
-        );
+        if (spendingAnalytics) {
+          this.jarBreakdown = spendingAnalytics.expenses_by_budget.map(item => ({
+            title: item.budget_name,
+            amount: item.amount,
+            percentage: item.percentage,
+            color: item.budget_color
+          }));
+        }
 
-        this.calculateMonthlyTotals();
-        this.calculateTopSpending(expenses);
         this.buildWeeklyReportSeries();
         this.buildIncomeExpenseChart(incomeVsExpenses);
-        this.applyTransactionSearch();
+        this.updateFilteredTransactions();
       });
-  }
-
-  private calculateMonthlyTotals(): void {
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth();
-
-    const currentMonthTransactions = this.allTransactions.filter((transaction) => {
-      const txDate = transaction.date;
-      return txDate.getFullYear() === currentYear && txDate.getMonth() === currentMonth;
-    });
-
-    this.totalTransaction = currentMonthTransactions.length;
-
-    this.monthlyIncomeTotal = currentMonthTransactions
-      .filter((transaction) => transaction.type === 'income')
-      .reduce((sum, transaction) => sum + Math.abs(transaction.amount), 0);
-
-    this.monthlyExpenseTotal = currentMonthTransactions
-      .filter((transaction) => transaction.type === 'expense')
-      .reduce((sum, transaction) => sum + Math.abs(transaction.amount), 0);
-
-    this.monthlyTransactionTotal = currentMonthTransactions.reduce(
-      (sum, transaction) => sum + Math.abs(transaction.amount),
-      0
-    );
-  }
-
-  private calculateTopSpending(expenses: Transaction[]): void {
-    const now = new Date();
-    const weekStart = new Date(now);
-    weekStart.setHours(0, 0, 0, 0);
-    weekStart.setDate(weekStart.getDate() - 6);
-
-    const monthExpenses = expenses.filter((transaction) => {
-      const transactionDate = transaction.date;
-      return (
-        transactionDate.getFullYear() === now.getFullYear() &&
-        transactionDate.getMonth() === now.getMonth()
-      );
-    });
-
-    const weekExpenses = expenses.filter((transaction) => transaction.date >= weekStart);
-
-    this.weeklyTopSpending = this.getTopSpendingList(weekExpenses, 'No spending this week');
-    this.monthlyTopSpending = this.getTopSpendingList(monthExpenses, 'No spending this month');
-  }
-
-  private getTopSpendingList(expenses: Transaction[], emptyLabel: string): TopSpending[] {
-    if (!expenses.length) {
-      return [
-        {
-          title: emptyLabel,
-          amount: 0,
-          percentage: 0,
-        },
-      ];
-    }
-
-    const groupedAmounts = expenses.reduce<Record<string, number>>((accumulator, transaction) => {
-      const key = this.getParentCategoryTitle(transaction.title);
-      accumulator[key] = (accumulator[key] || 0) + Math.abs(transaction.amount);
-      return accumulator;
-    }, {});
-
-    const totalAmount = Object.values(groupedAmounts).reduce(
-      (sum, value) => sum + value,
-      0
-    );
-
-    if (!totalAmount) {
-      return [
-        {
-          title: emptyLabel,
-          amount: 0,
-          percentage: 0,
-        },
-      ];
-    }
-
-    return Object.entries(groupedAmounts)
-      .sort((first, second) => second[1] - first[1])
-      .map(([title, amount]) => ({
-        title,
-        amount,
-        percentage: (amount / totalAmount) * 100,
-      }));
-  }
-
-  private buildCategoryParentMap(tree: CategoryTreeNode[]): Record<string, string> {
-    const map: Record<string, string> = {};
-
-    tree.forEach((parent) => {
-      const parentName = parent.name?.trim();
-      if (parentName) {
-        const parentKey = parentName.toLowerCase();
-        map[parentKey] = parentName;
-      }
-
-      parent.children.forEach((child) => {
-        const childName = child.name?.trim();
-        if (!childName) {
-          return;
-        }
-        const childKey = childName.toLowerCase();
-        map[childKey] = parentName || childName;
-      });
-    });
-
-    return map;
-  }
-
-  private buildCategoryIconMap(tree: CategoryTreeNode[]): Record<string, string> {
-    const map: Record<string, string> = {};
-
-    tree.forEach((parent) => {
-      const parentName = parent.name?.trim();
-      if (parentName && parent.icon) {
-        map[parentName.toLowerCase()] = parent.icon;
-      }
-
-      parent.children.forEach((child) => {
-        const childName = child.name?.trim();
-        if (childName && child.icon) {
-          map[childName.toLowerCase()] = child.icon;
-        }
-      });
-    });
-
-    return map;
-  }
-
-  private getTransactionIcon(item: any, type: 'income' | 'expense'): string {
-     const name = (type === 'income' ? item.source : item.category || '').toLowerCase();
-     
-     // 1. Try to find in category icon map
-     if (this.categoryIconMap[name]) {
-       return this.categoryIconMap[name];
-     }
- 
-     if (type === 'income') {
-       return 'cash-outline';
-     }
-
-     // 2. Fallback to hardcoded mapping (similar to listing view)
-     return this.getFallbackExpenseIcon(name);
-   }
-
-  private getFallbackExpenseIcon(category: string): string {
-    category = category.toLowerCase();
-    if (category.includes('food') || category.includes('drink') || category.includes('coffee')) {
-      return 'fast-food-outline';
-    }
-    if (category.includes('travel') || category.includes('taxi') || category.includes('flight')) {
-      return 'airplane-outline';
-    }
-    if (category.includes('rent') || category.includes('home')) {
-      return 'home-outline';
-    }
-    if (category.includes('shopping') || category.includes('market')) {
-      return 'cart-outline';
-    }
-    if (category.includes('health') || category.includes('hospital')) {
-      return 'medkit-outline';
-    }
-    if (category.includes('education') || category.includes('school')) {
-      return 'school-outline';
-    }
-    return 'card-outline';
-  }
-
-  private getParentCategoryTitle(rawTitle: string | null | undefined): string {
-    const fallback = rawTitle && rawTitle.trim().length > 0 ? rawTitle.trim() : 'Other';
-    const normalized = fallback.toLowerCase();
-
-    const parent = this.categoryParentMap[normalized];
-    if (parent && parent.trim().length > 0) {
-      return parent;
-    }
-
-    return fallback;
   }
 
   private buildIncomeExpenseChart(data: IncomeVsExpenses | null): void {
     const fallbackLabel = this.monthLabel || this.getCurrentMonthLabel();
     const labels = Array.isArray(data?.months) ? data?.months.slice(-6) : [fallbackLabel];
-    const income = Array.isArray(data?.income) ? data?.income.slice(-6) : [this.monthlyIncomeTotal];
-    const expenses = Array.isArray(data?.expenses)
-      ? data?.expenses.slice(-6)
-      : [this.monthlyExpenseTotal];
+    const income = Array.isArray(data?.income) ? data?.income.slice(-6) : [0];
+    const expenses = Array.isArray(data?.expenses) ? data?.expenses.slice(-6) : [0];
 
     this.monthlyLabels = labels;
-
-    const normalizedIncome = this.normalizeSeriesLength(income, this.monthlyLabels.length);
-    const normalizedExpenses = this.normalizeSeriesLength(expenses, this.monthlyLabels.length);
-
-    this.monthlyIncomeSeries = normalizedIncome;
-    this.monthlyExpenseSeries = normalizedExpenses;
+    this.monthlyIncomeSeries = this.normalizeSeriesLength(income, this.monthlyLabels.length);
+    this.monthlyExpenseSeries = this.normalizeSeriesLength(expenses, this.monthlyLabels.length);
 
     this.updateReportChart();
   }
 
   private buildWeeklyReportSeries(): void {
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth();
-
-    const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
-    const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
+    const [year, month] = this.selectedMonth.split('-').map(Number);
+    const firstDayOfMonth = new Date(year, month - 1, 1);
+    const lastDayOfMonth = new Date(year, month, 0);
 
     const weekStarts: Date[] = [];
     let cursor = new Date(firstDayOfMonth.getTime());
@@ -516,8 +328,8 @@ export class HomePage implements OnInit {
       const weekTransactions = this.allTransactions.filter((transaction) => {
         const transactionDate = transaction.date;
         return (
-          transactionDate.getFullYear() === currentYear &&
-          transactionDate.getMonth() === currentMonth &&
+          transactionDate.getFullYear() === year &&
+          transactionDate.getMonth() === (month - 1) &&
           transactionDate.getTime() >= start.getTime() &&
           transactionDate.getTime() <= end.getTime()
         );
@@ -553,20 +365,16 @@ export class HomePage implements OnInit {
     }
 
     if (!labels.length) {
-      const fallbackLabel = this.monthLabel || this.getCurrentMonthLabel();
-      labels = [fallbackLabel];
-      values = [
-        this.reportMetricTab === 'income' ? this.monthlyIncomeTotal : this.monthlyExpenseTotal,
-      ];
+      labels = [this.monthLabel];
+      values = [0];
     }
 
     this.reportLabels = labels;
     if (this.reportActiveIndex !== null && this.reportActiveIndex >= this.reportLabels.length) {
-      this.reportActiveIndex = this.reportLabels.length - 1;
+      this.reportActiveIndex = null;
     }
 
     const normalizedValues = this.normalizeSeriesLength(values, this.reportLabels.length);
-
     this.reportMaxValue = Math.max(...normalizedValues, 1);
 
     this.reportPath = this.buildChartPath(normalizedValues);
@@ -691,28 +499,186 @@ export class HomePage implements OnInit {
     return series[this.reportActiveIndex];
   }
 
-  private applyTransactionSearch(): void {
-    const keyword = this.searchTerm.trim().toLowerCase();
+  private updateFilteredTransactions(): void {
+    const [year, month] = this.selectedMonth.split('-').map(Number);
+    const selectedMonthIndex = month - 1;
 
-    if (!keyword) {
-      this.filteredTransactions = this.allTransactions.slice(0, 8);
+    let transactions = this.allTransactions;
+
+    if (this.reportRangeTab === 'week') {
+      const weekIndex = this.reportActiveIndex;
+      if (weekIndex !== null) {
+        const firstDayOfMonth = new Date(year, selectedMonthIndex, 1);
+        const start = new Date(year, selectedMonthIndex, firstDayOfMonth.getDate() + weekIndex * 7);
+        const end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6, 23, 59, 59, 999);
+        transactions = transactions.filter(t => t.date >= start && t.date <= end);
+      } else {
+        transactions = transactions.filter(t => t.date.getFullYear() === year && t.date.getMonth() === selectedMonthIndex);
+      }
+    } else { // month
+      if (this.reportActiveIndex !== null) {
+        const monthLabel = this.monthlyLabels[this.reportActiveIndex];
+        const [monthName, yearStr] = monthLabel.split(' ');
+        const monthIdx = new Date(Date.parse(monthName +" 1, 2012")).getMonth();
+        transactions = transactions.filter(t => t.date.getFullYear() === parseInt(yearStr) && t.date.getMonth() === monthIdx);
+      } else {
+        transactions = transactions.filter(t => t.date.getFullYear() === year && t.date.getMonth() === selectedMonthIndex);
+      }
+    }
+
+    this.filteredTransactions = transactions;
+    this.calculateSummaryStats(transactions);
+    this.calculateCategoryBreakdown(transactions);
+  }
+
+  private calculateSummaryStats(transactions: Transaction[]): void {
+    const totalIncome = transactions
+      .filter(t => t.type === 'income')
+      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
+    const totalExpense = transactions
+      .filter(t => t.type === 'expense')
+      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
+    // Calculate average per day
+    let avgPerDay = 0;
+    if (transactions.length > 0) {
+      const expenseTxs = transactions.filter(t => t.type === 'expense');
+      if (expenseTxs.length > 0) {
+        const dates = expenseTxs.map(t => t.date.getTime());
+        const minDate = Math.min(...dates);
+        const maxDate = Math.max(...dates);
+        const days = Math.max(1, Math.ceil((maxDate - minDate) / (1000 * 60 * 60 * 24)) + 1);
+        avgPerDay = totalExpense / days;
+      }
+    }
+
+    this.summaryStats = {
+      totalIncome,
+      totalExpense,
+      netBalance: totalIncome - totalExpense,
+      avgPerDay,
+      transactionCount: transactions.length
+    };
+  }
+
+  private calculateCategoryBreakdown(transactions: Transaction[]): void {
+    const expenses = transactions.filter(t => t.type === 'expense');
+
+    if (expenses.length === 0) {
+      this.categoryBreakdown = [];
       return;
     }
 
-    this.filteredTransactions = this.allTransactions
-      .filter((transaction) => {
-        const haystack = [
-          transaction.title,
-          transaction.note,
-          transaction.jarName,
-          transaction.timeLabel,
-        ]
-          .join(' ')
-          .toLowerCase();
+    const grouped = expenses.reduce<Record<string, number>>((acc, t) => {
+      const category = this.getParentCategoryTitle(t.title);
+      acc[category] = (acc[category] || 0) + Math.abs(t.amount);
+      return acc;
+    }, {});
 
-        return haystack.includes(keyword);
-      })
-      .slice(0, 12);
+    const total = Object.values(grouped).reduce((sum, val) => sum + val, 0);
+
+    this.categoryBreakdown = Object.entries(grouped)
+      .map(([title, amount]) => ({
+        title,
+        amount,
+        percentage: (amount / total) * 100
+      }))
+      .sort((a, b) => b.amount - a.amount);
+  }
+
+  private buildCategoryParentMap(tree: CategoryTreeNode[]): Record<string, string> {
+    const map: Record<string, string> = {};
+
+    tree.forEach((parent) => {
+      const parentName = parent.name?.trim();
+      if (parentName) {
+        const parentKey = parentName.toLowerCase();
+        map[parentKey] = parentName;
+      }
+
+      parent.children.forEach((child) => {
+        const childName = child.name?.trim();
+        if (!childName) {
+          return;
+        }
+        const childKey = childName.toLowerCase();
+        map[childKey] = parentName || childName;
+      });
+    });
+
+    return map;
+  }
+
+  private buildCategoryIconMap(tree: CategoryTreeNode[]): Record<string, string> {
+    const map: Record<string, string> = {};
+
+    tree.forEach((parent) => {
+      const parentName = parent.name?.trim();
+      if (parentName && parent.icon) {
+        map[parentName.toLowerCase()] = parent.icon;
+      }
+
+      parent.children.forEach((child) => {
+        const childName = child.name?.trim();
+        if (childName && child.icon) {
+          map[childName.toLowerCase()] = child.icon;
+        }
+      });
+    });
+
+    return map;
+  }
+
+  private getTransactionIcon(item: any, type: 'income' | 'expense'): string {
+     const name = (type === 'income' ? item.source : item.category || '').toLowerCase();
+     
+     // 1. Try to find in category icon map
+     if (this.categoryIconMap[name]) {
+       return this.categoryIconMap[name];
+     }
+ 
+     if (type === 'income') {
+       return 'cash-outline';
+     }
+
+     // 2. Fallback to hardcoded mapping (similar to listing view)
+     return this.getFallbackExpenseIcon(name);
+   }
+
+  private getFallbackExpenseIcon(category: string): string {
+    category = category.toLowerCase();
+    if (category.includes('food') || category.includes('drink') || category.includes('coffee')) {
+      return 'fast-food-outline';
+    }
+    if (category.includes('travel') || category.includes('taxi') || category.includes('flight')) {
+      return 'airplane-outline';
+    }
+    if (category.includes('rent') || category.includes('home')) {
+      return 'home-outline';
+    }
+    if (category.includes('shopping') || category.includes('market')) {
+      return 'cart-outline';
+    }
+    if (category.includes('health') || category.includes('hospital')) {
+      return 'medkit-outline';
+    }
+    if (category.includes('education') || category.includes('school')) {
+      return 'school-outline';
+    }
+    return 'card-outline';
+  }
+
+  private getParentCategoryTitle(rawTitle: string | null | undefined): string {
+    const fallback = rawTitle && rawTitle.trim().length > 0 ? rawTitle.trim() : 'Other';
+    const normalized = fallback.toLowerCase();
+
+    const parent = this.categoryParentMap[normalized];
+    if (parent && parent.trim().length > 0) {
+      return parent;
+    }
+
+    return fallback;
   }
 
   private getCurrentMonthLabel(): string {
@@ -750,17 +716,18 @@ export class HomePage implements OnInit {
   }
 
   formatCurrency(value: string | number | null | undefined): string {
-    return formatCurrencyAmount(this.parseAmount(value), this.selectedCurrencyCode);
+    const amount = Math.abs(this.parseAmount(value));
+    if (this.selectedCurrencyCode === 'VND') {
+      return new Intl.NumberFormat('vi-VN').format(amount);
+    }
+    return formatCurrencyAmount(amount, this.selectedCurrencyCode);
   }
 
-  formatDate(dateStr: string | null | undefined): string {
-    if (!dateStr) return 'No date';
-    const date = new Date(dateStr);
-    return new Intl.DateTimeFormat('en-GB', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    }).format(date);
+  getCurrencySymbol(): string {
+    if (this.selectedCurrencyCode === 'VND') return 'đ';
+    if (this.selectedCurrencyCode === 'USD') return '$';
+    if (this.selectedCurrencyCode === 'EUR') return '€';
+    return '';
   }
 
   private loadCurrencyPreference(): void {

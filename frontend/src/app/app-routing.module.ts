@@ -34,6 +34,10 @@ const routes: Routes = [
     canActivate: [AuthGuard],
     loadChildren: () => import('./tabs/tabs.module').then(m => m.TabsPageModule),
     title: 'Jarvis Budget',
+  },
+  {
+    path: 'report-detail',
+    loadChildren: () => import('./pages/report-detail/report-detail.module').then( m => m.ReportDetailPageModule)
   }
 ];
 @NgModule({

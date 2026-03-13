@@ -412,11 +412,20 @@ export class JarsPage implements OnInit {
   }
 
   getJarSpent(jar: Budget): number {
+    if (jar.spent !== undefined) {
+      return jar.spent;
+    }
+
+    const jarSpent = this.expensesByCategory[`jar:${jar.id}`] || 0;
+    if (jarSpent > 0) {
+      return jarSpent;
+    }
+
     const categoryKey = this.toCategoryKey(jar.category || jar.name);
     if (!categoryKey) {
       return 0;
     }
-    return this.expensesByCategory[categoryKey] || 0;
+    return this.expensesByCategory[`cat:${categoryKey}`] || 0;
   }
 
   getJarDisplayAmount(jar: Budget): number {
@@ -741,14 +750,22 @@ export class JarsPage implements OnInit {
   private buildExpensesByCategory(expensesResponse: any): Record<string, number> {
     const expenses = this.extractExpenseList(expensesResponse);
 
-    return expenses.reduce((accumulator: Record<string, number>, expense: any) => {
+    return expenses.reduce((accumulator: Record<string, any>, expense: any) => {
       const categoryKey = this.toCategoryKey(expense?.category);
-      if (!categoryKey) {
-        return accumulator;
+      const jarId = expense?.jar_id;
+
+      const amount = Math.abs(Number(expense?.amount) || 0);
+
+      // Store by category key
+      if (categoryKey) {
+        accumulator[`cat:${categoryKey}`] = (accumulator[`cat:${categoryKey}`] || 0) + amount;
       }
 
-      const amount = Number(expense?.amount) || 0;
-      accumulator[categoryKey] = (accumulator[categoryKey] || 0) + Math.abs(amount);
+      // Store by jar ID
+      if (jarId) {
+        accumulator[`jar:${jarId}`] = (accumulator[`jar:${jarId}`] || 0) + amount;
+      }
+
       return accumulator;
     }, {});
   }

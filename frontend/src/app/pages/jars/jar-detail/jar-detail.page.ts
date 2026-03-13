@@ -225,6 +225,10 @@ export class JarDetailPage implements OnInit {
   }
 
   getSpentAmount(): number {
+    if (this.jar?.spent !== undefined) {
+      return this.jar.spent;
+    }
+
     const budgetCategoryKey = this.getBudgetCategoryKey();
     if (!budgetCategoryKey) {
       return 0;
@@ -235,15 +239,12 @@ export class JarDetailPage implements OnInit {
         return sum;
       }
 
-      const transactionCategoryKey = this.toCategoryKey(transaction.category);
-      if (transactionCategoryKey !== budgetCategoryKey) {
-        return sum;
-      }
-
+      // If the transaction is already in this.transactions, it was returned by the backend 
+      // for this budget jar. We should include it in the spent calculation.
       return sum + this.parseAmount(transaction.amount);
     }, 0);
 
-    if (spentFromLinkedTransactions > 0) {
+    if (spentFromLinkedTransactions > 0 || this.transactions.length > 0) {
       return spentFromLinkedTransactions;
     }
 

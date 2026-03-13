@@ -14,20 +14,58 @@ class JarController extends Controller
 {
     public function index(Request $request)
     {
-        return response()->json(
-            $request->user()
-                ->jars()
-                ->where('wallet_type', Jar::TYPE_BUDGET)
-                ->latest()
-                ->get()
-        );
+        $jars = $request->user()
+            ->jars()
+            ->where('wallet_type', Jar::TYPE_BUDGET)
+            ->latest()
+            ->get();
+
+        foreach ($jars as $jar) {
+            $jar->spent = $this->calculateJarSpent($jar);
+        }
+
+        return response()->json($jars);
     }
 
     public function show(Request $request, Jar $jar)
     {
         $this->authorizeJarAccess($request, $jar);
+        $jar->spent = $this->calculateJarSpent($jar);
 
         return response()->json($jar);
+    }
+
+    private function calculateJarSpent(Jar $jar): float
+    {
+        $expenseQuery = Expense::query()->where('user_id', $jar->user_id);
+
+        if ($jar->wallet_type === Jar::TYPE_BUDGET) {
+            $categoryNames = [$jar->category ?: $jar->name];
+
+            // Resolve all linked categories and their descendants
+            $linkedCategories = $jar->categories()->with('children')->get();
+            if ($linkedCategories->isNotEmpty()) {
+                foreach ($linkedCategories as $cat) {
+                    $categoryNames = array_merge($categoryNames, $cat->getAllDescendantNames());
+                }
+            } else {
+                // If no direct link in category_jar, try to find a category by name
+                $matchingCat = TransactionCategory::where('name', $jar->category ?: $jar->name)->first();
+                if ($matchingCat) {
+                    $categoryNames = array_merge($categoryNames, $matchingCat->getAllDescendantNames());
+                }
+            }
+            $categoryNames = array_unique(array_filter($categoryNames));
+
+            $expenseQuery->where(function ($q) use ($jar, $categoryNames) {
+                $q->where('jar_id', $jar->id)
+                  ->orWhereIn('category', $categoryNames);
+            });
+        } else {
+            $expenseQuery->where('jar_id', $jar->id);
+        }
+
+        return (float) $expenseQuery->sum('amount');
     }
 
     public function store(Request $request)
@@ -151,10 +189,37 @@ class JarController extends Controller
                 $targetJar->categories()->syncWithoutDetaching([$data['category_id']]);
             }
 
-            // Transfer expenses/incomes if they were specifically linked to jar_id
+            // Transfer expenses/incomes and update their categories to the target jar's category
+            $targetCategory = $targetJar->category ?: $targetJar->name;
             foreach ($sourceJars as $sourceJar) {
-                Expense::where('jar_id', $sourceJar->id)->update(['jar_id' => $targetJar->id]);
-                Income::where('jar_id', $sourceJar->id)->update(['jar_id' => $targetJar->id]);
+                $sourceCategory = $sourceJar->category ?: $sourceJar->name;
+                
+                // Update expenses that were linked by jar_id
+                Expense::where('jar_id', $sourceJar->id)->update([
+                    'jar_id' => $targetJar->id,
+                    'category' => $targetCategory
+                ]);
+                
+                // Update expenses that were linked by category name
+                if ($sourceCategory) {
+                    Expense::where('user_id', $user->id)
+                        ->where('category', $sourceCategory)
+                        ->update(['category' => $targetCategory]);
+                }
+
+                // Update incomes that were linked by jar_id
+                Income::where('jar_id', $sourceJar->id)->update([
+                    'jar_id' => $targetJar->id,
+                    'category' => $targetCategory
+                ]);
+
+                // Update incomes that were linked by category name
+                if ($sourceCategory) {
+                    Income::where('user_id', $user->id)
+                        ->where('category', $sourceCategory)
+                        ->update(['category' => $targetCategory]);
+                }
+
                 $sourceJar->delete();
             }
 

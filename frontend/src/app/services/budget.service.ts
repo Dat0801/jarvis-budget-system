@@ -7,6 +7,7 @@ export interface Budget {
   icon?: string | null;
   category?: string | null;
   balance: string;
+  spent?: number;
   description?: string | null;
   target?: number;
   budget_date?: string | null;

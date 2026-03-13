@@ -1,0 +1,207 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tabs/dashboard" text="" icon="chevron-back"></ion-back-button>
+    </ion-buttons>
+    
+    <div class="header-title-container">
+      <div class="header-main-title">{{ monthLabel }}</div>
+      <div class="header-subtitle">SPENDING REPORT</div>
+    </div>
+
+    <ion-buttons slot="end">
+      <ion-button (click)="openCalendar()">
+        <ion-icon slot="icon-only" name="calendar-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <!-- Month Picker Modal (Triggered by openCalendar) -->
+  <ion-modal [isOpen]="isCalendarOpen" (didDismiss)="isCalendarOpen = false" [keepContentsMounted]="true">
+    <ng-template>
+      <ion-datetime
+        id="datetime"
+        presentation="month-year"
+        [value]="selectedMonth"
+        (ionChange)="onMonthChange($event)"
+      ></ion-datetime>
+    </ng-template>
+  </ion-modal>
+
+  <div class="page report-page">
+    <!-- Summary Grid -->
+    <div class="report-summary-grid">
+      <div class="summary-card income">
+        <div class="summary-label">Total Income</div>
+        <div class="summary-value">
+          <span class="currency-symbol">{{ getCurrencySymbol() }}</span>{{ formatCurrency(summaryStats.totalIncome) }}
+        </div>
+      </div>
+      <div class="summary-card expense">
+        <div class="summary-label">Total Spent</div>
+        <div class="summary-value">
+          <span class="currency-symbol">{{ getCurrencySymbol() }}</span>{{ formatCurrency(summaryStats.totalExpense) }}
+        </div>
+      </div>
+      <div class="summary-card balance">
+        <div class="summary-label">Net Balance</div>
+        <div class="summary-value">
+          <span class="currency-symbol">{{ getCurrencySymbol() }}</span>{{ formatCurrency(summaryStats.netBalance) }}
+        </div>
+      </div>
+      <div class="summary-card avg">
+        <div class="summary-label">Daily Avg</div>
+        <div class="summary-value">
+          <span class="currency-symbol">{{ getCurrencySymbol() }}</span>{{ formatCurrency(summaryStats.avgPerDay) }}
+        </div>
+      </div>
+    </div>
+
+    <div class="section-header">
+      <div class="section-title">Report Analysis</div>
+      <ion-icon name="analytics-outline" class="section-icon"></ion-icon>
+    </div>
+
+    <!-- Chart Metric Tabs -->
+    <div class="pill-tabs-container">
+      <div class="pill-tabs">
+        <button
+          type="button"
+          class="pill-tab"
+          [class.active]="reportMetricTab === 'expense'"
+          (click)="selectReportMetricTab('expense')"
+        >
+          Total Spent
+        </button>
+        <button
+          type="button"
+          class="pill-tab"
+          [class.active]="reportMetricTab === 'income'"
+          (click)="selectReportMetricTab('income')"
+        >
+          Total Income
+        </button>
+      </div>
+    </div>
+
+    <!-- Chart Card -->
+    <div class="report-card" *ngIf="!isLoadingDashboard; else reportLoading">
+      <div class="report-chart-container">
+        <!-- Chart SVG ... no change for now -->
+        <div class="report-y-axis">
+          <div
+            *ngFor="let tick of reportAxisTicks"
+            class="chart-axis-value"
+            [style.top.%]="(tick.y / 160) * 100"
+          >
+            {{ formatAxisValue(tick.value) }}
+          </div>
+        </div>
+
+        <div class="report-chart-line">
+          <svg viewBox="0 0 300 160" preserveAspectRatio="none">
+            <g class="grid-lines">
+              <line x1="16" y1="20" x2="284" y2="20"></line>
+              <line x1="16" y1="80" x2="284" y2="80"></line>
+              <line x1="16" y1="140" x2="284" y2="140"></line>
+            </g>
+
+            <path
+              [ngClass]="reportMetricTab === 'income' ? 'income-line' : 'expense-line'"
+              [attr.d]="reportPath"
+              vector-effect="non-scaling-stroke"
+            ></path>
+
+            <polyline
+              [ngClass]="reportMetricTab === 'income' ? 'income-points' : 'expense-points'"
+              [attr.points]="reportPoints"
+              vector-effect="non-scaling-stroke"
+            ></polyline>
+
+            <ng-container *ngFor="let label of reportLabels; let index = index">
+              <rect
+                class="chart-hit-area"
+                [attr.x]="getReportHitAreaX(index)"
+                y="14"
+                width="24"
+                height="132"
+                [class.active]="reportActiveIndex === index"
+                (click)="selectReportPoint(index)"
+              ></rect>
+            </ng-container>
+          </svg>
+        </div>
+      </div>
+
+      <div class="chart-labels" *ngIf="reportLabels.length > 0">
+        <span *ngFor="let label of reportLabels; let i = index" [class.active]="reportActiveIndex === i">{{ label }}</span>
+      </div>
+
+      <!-- Chart Range Tabs -->
+      <div class="pill-tabs-container secondary">
+        <div class="pill-tabs">
+          <button
+            type="button"
+            class="pill-tab"
+            [class.active]="reportRangeTab === 'week'"
+            (click)="selectReportRangeTab('week')"
+          >
+            Week
+          </button>
+          <button
+            type="button"
+            class="pill-tab"
+            [class.active]="reportRangeTab === 'month'"
+            (click)="selectReportRangeTab('month')"
+          >
+            Last 6 Months
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Breakdown Section (Hidden to match image) -->
+    <!-- <div class="breakdown-section" *ngIf="categoryBreakdown.length > 0 || jarBreakdown.length > 0">
+      ...
+    </div> -->
+
+    <ng-template #reportLoading>
+      <div class="loading-state">
+        <ion-spinner name="crescent"></ion-spinner>
+        <span>Loading report...</span>
+      </div>
+    </ng-template>
+
+    <!-- Transactions Section -->
+    <div class="section-header">
+      <div class="section-title">Transactions</div>
+      <div class="see-all">See All</div>
+    </div>
+
+    <div class="transaction-list" *ngIf="!isLoadingDashboard && filteredTransactions.length > 0; else emptyTransactions">
+      <div
+        class="transaction-card"
+        *ngFor="let tx of filteredTransactions; trackBy: trackByTransactionId"
+      >
+        <div class="tx-icon" [class.income]="tx.type === 'income'" [class.expense]="tx.type === 'expense'">
+          <ion-icon [name]="tx.icon"></ion-icon>
+        </div>
+        <div class="tx-meta">
+          <div class="tx-title">{{ tx.title }}</div>
+          <div class="tx-sub">
+            <span class="tx-badge">{{ tx.jarName }}</span>
+            <span class="tx-date">{{ tx.timeLabel }}</span>
+          </div>
+        </div>
+        <div class="tx-amount" [class.income]="tx.type === 'income'" [class.expense]="tx.type === 'expense'">
+          {{ tx.type === 'income' ? '+' : '-' }}{{ getCurrencySymbol() }}{{ formatCurrency(tx.amount) }}
+        </div>
+      </div>
+    </div>
+    <ng-template #emptyTransactions>
+      <div class="empty-card" *ngIf="!isLoadingDashboard">No transactions for this period.</div>
+    </ng-template>
+  </div>
+</ion-content>
