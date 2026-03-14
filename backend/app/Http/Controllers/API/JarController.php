@@ -189,36 +189,41 @@ class JarController extends Controller
                 $targetJar->categories()->syncWithoutDetaching([$data['category_id']]);
             }
 
-            // Transfer expenses/incomes and update their categories to the target jar's category
-            $targetCategory = $targetJar->category ?: $targetJar->name;
+            // Target jar should inherit all category links from source jars to maintain auto-categorization
+            foreach ($sourceJars as $sourceJar) {
+                $categoryIds = $sourceJar->categories()->pluck('transaction_categories.id')->toArray();
+                if (!empty($categoryIds)) {
+                    $targetJar->categories()->syncWithoutDetaching($categoryIds);
+                }
+
+                // If source jar had a name/category that matches an official category, link it too
+                $sourceCategoryStr = $sourceJar->category ?: $sourceJar->name;
+                $matchingCat = TransactionCategory::where('name', $sourceCategoryStr)->first();
+                if ($matchingCat) {
+                    $targetJar->categories()->syncWithoutDetaching([$matchingCat->id]);
+                }
+            }
+
+            // Transfer expenses/incomes: Update jar_id if it was explicitly linked to source jars,
+            // but DO NOT update the category string to preserve history and sub-category names.
             foreach ($sourceJars as $sourceJar) {
                 $sourceCategory = $sourceJar->category ?: $sourceJar->name;
                 
                 // Update expenses that were linked by jar_id
                 Expense::where('jar_id', $sourceJar->id)->update([
                     'jar_id' => $targetJar->id,
-                    'category' => $targetCategory
+                    // Category is NOT updated here to preserve original name (e.g., "Electric Bill")
                 ]);
                 
-                // Update expenses that were linked by category name
-                if ($sourceCategory) {
-                    Expense::where('user_id', $user->id)
-                        ->where('category', $sourceCategory)
-                        ->update(['category' => $targetCategory]);
-                }
+                // For expenses linked by category name ONLY (where jar_id might be a wallet ID),
+                // we don't need to do anything because the target jar now links to the source categories.
+                // If we updated their category string, we'd lose the sub-category info.
+                // If we updated their jar_id, we might overwrite their wallet ID.
 
                 // Update incomes that were linked by jar_id
                 Income::where('jar_id', $sourceJar->id)->update([
                     'jar_id' => $targetJar->id,
-                    'category' => $targetCategory
                 ]);
-
-                // Update incomes that were linked by category name
-                if ($sourceCategory) {
-                    Income::where('user_id', $user->id)
-                        ->where('category', $sourceCategory)
-                        ->update(['category' => $targetCategory]);
-                }
 
                 $sourceJar->delete();
             }

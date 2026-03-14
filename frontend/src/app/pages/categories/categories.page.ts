@@ -4,6 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { IonicModule, PopoverController, ModalController } from '@ionic/angular';
 import { CategoryService, CategoryTreeNode, CategoryType } from '../../services/category.service';
 import { WalletService, Wallet } from '../../services/wallet.service';
+import { BudgetService, Budget } from '../../services/budget.service';
 import { PageHeaderComponent } from '../../shared/page-header/page-header.component';
 import { FabService } from '../../services/fab.service';
 import { FormsModule } from '@angular/forms';
@@ -11,6 +12,8 @@ import { addIcons } from 'ionicons';
 import { searchOutline, pricetagOutline, chevronDownOutline, chevronForwardOutline, returnDownForwardOutline, swapVerticalOutline, walletOutline, addOutline } from 'ionicons/icons';
 import { CategorySortPopoverComponent } from './components/category-sort-popover/category-sort-popover.component';
 import { CategoryDetailPage } from './category-detail/category-detail.page';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 type CategoryTab = 'expense' | 'income' | 'debtLoan';
 type SourcePage = 'transaction' | 'budget' | 'account';
@@ -39,6 +42,7 @@ export class CategoriesPage implements OnInit {
   categories: CategoryTreeNode[] = [];
   filteredCategories: CategoryTreeNode[] = [];
   wallets: Wallet[] = [];
+  budgets: Budget[] = [];
   isLoading = false;
   loadError = '';
   isSelectMode = false;
@@ -54,6 +58,7 @@ export class CategoriesPage implements OnInit {
   constructor(
     private categoryService: CategoryService,
     private walletService: WalletService,
+    private budgetService: BudgetService,
     private route: ActivatedRoute,
     private router: Router,
     private fabService: FabService,
@@ -64,8 +69,17 @@ export class CategoriesPage implements OnInit {
   }
 
   ngOnInit(): void {
-    this.fetchWallets();
+    forkJoin({
+      wallets: this.walletService.list().pipe(catchError(() => of([]))),
+      budgets: this.budgetService.list().pipe(catchError(() => of([]))),
+    }).subscribe(({ wallets, budgets }) => {
+      this.wallets = wallets;
+      this.budgets = budgets;
+      this.initPage();
+    });
+  }
 
+  private initPage(): void {
     if (this.isModal) {
       this.isSelectMode = this.initialSelectMode;
       this.jarId = this.initialJarId;
@@ -209,17 +223,6 @@ export class CategoriesPage implements OnInit {
     return icon || 'pricetag-outline';
   }
 
-  fetchWallets(): void {
-    this.walletService.list().subscribe({
-      next: (wallets) => {
-        this.wallets = wallets;
-      },
-      error: () => {
-        this.wallets = [];
-      },
-    });
-  }
-
   toggleSearchBar(): void {
     this.showSearchBar = !this.showSearchBar;
     if (!this.showSearchBar) {
@@ -273,14 +276,36 @@ export class CategoriesPage implements OnInit {
 
         // Filter by jarId if provided
         if (this.jarId) {
+          const isWallet = this.wallets.some(w => w.id === this.jarId);
+          const budgetIds = this.budgets.map(b => b.id);
+
           data = data.filter(category => {
-            const matchesJar = !category.jars || category.jars.length === 0 || category.jars.some(j => j.id === this.jarId);
-            if (matchesJar) {
+            const isGlobal = !category.jars || category.jars.length === 0;
+            const matchesCurrentJar = category.jars?.some(j => j.id === this.jarId);
+            const matchesAnyBudget = category.jars?.some(j => budgetIds.includes(j.id));
+
+            let matches = isGlobal || matchesCurrentJar;
+            
+            // Special rule for transactions from a wallet:
+            // Allow categories linked to any budget, because budget items can be paid from any wallet.
+            if (this.sourcePage === 'transaction' && isWallet) {
+              matches = matches || matchesAnyBudget;
+            }
+
+            if (matches) {
               // Also filter children
               if (category.children) {
-                category.children = category.children.filter(child => 
-                  !child.jars || child.jars.length === 0 || child.jars.some(j => j.id === this.jarId)
-                );
+                category.children = category.children.filter(child => {
+                  const childIsGlobal = !child.jars || child.jars.length === 0;
+                  const childMatchesCurrentJar = child.jars?.some(j => j.id === this.jarId);
+                  const childMatchesAnyBudget = child.jars?.some(j => budgetIds.includes(j.id));
+                  
+                  let childMatches = childIsGlobal || childMatchesCurrentJar;
+                  if (this.sourcePage === 'transaction' && isWallet) {
+                    childMatches = childMatches || childMatchesAnyBudget;
+                  }
+                  return childMatches;
+                });
               }
               return true;
             }

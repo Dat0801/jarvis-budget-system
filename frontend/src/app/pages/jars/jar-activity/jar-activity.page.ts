@@ -3,6 +3,7 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { IonicModule } from '@ionic/angular';
 import { Budget, BudgetService, Transaction } from '../../../services/budget.service';
+import { CategoryService, CategoryTreeNode } from '../../../services/category.service';
 import { finalize } from 'rxjs';
 import { formatCurrencyAmount, getStoredCurrencyCode } from '../../../utils/currency.util';
 import { PageHeaderComponent } from '../../../shared/page-header/page-header.component';
@@ -14,6 +15,34 @@ import {
   cartOutline,
   swapHorizontalOutline,
   bagOutline,
+  cashOutline,
+  cardOutline,
+  briefcaseOutline,
+  homeOutline,
+  carOutline,
+  airplaneOutline,
+  giftOutline,
+  heartOutline,
+  fitnessOutline,
+  schoolOutline,
+  restaurantOutline,
+  shirtOutline,
+  constructOutline,
+  hammerOutline,
+  flashOutline,
+  waterOutline,
+  wifiOutline,
+  tvOutline,
+  phonePortraitOutline,
+  gameControllerOutline,
+  musicalNotesOutline,
+  cameraOutline,
+  brushOutline,
+  colorWandOutline,
+  starOutline,
+  happyOutline,
+  shieldCheckmarkOutline,
+  fastFoodOutline,
 } from 'ionicons/icons';
 
 interface MonthTab {
@@ -38,11 +67,13 @@ export class JarActivityPage implements OnInit {
   filteredTransactions: Transaction[] = [];
   inflowTransactions: Transaction[] = [];
   outflowTransactions: Transaction[] = [];
+  categoryIconMap: Record<string, string> = {};
   isLoadingTransactions = false;
   jarId: number | null = null;
 
   constructor(
     private budgetService: BudgetService,
+    private categoryService: CategoryService,
     private route: ActivatedRoute,
     private router: Router
   ) {
@@ -53,15 +84,73 @@ export class JarActivityPage implements OnInit {
       cartOutline,
       swapHorizontalOutline,
       bagOutline,
+      cashOutline,
+      cardOutline,
+      briefcaseOutline,
+      homeOutline,
+      carOutline,
+      airplaneOutline,
+      giftOutline,
+      heartOutline,
+      fitnessOutline,
+      schoolOutline,
+      restaurantOutline,
+      shirtOutline,
+      constructOutline,
+      hammerOutline,
+      flashOutline,
+      waterOutline,
+      wifiOutline,
+      tvOutline,
+      phonePortraitOutline,
+      gameControllerOutline,
+      musicalNotesOutline,
+      cameraOutline,
+      brushOutline,
+      colorWandOutline,
+      starOutline,
+      happyOutline,
+      shieldCheckmarkOutline,
+      fastFoodOutline,
     });
   }
 
   ngOnInit(): void {
     this.jarId = Number(this.route.snapshot.paramMap.get('id'));
+    this.loadCategories();
     if (this.jarId) {
       this.loadJarDetail();
       this.loadTransactions();
     }
+  }
+
+  private loadCategories(): void {
+    this.categoryService.getTree().subscribe({
+      next: (response) => {
+        const tree = response.data || [];
+        this.categoryIconMap = this.buildCategoryIconMap(tree);
+      },
+    });
+  }
+
+  private buildCategoryIconMap(tree: CategoryTreeNode[]): Record<string, string> {
+    const map: Record<string, string> = {};
+
+    tree.forEach((parent) => {
+      const parentName = parent.name?.trim();
+      if (parentName && parent.icon) {
+        map[parentName.toLowerCase()] = parent.icon;
+      }
+
+      parent.children.forEach((child) => {
+        const childName = child.name?.trim();
+        if (childName && child.icon) {
+          map[childName.toLowerCase()] = child.icon;
+        }
+      });
+    });
+
+    return map;
   }
 
   loadJarDetail(): void {
@@ -102,11 +191,18 @@ export class JarActivityPage implements OnInit {
   }
 
   getTransactionIcon(transaction: Transaction): string {
+    const categoryName = (transaction.category || transaction.source || '').toLowerCase();
+    
+    // 1. Try to find in category icon map
+    if (this.categoryIconMap[categoryName]) {
+      return this.categoryIconMap[categoryName];
+    }
+
+    // 2. Fallback to hardcoded mapping
     if (transaction.type === 'expense') {
-      const category = transaction.category?.toLowerCase() || '';
-      if (category.includes('grocery') || category.includes('food')) return 'cart-outline';
-      if (category.includes('transfer')) return 'swap-horizontal-outline';
-      if (category.includes('shopping')) return 'bag-outline';
+      if (categoryName.includes('grocery') || categoryName.includes('food')) return 'cart-outline';
+      if (categoryName.includes('transfer')) return 'swap-horizontal-outline';
+      if (categoryName.includes('shopping')) return 'bag-outline';
       return 'cart-outline';
     }
     return 'wallet-outline';

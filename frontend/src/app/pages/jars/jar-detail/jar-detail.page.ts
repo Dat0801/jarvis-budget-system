@@ -52,6 +52,7 @@ import {
   swapHorizontalOutline,
   bagOutline,
   cart,
+  fastFoodOutline,
 } from 'ionicons/icons';
 
 type BudgetPeriod = 'week' | 'month' | 'quarter' | 'year';
@@ -95,6 +96,7 @@ export class JarDetailPage implements OnInit {
   editBudgetPeriod: BudgetPeriod = 'month';
   editRepeatThisBudget = false;
   budgetCategories: CategoryTreeNode[] = [];
+  categoryIconMap: Record<string, string> = {};
   wallets: Wallet[] = [];
   readonly currencyOptions = ['VND', 'USD', 'EUR', 'JPY', 'GBP'];
   readonly budgetPeriodOptions: BudgetPeriod[] = ['week', 'month', 'quarter', 'year'];
@@ -150,6 +152,7 @@ export class JarDetailPage implements OnInit {
       swapHorizontalOutline,
       bagOutline,
       cart,
+      fastFoodOutline,
     });
   }
 
@@ -315,11 +318,18 @@ export class JarDetailPage implements OnInit {
   }
 
   getTransactionIcon(transaction: Transaction): string {
+    const categoryName = (transaction.category || transaction.source || '').toLowerCase();
+    
+    // 1. Try to find in category icon map
+    if (this.categoryIconMap[categoryName]) {
+      return this.categoryIconMap[categoryName];
+    }
+
+    // 2. Fallback to hardcoded mapping
     if (transaction.type === 'expense') {
-      const category = transaction.category?.toLowerCase() || '';
-      if (category.includes('grocery') || category.includes('food')) return 'cart-outline';
-      if (category.includes('transfer')) return 'swap-horizontal-outline';
-      if (category.includes('shopping')) return 'bag-outline';
+      if (categoryName.includes('grocery') || categoryName.includes('food')) return 'cart-outline';
+      if (categoryName.includes('transfer')) return 'swap-horizontal-outline';
+      if (categoryName.includes('shopping')) return 'bag-outline';
       return 'cart-outline';
     }
     return 'wallet-outline';
@@ -574,14 +584,36 @@ export class JarDetailPage implements OnInit {
   }
 
   private loadBudgetCategories(): void {
-    this.categoryService.getTree('expense').subscribe({
+    this.categoryService.getTree().subscribe({
       next: (response) => {
         this.budgetCategories = response.data || [];
+        this.categoryIconMap = this.buildCategoryIconMap(this.budgetCategories);
       },
       error: () => {
         this.budgetCategories = [];
+        this.categoryIconMap = {};
       },
     });
+  }
+
+  private buildCategoryIconMap(tree: CategoryTreeNode[]): Record<string, string> {
+    const map: Record<string, string> = {};
+
+    tree.forEach((parent) => {
+      const parentName = parent.name?.trim();
+      if (parentName && parent.icon) {
+        map[parentName.toLowerCase()] = parent.icon;
+      }
+
+      parent.children.forEach((child) => {
+        const childName = child.name?.trim();
+        if (childName && child.icon) {
+          map[childName.toLowerCase()] = child.icon;
+        }
+      });
+    });
+
+    return map;
   }
 
   private loadExpenseTotals(): void {
