@@ -1,0 +1,6 @@
+<ion-list lines="none">
+  <ion-item button (click)="handleAction(action)" *ngFor="let action of actions">
+    <ion-icon [name]="action.icon" slot="start"></ion-icon>
+    <ion-label>{{ action.label }}</ion-label>
+  </ion-item>
+</ion-list>

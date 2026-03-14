@@ -84,8 +84,21 @@ export class BudgetService {
     return this.api.delete<{ message: string }>(`budgets/${id}`);
   }
 
-  getTransactions(budgetId: number) {
-    return this.api.get<PaginatedTransactions>(`budgets/${budgetId}/transactions`);
+  getTransactions(budgetId: number, filters?: { category?: string; start_date?: string; end_date?: string; page?: number }) {
+    let url = `budgets/${budgetId}/transactions`;
+    if (filters) {
+      const params = new URLSearchParams();
+      if (filters.category) params.append('category', filters.category);
+      if (filters.start_date) params.append('start_date', filters.start_date);
+      if (filters.end_date) params.append('end_date', filters.end_date);
+      if (filters.page) params.append('page', filters.page.toString());
+      
+      const queryString = params.toString();
+      if (queryString) {
+        url += `?${queryString}`;
+      }
+    }
+    return this.api.get<PaginatedTransactions>(url);
   }
 
   addMoney(budgetId: number, amount: number) {

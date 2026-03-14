@@ -6,24 +6,19 @@
   headerClass="activity-header"
 >
   <ion-buttons slot="end">
-    <!-- Wallet Picker Popup -->
-    <ion-button (click)="openWalletPicker()">
-      <ion-icon slot="icon-only" name="wallet-outline"></ion-icon>
-    </ion-button>
-
     <!-- Time Range Picker Popup -->
     <ion-button (click)="openTimeRangePicker()">
       <ion-icon slot="icon-only" name="calendar-clear-outline"></ion-icon>
     </ion-button>
 
-    <!-- Export Button -->
-    <ion-button (click)="openExportModal()">
-      <ion-icon slot="icon-only" name="download-outline"></ion-icon>
-    </ion-button>
-
     <!-- Search Toggle -->
     <ion-button (click)="toggleSearchBar()">
       <ion-icon slot="icon-only" name="search-outline"></ion-icon>
+    </ion-button>
+
+    <!-- More Actions Menu -->
+    <ion-button (click)="openHeaderMenu($event)">
+      <ion-icon slot="icon-only" name="ellipsis-vertical-outline"></ion-icon>
     </ion-button>
   </ion-buttons>
 </app-page-header>

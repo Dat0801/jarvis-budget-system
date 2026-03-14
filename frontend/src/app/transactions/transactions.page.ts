@@ -32,7 +32,10 @@ import {
   cashOutline,
   archiveOutline,
   downloadOutline,
+  ellipsisVerticalOutline,
 } from 'ionicons/icons';
+import { HeaderActionsPopoverComponent, HeaderAction } from '../shared/header-actions-popover/header-actions-popover.component';
+import { PopoverController } from '@ionic/angular';
 
 interface ExpenseItem {
   id: number;
@@ -135,7 +138,8 @@ export class TransactionsPage implements OnInit {
     private actionSheetCtrl: ActionSheetController,
     private modalController: ModalController,
     private loadingController: LoadingController,
-    private toastController: ToastController
+    private toastController: ToastController,
+    private popoverController: PopoverController
   ) {
     addIcons({
       searchOutline,
@@ -156,6 +160,7 @@ export class TransactionsPage implements OnInit {
       cashOutline,
       archiveOutline,
       downloadOutline,
+      ellipsisVerticalOutline,
     });
   }
 
@@ -374,6 +379,32 @@ export class TransactionsPage implements OnInit {
   onTimeRangeChange(event: any): void {
     this.selectedTimeRange = event.detail.value;
     this.applyFilters();
+  }
+
+  async openHeaderMenu(event: any) {
+    const actions: HeaderAction[] = [
+      {
+        id: 'wallet',
+        label: 'Select Wallet',
+        icon: 'wallet-outline',
+        handler: () => this.openWalletPicker()
+      },
+      {
+        id: 'export',
+        label: 'Export CSV',
+        icon: 'download-outline',
+        handler: () => this.openExportModal()
+      }
+    ];
+
+    const popover = await this.popoverController.create({
+      component: HeaderActionsPopoverComponent,
+      componentProps: { actions },
+      event: event,
+      translucent: true
+    });
+
+    return await popover.present();
   }
 
   toggleSearchBar(): void {

@@ -103,6 +103,12 @@ export class JarDetailPage implements OnInit {
   jarId: number | null = null;
   parseFloat = parseFloat;
 
+  // Filter states
+  selectedSubCategory = '';
+  selectedWeek = '';
+  subCategories: string[] = [];
+  weeks: { label: string, start: string, end: string }[] = [];
+
   constructor(
     private budgetService: BudgetService,
     private expenseService: ExpenseService,
@@ -188,9 +194,40 @@ export class JarDetailPage implements OnInit {
     this.loadBudgetCategories();
     this.loadWallets();
     this.loadExpenseTotals();
+    this.generateWeeks();
     if (this.jarId) {
       this.loadJarDetail();
     }
+  }
+
+  generateWeeks(): void {
+    const weeks = [];
+    const now = new Date();
+    
+    // Calculate current week (Monday-Sunday)
+    const day = now.getDay();
+    const diff = now.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+    const currentMonday = new Date(now.setDate(diff));
+    currentMonday.setHours(0, 0, 0, 0);
+
+    for (let i = 0; i < 5; i++) {
+      const start = new Date(currentMonday);
+      start.setDate(currentMonday.getDate() - (i * 7));
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      end.setHours(23, 59, 59, 999);
+
+      const label = i === 0 ? 'This Week' : `${i} week${i > 1 ? 's' : ''} ago`;
+      const startStr = start.getFullYear() + '-' + String(start.getMonth() + 1).padStart(2, '0') + '-' + String(start.getDate()).padStart(2, '0');
+      const endStr = end.getFullYear() + '-' + String(end.getMonth() + 1).padStart(2, '0') + '-' + String(end.getDate()).padStart(2, '0');
+      
+      weeks.push({
+        label,
+        start: startStr,
+        end: endStr
+      });
+    }
+    this.weeks = weeks;
   }
 
   loadWallets(): void {
@@ -213,6 +250,7 @@ export class JarDetailPage implements OnInit {
       this.editBudgetWalletId = jar.wallet_id || null;
       this.editBudgetPeriod = this.getPeriodFromBudgetDate(jar.budget_date);
       this.editRepeatThisBudget = !!jar.repeat_this_budget;
+      this.updateSubCategories();
       this.loadTransactions();
     });
   }
@@ -220,11 +258,52 @@ export class JarDetailPage implements OnInit {
   loadTransactions(): void {
     if (!this.jarId) return;
     this.isLoadingTransactions = true;
-    this.budgetService.getTransactions(this.jarId).pipe(finalize(() => {
+    
+    const filters: any = {};
+    if (this.selectedSubCategory) {
+      filters.category = this.selectedSubCategory;
+    }
+    
+    if (this.selectedWeek) {
+      const week = this.weeks.find(w => w.label === this.selectedWeek);
+      if (week) {
+        filters.start_date = week.start;
+        filters.end_date = week.end;
+      }
+    }
+
+    this.budgetService.getTransactions(this.jarId, filters).pipe(finalize(() => {
       this.isLoadingTransactions = false;
     })).subscribe((response) => {
       this.transactions = response.data || [];
     });
+  }
+
+  updateSubCategories(): void {
+    if (!this.jar || !this.budgetCategories.length) return;
+    
+    const jarCategoryName = (this.jar.category || this.jar.name || '').trim().toLowerCase();
+    
+    // Find matching category in tree
+    const parentCategory = this.budgetCategories.find(c => 
+      c.name.trim().toLowerCase() === jarCategoryName
+    );
+
+    if (parentCategory && parentCategory.children && parentCategory.children.length > 0) {
+      this.subCategories = parentCategory.children.map(c => c.name);
+    } else {
+      this.subCategories = [];
+    }
+  }
+
+  onSubCategoryChange(event: any): void {
+    this.selectedSubCategory = event.detail.value;
+    this.loadTransactions();
+  }
+
+  onWeekChange(event: any): void {
+    this.selectedWeek = event.detail.value;
+    this.loadTransactions();
   }
 
   getSpentAmount(): number {
@@ -588,6 +667,7 @@ export class JarDetailPage implements OnInit {
       next: (response) => {
         this.budgetCategories = response.data || [];
         this.categoryIconMap = this.buildCategoryIconMap(this.budgetCategories);
+        this.updateSubCategories();
       },
       error: () => {
         this.budgetCategories = [];

@@ -7,9 +7,10 @@ import { TransactionsPageRoutingModule } from './transactions-routing.module';
 import { TransactionDetailPage } from './transaction-detail.page';
 import { PageHeaderComponent } from '../shared/page-header/page-header.component';
 import { MonthSelectorComponent } from './month-selector/month-selector.component';
+import { HeaderActionsPopoverComponent } from '../shared/header-actions-popover/header-actions-popover.component';
 
 @NgModule({
-  imports: [IonicModule, CommonModule, FormsModule, TransactionsPageRoutingModule, TransactionDetailPage, PageHeaderComponent],
+  imports: [IonicModule, CommonModule, FormsModule, TransactionsPageRoutingModule, TransactionDetailPage, PageHeaderComponent, HeaderActionsPopoverComponent],
   declarations: [TransactionsPage, MonthSelectorComponent],
 })
 export class TransactionsPageModule {}

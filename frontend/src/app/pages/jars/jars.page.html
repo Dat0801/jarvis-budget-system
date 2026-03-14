@@ -3,11 +3,8 @@
     <ion-button fill="clear" class="icon-button" (click)="toggleMergeMode()" [color]="isMergeMode ? 'primary' : ''">
       <ion-icon name="layers-outline"></ion-icon>
     </ion-button>
-    <ion-button fill="clear" class="icon-button">
-      <ion-icon name="search-outline"></ion-icon>
-    </ion-button>
-    <ion-button fill="clear" class="icon-button avatar-button">
-      <ion-icon name="person-circle-outline"></ion-icon>
+    <ion-button fill="clear" class="icon-button" (click)="openHeaderMenu($event)">
+      <ion-icon name="ellipsis-vertical-outline"></ion-icon>
     </ion-button>
   </ion-buttons>
 </app-page-header>

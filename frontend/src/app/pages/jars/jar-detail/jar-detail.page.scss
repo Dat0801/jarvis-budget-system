@@ -301,6 +301,40 @@ ion-content.jar-detail-page {
   margin-bottom: 24px;
 }
 
+.transactions-section {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(16, 24, 40, 0.08);
+  margin-bottom: 24px;
+}
+
+.filters-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+
+  .filter-item {
+    flex: 1;
+    min-width: 140px;
+    background: #f9fafb;
+    border: 1px solid #eaecf0;
+    border-radius: 10px;
+    padding: 0 8px;
+
+    .filter-select {
+      --padding-start: 8px;
+      --padding-end: 8px;
+      --placeholder-color: #667085;
+      --placeholder-opacity: 1;
+      font-size: 14px;
+      color: #344054;
+      width: 100%;
+    }
+  }
+}
+
 .section-header {
   display: flex;
   justify-content: space-between;

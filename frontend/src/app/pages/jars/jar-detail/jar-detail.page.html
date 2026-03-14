@@ -71,6 +71,35 @@
         <a href="#" class="see-all-link" (click)="seeAllTransactions(); $event.preventDefault()">View Full Activity</a>
       </div>
 
+      <!-- Filters -->
+      <div class="filters-row" *ngIf="subCategories.length > 0 || weeks.length > 0">
+        <div class="filter-item sub-category-filter" *ngIf="subCategories.length > 0">
+          <ion-select
+            interface="popover"
+            placeholder="All Categories"
+            [(ngModel)]="selectedSubCategory"
+            (ionChange)="onSubCategoryChange($event)"
+            class="filter-select"
+          >
+            <ion-select-option value="">All Categories</ion-select-option>
+            <ion-select-option *ngFor="let sub of subCategories" [value]="sub">{{ sub }}</ion-select-option>
+          </ion-select>
+        </div>
+        
+        <div class="filter-item week-filter" *ngIf="weeks.length > 0">
+          <ion-select
+            interface="popover"
+            placeholder="All Time"
+            [(ngModel)]="selectedWeek"
+            (ionChange)="onWeekChange($event)"
+            class="filter-select"
+          >
+            <ion-select-option value="">All Time</ion-select-option>
+            <ion-select-option *ngFor="let week of weeks" [value]="week.label">{{ week.label }}</ion-select-option>
+          </ion-select>
+        </div>
+      </div>
+
       <div class="activity-list">
         <article class="activity-item" *ngFor="let transaction of transactions">
           <div class="activity-icon" [ngClass]="'icon-' + getTransactionColor(transaction)">

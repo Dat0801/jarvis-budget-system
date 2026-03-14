@@ -238,24 +238,35 @@ class JarController extends Controller
 
         $page = max((int) $request->query('page', 1), 1);
         $perPage = min(max((int) $request->query('per_page', 20), 1), 100);
+        $categoryFilter = $request->query('category');
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
 
         $expenseQuery = Expense::query()->where('user_id', $request->user()->id);
         $incomeQuery = Income::query()->where('user_id', $request->user()->id);
 
         if ($jar->wallet_type === Jar::TYPE_BUDGET) {
-            $categoryNames = [$jar->category ?: $jar->name];
-
-            // Resolve all linked categories and their descendants
-            $linkedCategories = $jar->categories()->with('children')->get();
-            if ($linkedCategories->isNotEmpty()) {
-                foreach ($linkedCategories as $cat) {
-                    $categoryNames = array_merge($categoryNames, $cat->getAllDescendantNames());
-                }
-            } else {
-                // If no direct link in category_jar, try to find a category by name
-                $matchingCat = TransactionCategory::where('name', $jar->category ?: $jar->name)->first();
+            if ($categoryFilter) {
+                $categoryNames = [$categoryFilter];
+                $matchingCat = TransactionCategory::where('name', $categoryFilter)->first();
                 if ($matchingCat) {
                     $categoryNames = array_merge($categoryNames, $matchingCat->getAllDescendantNames());
+                }
+            } else {
+                $categoryNames = [$jar->category ?: $jar->name];
+
+                // Resolve all linked categories and their descendants
+                $linkedCategories = $jar->categories()->with('children')->get();
+                if ($linkedCategories->isNotEmpty()) {
+                    foreach ($linkedCategories as $cat) {
+                        $categoryNames = array_merge($categoryNames, $cat->getAllDescendantNames());
+                    }
+                } else {
+                    // If no direct link in category_jar, try to find a category by name
+                    $matchingCat = TransactionCategory::where('name', $jar->category ?: $jar->name)->first();
+                    if ($matchingCat) {
+                        $categoryNames = array_merge($categoryNames, $matchingCat->getAllDescendantNames());
+                    }
                 }
             }
             $categoryNames = array_unique(array_filter($categoryNames));
@@ -272,6 +283,15 @@ class JarController extends Controller
         } else {
             $expenseQuery->where('jar_id', $jar->id);
             $incomeQuery->where('jar_id', $jar->id);
+        }
+
+        if ($startDate) {
+            $expenseQuery->where('spent_at', '>=', $startDate);
+            $incomeQuery->where('received_at', '>=', $startDate);
+        }
+        if ($endDate) {
+            $expenseQuery->where('spent_at', '<=', $endDate);
+            $incomeQuery->where('received_at', '<=', $endDate);
         }
 
         $expenseQuery->selectRaw("id, 'expense' as type, amount, category, note, null as source, spent_at as date, created_at");

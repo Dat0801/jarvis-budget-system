@@ -49,7 +49,12 @@ import {
   shieldCheckmarkOutline,
   layersOutline,
   checkmarkCircleOutline,
+  ellipsisVerticalOutline,
+  personCircleOutline,
+  searchOutline,
 } from 'ionicons/icons';
+import { HeaderActionsPopoverComponent, HeaderAction } from '../../shared/header-actions-popover/header-actions-popover.component';
+import { PopoverController } from '@ionic/angular';
 
 type BudgetPeriod = 'week' | 'month' | 'quarter' | 'year';
 
@@ -64,7 +69,7 @@ interface BudgetCategoryOption {
 @Component({
   selector: 'app-jars',
   standalone: true,
-  imports: [CommonModule, FormsModule, IonicModule, PageHeaderComponent],
+  imports: [CommonModule, FormsModule, IonicModule, PageHeaderComponent, HeaderActionsPopoverComponent],
   templateUrl: './jars.page.html',
   styleUrls: ['./jars.page.scss'],
 })
@@ -113,7 +118,8 @@ export class JarsPage implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private modalController: ModalController,
-    private alertController: AlertController
+    private alertController: AlertController,
+    private popoverController: PopoverController
   ) {
     addIcons({
       closeOutline,
@@ -150,6 +156,9 @@ export class JarsPage implements OnInit {
       shieldCheckmarkOutline,
       layersOutline,
       checkmarkCircleOutline,
+      ellipsisVerticalOutline,
+      personCircleOutline,
+      searchOutline,
     });
   }
 
@@ -690,7 +699,36 @@ export class JarsPage implements OnInit {
     this.budgetService.create(payload).subscribe(() => this.loadJars());
   }
 
-  private loadBudgetCategories(): void {
+  async openHeaderMenu(event: any) {
+    const actions: HeaderAction[] = [
+      {
+        id: 'search',
+        label: 'Search Budgets',
+        icon: 'search-outline',
+        handler: () => {
+          // Placeholder for search functionality
+          console.log('Search budgets clicked');
+        }
+      },
+      {
+        id: 'settings',
+        label: 'Profile & Settings',
+        icon: 'person-circle-outline',
+        handler: () => this.router.navigate(['/tabs/settings'])
+      }
+    ];
+
+    const popover = await this.popoverController.create({
+      component: HeaderActionsPopoverComponent,
+      componentProps: { actions },
+      event: event,
+      translucent: true
+    });
+
+    return await popover.present();
+  }
+
+  loadBudgetCategories(): void {
     this.categoryService.getTree('expense').subscribe({
       next: (response) => {
         this.budgetCategories = response.data || [];
