@@ -276,7 +276,20 @@ export class TransactionsPage implements OnInit {
 
   ionViewWillEnter(): void {
     this.fabService.showFab(() => this.router.navigateByUrl('/expense'), 'add', this.fabOwner);
+    this.checkAndResetToCurrentMonth();
     this.loadTransactions();
+  }
+
+  private checkAndResetToCurrentMonth(): void {
+    const todayStr = new Date().toDateString();
+    const lastViewedStr = localStorage.getItem('transactions_last_viewed_day');
+
+    if (lastViewedStr !== todayStr) {
+      // Next morning reset to show current month
+      this.selectedTimeRange = 'month';
+      this.selectedTabKey = ''; 
+      localStorage.setItem('transactions_last_viewed_day', todayStr);
+    }
   }
 
   ionViewDidLeave(): void {

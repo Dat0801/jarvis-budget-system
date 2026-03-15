@@ -237,7 +237,7 @@ class JarController extends Controller
         $this->authorizeJarAccess($request, $jar);
 
         $page = max((int) $request->query('page', 1), 1);
-        $perPage = min(max((int) $request->query('per_page', 20), 1), 100);
+        $perPage = min(max((int) $request->query('per_page', 500), 1), 1000); // Increase limit from 20 to 500
         $categoryFilter = $request->query('category');
         $startDate = $request->query('start_date');
         $endDate = $request->query('end_date');

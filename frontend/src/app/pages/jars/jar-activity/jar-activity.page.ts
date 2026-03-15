@@ -118,9 +118,23 @@ export class JarActivityPage implements OnInit {
   ngOnInit(): void {
     this.jarId = Number(this.route.snapshot.paramMap.get('id'));
     this.loadCategories();
+  }
+
+  ionViewWillEnter(): void {
+    this.checkAndResetToCurrentMonth();
     if (this.jarId) {
       this.loadJarDetail();
       this.loadTransactions();
+    }
+  }
+
+  private checkAndResetToCurrentMonth(): void {
+    const todayStr = new Date().toDateString();
+    const lastViewedStr = localStorage.getItem('jar_activity_last_viewed_day');
+
+    if (lastViewedStr !== todayStr) {
+      this.selectedMonthKey = this.getMonthKey(new Date());
+      localStorage.setItem('jar_activity_last_viewed_day', todayStr);
     }
   }
 

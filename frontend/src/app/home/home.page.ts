@@ -112,7 +112,19 @@ export class HomePage implements OnInit {
 
   ionViewWillEnter(): void {
     this.loadCurrencyPreference();
+    this.checkAndResetSearch();
     this.loadDashboardData();
+  }
+
+  private checkAndResetSearch(): void {
+    const todayStr = new Date().toDateString();
+    const lastViewedStr = localStorage.getItem('home_last_viewed_day');
+
+    if (lastViewedStr !== todayStr) {
+      // Next morning reset search and show default view
+      this.searchTerm = '';
+      localStorage.setItem('home_last_viewed_day', todayStr);
+    }
   }
 
   onSearchChange(event: CustomEvent): void {
@@ -693,9 +705,19 @@ export class HomePage implements OnInit {
 
   private applyTransactionSearch(): void {
     const keyword = this.searchTerm.trim().toLowerCase();
+    const todayStr = new Date().toDateString();
 
     if (!keyword) {
-      this.filteredTransactions = this.allTransactions.slice(0, 8);
+      // Prioritize showing all transactions for today
+      const todayTransactions = this.allTransactions.filter(t => t.date.toDateString() === todayStr);
+      
+      if (todayTransactions.length > 8) {
+        // If more than 8 transactions today, show all of them
+        this.filteredTransactions = todayTransactions;
+      } else {
+        // Otherwise show the last 8 transactions
+        this.filteredTransactions = this.allTransactions.slice(0, 8);
+      }
       return;
     }
 
@@ -712,7 +734,7 @@ export class HomePage implements OnInit {
 
         return haystack.includes(keyword);
       })
-      .slice(0, 12);
+      .slice(0, 50); // Increase display limit when searching
   }
 
   private getCurrentMonthLabel(): string {

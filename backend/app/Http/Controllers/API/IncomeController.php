@@ -12,10 +12,12 @@ class IncomeController extends Controller
 {
     public function index(Request $request)
     {
+        $perPage = (int) $request->query('per_page', 500); // Increase default limit to 500 to show enough for 1 month
+        
         $incomes = Income::where('user_id', $request->user()->id)
             ->with('jar')
             ->orderBy('received_at', 'desc')
-            ->paginate(20);
+            ->paginate($perPage);
 
         return response()->json($incomes);
     }

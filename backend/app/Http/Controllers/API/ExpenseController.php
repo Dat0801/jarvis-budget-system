@@ -13,10 +13,12 @@ class ExpenseController extends Controller
 {
     public function index(Request $request)
     {
+        $perPage = (int) $request->query('per_page', 500); // Increase default limit to 500 to show enough for 1 month
+        
         $expenses = Expense::where('user_id', $request->user()->id)
             ->with('jar')
             ->orderBy('spent_at', 'desc')
-            ->paginate(20);
+            ->paginate($perPage);
 
         return response()->json($expenses);
     }

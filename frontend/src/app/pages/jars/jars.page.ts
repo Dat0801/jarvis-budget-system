@@ -69,7 +69,7 @@ interface BudgetCategoryOption {
 @Component({
   selector: 'app-jars',
   standalone: true,
-  imports: [CommonModule, FormsModule, IonicModule, PageHeaderComponent, HeaderActionsPopoverComponent],
+  imports: [CommonModule, FormsModule, IonicModule, PageHeaderComponent],
   templateUrl: './jars.page.html',
   styleUrls: ['./jars.page.scss'],
 })

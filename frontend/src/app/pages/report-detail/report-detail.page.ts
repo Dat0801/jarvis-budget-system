@@ -9,7 +9,6 @@ import { ExpenseService } from '../../services/expense.service';
 import { IncomeService } from '../../services/income.service';
 import { StatsService, IncomeVsExpenses } from '../../services/stats.service';
 import { CategoryService, CategoryTreeNode } from '../../services/category.service';
-import { PageHeaderComponent } from '../../shared/page-header/page-header.component';
 import {
   CurrencyCode,
   formatCurrencyAmount,
@@ -37,7 +36,7 @@ interface ChartAxisTick {
 @Component({
   selector: 'app-report-detail',
   standalone: true,
-  imports: [CommonModule, FormsModule, IonicModule, PageHeaderComponent],
+  imports: [CommonModule, FormsModule, IonicModule],
   templateUrl: './report-detail.page.html',
   styleUrls: ['./report-detail.page.scss'],
 })
@@ -106,7 +105,19 @@ export class ReportDetailPage implements OnInit {
 
   ionViewWillEnter(): void {
     this.loadCurrencyPreference();
+    this.checkAndResetToCurrentMonth();
     this.loadReportData();
+  }
+
+  private checkAndResetToCurrentMonth(): void {
+    const todayStr = new Date().toDateString();
+    const lastViewedStr = localStorage.getItem('report_detail_last_viewed_day');
+
+    if (lastViewedStr !== todayStr) {
+      this.selectedMonth = this.getCurrentMonthValue();
+      this.monthLabel = this.formatMonthLabel(this.selectedMonth);
+      localStorage.setItem('report_detail_last_viewed_day', todayStr);
+    }
   }
 
   goBack(): void {
