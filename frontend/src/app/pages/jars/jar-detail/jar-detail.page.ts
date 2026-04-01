@@ -83,12 +83,14 @@ export class JarDetailPage implements OnInit {
   jar: JarDetail | null = null;
   transactions: Transaction[] = [];
   expensesByCategory: Record<string, number> = {};
+  private rawExpenseList: any[] = [];
   isLoadingJar = false;
   isLoadingTransactions = false;
   isAddMoneyOpen = false;
   isEditJarOpen = false;
   addAmount = '';
-  selectedBudgetCategoryValue = '';
+  selectedBudgetCategoryValues: string[] = [];
+  editBudgetName = '';
   editBudgetAmount = '';
   editBudgetIcon = 'basket-outline';
   editBudgetCurrency = 'VND';
@@ -98,12 +100,15 @@ export class JarDetailPage implements OnInit {
   budgetCategories: CategoryTreeNode[] = [];
   categoryIconMap: Record<string, string> = {};
   wallets: Wallet[] = [];
+  readonly categorySelectInterfaceOptions = { cssClass: 'category-tree-sheet' };
   readonly currencyOptions = ['VND', 'USD', 'EUR', 'JPY', 'GBP'];
   readonly budgetPeriodOptions: BudgetPeriod[] = ['week', 'month', 'quarter', 'year'];
   jarId: number | null = null;
   parseFloat = parseFloat;
 
   // Filter states
+  selectedMonthKey = '';
+  months: { key: string; label: string; start: string; end: string }[] = [];
   selectedSubCategory = '';
   selectedWeek = '';
   subCategories: string[] = [];
@@ -164,6 +169,8 @@ export class JarDetailPage implements OnInit {
 
   ngOnInit(): void {
     this.jarId = Number(this.route.snapshot.paramMap.get('id'));
+    this.generateMonths();
+    this.selectedMonthKey = this.getMonthKey(new Date());
 
     this.route.queryParamMap.subscribe((params) => {
       const selectedCategory = params.get('selectedCategory');
@@ -171,7 +178,7 @@ export class JarDetailPage implements OnInit {
       const returnMode = params.get('returnMode');
 
       if (selectedCategory) {
-        this.selectedBudgetCategoryValue = selectedCategory;
+        this.selectedBudgetCategoryValues = [selectedCategory];
         if (categoryIcon) {
           this.editBudgetIcon = categoryIcon;
         }
@@ -198,6 +205,30 @@ export class JarDetailPage implements OnInit {
     if (this.jarId) {
       this.loadJarDetail();
     }
+  }
+
+  private getMonthKey(date: Date): string {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    return `${y}-${m}`;
+  }
+
+  private generateMonths(): void {
+    const months: { key: string; label: string; start: string; end: string }[] = [];
+    const now = new Date();
+    const cursor = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    for (let i = 0; i < 18; i++) {
+      const start = new Date(cursor.getFullYear(), cursor.getMonth() - i, 1);
+      const end = new Date(start.getFullYear(), start.getMonth() + 1, 0);
+      const key = this.getMonthKey(start);
+      const label = start.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      const startStr = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-01`;
+      const endStr = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, '0')}-${String(end.getDate()).padStart(2, '0')}`;
+      months.push({ key, label, start: startStr, end: endStr });
+    }
+
+    this.months = months;
   }
 
   generateWeeks(): void {
@@ -243,7 +274,8 @@ export class JarDetailPage implements OnInit {
       this.isLoadingJar = false;
     })).subscribe((jar: JarDetail) => {
       this.jar = jar;
-      this.selectedBudgetCategoryValue = this.getCategoryValueFromJar(jar);
+      this.selectedBudgetCategoryValues = this.getCategoryValuesFromJar(jar);
+      this.editBudgetName = jar.name || '';
       this.editBudgetAmount = formatVndAmountInput(this.parseAmount(jar.balance));
       this.editBudgetIcon = jar.icon || 'basket-outline';
       this.editBudgetCurrency = jar.currency_unit || 'VND';
@@ -263,6 +295,17 @@ export class JarDetailPage implements OnInit {
     if (this.selectedSubCategory) {
       filters.category = this.selectedSubCategory;
     }
+
+    if (this.selectedMonthKey) {
+      const month = this.months.find(m => m.key === this.selectedMonthKey);
+      if (month) {
+        filters.start_date = month.start;
+        filters.end_date = month.end;
+      }
+    } else {
+      // Explicitly request all months; otherwise backend defaults budgets to current month.
+      filters.all_months = true;
+    }
     
     if (this.selectedWeek) {
       const week = this.weeks.find(w => w.label === this.selectedWeek);
@@ -277,6 +320,12 @@ export class JarDetailPage implements OnInit {
     })).subscribe((response) => {
       this.transactions = response.data || [];
     });
+  }
+
+  onMonthChange(event: any): void {
+    this.selectedMonthKey = event.detail.value;
+    this.selectedWeek = '';
+    this.loadTransactions();
   }
 
   updateSubCategories(): void {
@@ -321,6 +370,10 @@ export class JarDetailPage implements OnInit {
         return sum;
       }
 
+      if (!this.isTransactionInCurrentMonth(transaction)) {
+        return sum;
+      }
+
       // If the transaction is already in this.transactions, it was returned by the backend 
       // for this budget jar. We should include it in the spent calculation.
       return sum + this.parseAmount(transaction.amount);
@@ -330,7 +383,55 @@ export class JarDetailPage implements OnInit {
       return spentFromLinkedTransactions;
     }
 
-    return this.expensesByCategory[budgetCategoryKey] || 0;
+    return this.sumRawExpensesForJarCurrentMonth();
+  }
+
+  private isTransactionInCurrentMonth(t: Transaction): boolean {
+    const raw = t.date || t.spent_at || t.created_at;
+    if (!raw) {
+      return false;
+    }
+    const d = new Date(raw);
+    if (Number.isNaN(d.getTime())) {
+      return false;
+    }
+    const n = new Date();
+    return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth();
+  }
+
+  private isRawExpenseInCurrentMonth(expense: { spent_at?: string; created_at?: string }): boolean {
+    const raw = expense?.spent_at || expense?.created_at;
+    if (!raw) {
+      return false;
+    }
+    const d = new Date(raw);
+    if (Number.isNaN(d.getTime())) {
+      return false;
+    }
+    const n = new Date();
+    return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth();
+  }
+
+  private sumRawExpensesForJarCurrentMonth(): number {
+    if (!this.jar) {
+      return 0;
+    }
+    const categoryKey = this.getBudgetCategoryKey();
+    let sum = 0;
+    for (const expense of this.rawExpenseList) {
+      if (!this.isRawExpenseInCurrentMonth(expense)) {
+        continue;
+      }
+      const amount = Math.abs(Number(expense?.amount) || 0);
+      if (expense?.jar_id === this.jar.id) {
+        sum += amount;
+        continue;
+      }
+      if (categoryKey && this.toCategoryKey(expense?.category) === categoryKey) {
+        sum += amount;
+      }
+    }
+    return sum;
   }
 
   getLeftAmount(): number {
@@ -482,7 +583,8 @@ export class JarDetailPage implements OnInit {
 
   openEditJar(): void {
     if (this.jar) {
-      this.selectedBudgetCategoryValue = this.getCategoryValueFromJar(this.jar);
+      this.selectedBudgetCategoryValues = this.getCategoryValuesFromJar(this.jar);
+      this.editBudgetName = this.jar.name || '';
       this.editBudgetAmount = formatVndAmountInput(this.parseAmount(this.jar.balance));
       this.editBudgetPeriod = this.getPeriodFromBudgetDate(this.jar.budget_date);
       this.editRepeatThisBudget = !!this.jar.repeat_this_budget;
@@ -495,15 +597,18 @@ export class JarDetailPage implements OnInit {
   }
 
   submitEditJar(): void {
-    if (!this.jarId) return;
-    const category = this.selectedBudgetCategoryLabel;
+    const jarId = this.jarId;
+    if (!jarId) return;
+    const category = this.selectedBudgetPrimaryLabel;
     const amount = parseVndAmount(this.editBudgetAmount);
     if (!category || !amount) {
       return;
     }
 
-    this.budgetService.update(this.jarId, {
+    this.budgetService.update(jarId, {
+      name: this.editBudgetName.trim() || undefined,
       category,
+      category_ids: this.selectedCategoryIds,
       amount,
       icon: this.editBudgetIcon,
       currency_unit: this.editBudgetCurrency,
@@ -513,6 +618,9 @@ export class JarDetailPage implements OnInit {
     }).subscribe((updatedJar: any) => {
       this.jar = { ...this.jar, ...updatedJar };
       this.closeEditJar();
+      this.budgetService.detail(jarId).subscribe((fresh) => {
+        this.jar = { ...this.jar, ...fresh };
+      });
     });
   }
 
@@ -539,57 +647,26 @@ export class JarDetailPage implements OnInit {
   }
 
   get canUpdateJar(): boolean {
-    return this.selectedBudgetCategoryLabel.length > 0 && !!parseVndAmount(this.editBudgetAmount);
+    return this.selectedCategoryIds.length > 0 && !!parseVndAmount(this.editBudgetAmount);
   }
 
-  get selectedBudgetCategoryLabel(): string {
-    const selected = this.budgetCategoryOptions.find(
-      (option) => option.value === this.selectedBudgetCategoryValue
-    );
+  get selectedCategoryIds(): number[] {
+    return this.selectedBudgetCategoryValues
+      .map((v) => Number(String(v).split(':')[1] || v))
+      .filter((id) => Number.isFinite(id) && id > 0);
+  }
 
-    if (!selected) {
-      return '';
-    }
-
-    return selected.subCategoryName || selected.categoryName;
+  get selectedBudgetPrimaryLabel(): string {
+    const first = this.selectedBudgetCategoryValues[0];
+    const selected = this.budgetCategoryOptions.find((option) => option.value === first);
+    return selected?.label || '';
   }
 
   get selectedPeriodLabel(): string {
     return this.getPeriodOptionLabel(this.editBudgetPeriod);
   }
 
-  async openCategorySelector(): Promise<void> {
-    if (!this.jarId) {
-      return;
-    }
-
-    const modal = await this.modalController.create({
-      component: CategoriesPage,
-      componentProps: {
-        isModal: true,
-        initialSelectMode: true,
-        initialTab: 'expense',
-        initialJarId: this.jarId,
-        initialReturnUrl: `/tabs/budgets/${this.jarId}`,
-        initialReturnMode: 'editBudget',
-      },
-    });
-
-    await modal.present();
-
-    const { data } = await modal.onDidDismiss();
-    if (data && data.selectedCategory) {
-      this.selectedBudgetCategoryValue = data.selectedCategory;
-      if (data.categoryData?.icon) {
-        this.editBudgetIcon = data.categoryData.icon;
-      }
-      this.loadBudgetCategories();
-      this.isEditJarOpen = true;
-    } else {
-      // Re-open the edit budget modal if canceled
-      this.isEditJarOpen = true;
-    }
-  }
+  // category selection is now done inline via multi-select
 
   get budgetCategoryOptions(): BudgetCategoryOption[] {
     const options: BudgetCategoryOption[] = [];
@@ -700,7 +777,9 @@ export class JarDetailPage implements OnInit {
     this.expenseService.list().pipe(
       catchError(() => of([]))
     ).subscribe((response: unknown) => {
-      this.expensesByCategory = this.buildExpensesByCategory(response);
+      const list = this.extractExpenseList(response);
+      this.rawExpenseList = list;
+      this.expensesByCategory = this.buildExpensesByCategory(list);
     });
   }
 
@@ -733,9 +812,7 @@ export class JarDetailPage implements OnInit {
     return (value || '').trim().toLowerCase();
   }
 
-  private buildExpensesByCategory(expensesResponse: any): Record<string, number> {
-    const expenses = this.extractExpenseList(expensesResponse);
-
+  private buildExpensesByCategory(expenses: any[]): Record<string, number> {
     return expenses.reduce((accumulator: Record<string, number>, expense: any) => {
       const categoryKey = this.toCategoryKey(expense?.category);
       if (!categoryKey) {
@@ -771,10 +848,16 @@ export class JarDetailPage implements OnInit {
     return new Date(now.getFullYear(), now.getMonth(), 1);
   }
 
-  private getCategoryValueFromJar(jar: JarDetail): string {
+  private getCategoryValuesFromJar(jar: JarDetail): string[] {
+    const ids = (jar as any)?.categories?.map((c: any) => c?.id).filter((id: any) => Number.isFinite(id)) || [];
+    if (ids.length > 0) {
+      return ids.map((id: number) => `category:${id}`);
+    }
+
+    // Fallback for older jars that only have a single string category.
     const rawCategory = (jar.category || jar.name || '').trim().toLowerCase();
     if (!rawCategory) {
-      return '';
+      return [];
     }
 
     const matched = this.budgetCategoryOptions.find((option) => {
@@ -783,7 +866,7 @@ export class JarDetailPage implements OnInit {
       return rawCategory === subName || rawCategory === categoryName;
     });
 
-    return matched?.value || '';
+    return matched?.value ? [matched.value] : [];
   }
 
   private getPeriodFromBudgetDate(budgetDate?: string | null): BudgetPeriod {

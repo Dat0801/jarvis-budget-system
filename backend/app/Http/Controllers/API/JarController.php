@@ -18,6 +18,9 @@ class JarController extends Controller
             ->jars()
             ->where('wallet_type', Jar::TYPE_BUDGET)
             ->latest()
+            ->with(['categories' => function ($q) {
+                $q->select('transaction_categories.id', 'transaction_categories.name', 'transaction_categories.icon', 'transaction_categories.parent_id');
+            }])
             ->get();
 
         foreach ($jars as $jar) {
@@ -31,6 +34,10 @@ class JarController extends Controller
     {
         $this->authorizeJarAccess($request, $jar);
         $jar->spent = $this->calculateJarSpent($jar);
+
+        $jar->load(['categories' => function ($q) {
+            $q->select('transaction_categories.id', 'transaction_categories.name', 'transaction_categories.icon', 'transaction_categories.parent_id');
+        }]);
 
         return response()->json($jar);
     }
@@ -65,7 +72,32 @@ class JarController extends Controller
             $expenseQuery->where('jar_id', $jar->id);
         }
 
+        if ($jar->wallet_type === Jar::TYPE_BUDGET) {
+            $this->applyCurrentCalendarMonthExpenseFilter($expenseQuery);
+        }
+
         return (float) $expenseQuery->sum('amount');
+    }
+
+    /**
+     * Budget jars use the current calendar month only: previous months do not count toward spent/progress.
+     */
+    private function applyCurrentCalendarMonthExpenseFilter($query): void
+    {
+        $start = now()->startOfMonth()->toDateString();
+        $end = now()->endOfMonth()->toDateString();
+
+        $query->where(function ($outer) use ($start, $end) {
+            $outer->where(function ($q) use ($start, $end) {
+                $q->whereNotNull('spent_at')
+                    ->whereDate('spent_at', '>=', $start)
+                    ->whereDate('spent_at', '<=', $end);
+            })->orWhere(function ($q) use ($start, $end) {
+                $q->whereNull('spent_at')
+                    ->whereDate('created_at', '>=', $start)
+                    ->whereDate('created_at', '<=', $end);
+            });
+        });
     }
 
     public function store(Request $request)
@@ -73,6 +105,8 @@ class JarController extends Controller
         $data = $request->validate([
             'name' => 'nullable|string|max:255|required_without:category',
             'category' => 'nullable|string|max:255|required_without:name',
+            'category_ids' => 'sometimes|array|min:1',
+            'category_ids.*' => 'exists:transaction_categories,id',
             'icon' => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'balance' => 'nullable|numeric|min:0',
@@ -100,6 +134,10 @@ class JarController extends Controller
             'wallet_id' => $data['wallet_id'] ?? null,
         ]);
 
+        if (!empty($data['category_ids'])) {
+            $jar->categories()->sync($data['category_ids']);
+        }
+
         return response()->json($jar, 201);
     }
 
@@ -110,6 +148,8 @@ class JarController extends Controller
         $data = $request->validate([
             'name' => 'sometimes|required|string|max:255',
             'category' => 'sometimes|nullable|string|max:255',
+            'category_ids' => 'sometimes|array|min:1',
+            'category_ids.*' => 'exists:transaction_categories,id',
             'icon' => 'sometimes|nullable|string|max:255',
             'description' => 'nullable|string',
             'balance' => 'sometimes|numeric|min:0',
@@ -130,6 +170,10 @@ class JarController extends Controller
         }
 
         $jar->update($data);
+
+        if (array_key_exists('category_ids', $data)) {
+            $jar->categories()->sync($data['category_ids'] ?? []);
+        }
 
         return response()->json($jar);
     }
@@ -241,6 +285,7 @@ class JarController extends Controller
         $categoryFilter = $request->query('category');
         $startDate = $request->query('start_date');
         $endDate = $request->query('end_date');
+        $allMonths = (bool) $request->query('all_months', false);
 
         $expenseQuery = Expense::query()->where('user_id', $request->user()->id);
         $incomeQuery = Income::query()->where('user_id', $request->user()->id);
@@ -285,13 +330,20 @@ class JarController extends Controller
             $incomeQuery->where('jar_id', $jar->id);
         }
 
+        // Budgets default to current month transactions unless explicitly filtered.
+        // Use all_months=1 to explicitly disable defaulting.
+        if ($jar->wallet_type === Jar::TYPE_BUDGET && !$allMonths && !$startDate && !$endDate) {
+            $startDate = now()->startOfMonth()->toDateString();
+            $endDate = now()->endOfMonth()->toDateString();
+        }
+
         if ($startDate) {
-            $expenseQuery->where('spent_at', '>=', $startDate);
-            $incomeQuery->where('received_at', '>=', $startDate);
+            $expenseQuery->whereRaw('date(coalesce(spent_at, created_at)) >= ?', [$startDate]);
+            $incomeQuery->whereRaw('date(coalesce(received_at, created_at)) >= ?', [$startDate]);
         }
         if ($endDate) {
-            $expenseQuery->where('spent_at', '<=', $endDate);
-            $incomeQuery->where('received_at', '<=', $endDate);
+            $expenseQuery->whereRaw('date(coalesce(spent_at, created_at)) <= ?', [$endDate]);
+            $incomeQuery->whereRaw('date(coalesce(received_at, created_at)) <= ?', [$endDate]);
         }
 
         $expenseQuery->selectRaw("id, 'expense' as type, amount, category, note, null as source, spent_at as date, created_at");

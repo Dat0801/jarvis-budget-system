@@ -8,6 +8,7 @@ export interface Budget {
   category?: string | null;
   balance: string;
   spent?: number;
+  categories?: { id: number; name: string; icon?: string | null; parent_id?: number | null }[];
   description?: string | null;
   target?: number;
   budget_date?: string | null;
@@ -53,6 +54,7 @@ export class BudgetService {
   create(payload: {
     name?: string;
     category?: string;
+    category_ids?: number[];
     icon?: string;
     description?: string | null;
     balance?: number;
@@ -68,6 +70,7 @@ export class BudgetService {
   update(id: number, payload: {
     name?: string;
     category?: string;
+    category_ids?: number[];
     icon?: string;
     description?: string | null;
     balance?: number;
@@ -84,13 +87,14 @@ export class BudgetService {
     return this.api.delete<{ message: string }>(`budgets/${id}`);
   }
 
-  getTransactions(budgetId: number, filters?: { category?: string; start_date?: string; end_date?: string; page?: number }) {
+  getTransactions(budgetId: number, filters?: { category?: string; start_date?: string; end_date?: string; all_months?: boolean; page?: number }) {
     let url = `budgets/${budgetId}/transactions`;
     if (filters) {
       const params = new URLSearchParams();
       if (filters.category) params.append('category', filters.category);
       if (filters.start_date) params.append('start_date', filters.start_date);
       if (filters.end_date) params.append('end_date', filters.end_date);
+      if (filters.all_months) params.append('all_months', '1');
       if (filters.page) params.append('page', filters.page.toString());
       
       const queryString = params.toString();

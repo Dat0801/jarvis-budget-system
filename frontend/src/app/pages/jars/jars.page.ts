@@ -77,13 +77,16 @@ export class JarsPage implements OnInit {
   private readonly fabOwner = 'jars-budgets';
   jars: Budget[] = [];
   expensesByCategory: Record<string, number> = {};
+  /** Raw expenses for fallback spent math when API omits `spent` (budgets = current month only). */
+  private rawExpenses: any[] = [];
   totalSaved = 0;
   totalSpent = 0;
   isLoadingJars = false;
   isCreateJarOpen = false;
   isMergeMode = false;
   selectedJarIds: number[] = [];
-  selectedBudgetCategoryValue = '';
+  selectedBudgetCategoryValues: string[] = [];
+  budgetName = '';
   budgetAmount = '';
   budgetIcon = 'basket-outline';
   budgetCurrency = 'VND';
@@ -95,11 +98,6 @@ export class JarsPage implements OnInit {
   readonly categorySelectInterfaceOptions = { cssClass: 'category-tree-sheet' };
   readonly budgetPeriodOptions: BudgetPeriod[] = ['week', 'month', 'quarter', 'year'];
   readonly currencyOptions = ['VND', 'USD', 'EUR', 'JPY', 'GBP'];
-  private readonly targetOverrides = [
-    { match: 'emergency', target: 10000 },
-    { match: 'car', target: 45000 },
-    { match: 'trip', target: 5000 },
-  ];
   private readonly targetPattern = /\[target=(\d+(?:\.\d+)?)\]/;
 
   @HostListener('document:keydown.escape', ['$event'])
@@ -169,7 +167,7 @@ export class JarsPage implements OnInit {
       const returnMode = params.get('returnMode');
 
       if (selectedCategory) {
-        this.selectedBudgetCategoryValue = selectedCategory;
+        this.selectedBudgetCategoryValues = [selectedCategory];
         if (categoryIcon) {
           this.budgetIcon = categoryIcon;
         }
@@ -230,7 +228,9 @@ export class JarsPage implements OnInit {
       this.isLoadingJars = false;
     })).subscribe(({ jars, expensesResponse }) => {
       this.jars = Array.isArray(jars) ? jars : [];
-      this.expensesByCategory = this.buildExpensesByCategory(expensesResponse);
+      const expenseList = this.extractExpenseList(expensesResponse);
+      this.rawExpenses = expenseList;
+      this.expensesByCategory = this.buildExpensesByCategory(expenseList);
       this.updateTotals();
     });
   }
@@ -245,13 +245,16 @@ export class JarsPage implements OnInit {
   }
 
   submitCreateJar(): void {
-    const category = this.selectedBudgetCategoryLabel;
+    const category = this.selectedBudgetPrimaryLabel;
+    const name = this.budgetName.trim();
     const amount = parseVndAmount(this.budgetAmount);
     if (!category || !amount) {
       return;
     }
     this.createJar({
+      name: name.length ? name : undefined,
       category,
+      category_ids: this.selectedCategoryIds,
       amount,
       icon: this.budgetIcon,
       currency_unit: this.budgetCurrency,
@@ -293,7 +296,7 @@ export class JarsPage implements OnInit {
   }
 
   get canSaveJar(): boolean {
-    return this.selectedBudgetCategoryLabel.length > 0 && !!parseVndAmount(this.budgetAmount);
+    return this.selectedCategoryIds.length > 0 && !!parseVndAmount(this.budgetAmount);
   }
 
   get budgetCategoryOptions(): BudgetCategoryOption[] {
@@ -321,45 +324,19 @@ export class JarsPage implements OnInit {
     return options;
   }
 
-  get selectedBudgetCategoryLabel(): string {
-    const selected = this.budgetCategoryOptions.find(
-      (option) => option.value === this.selectedBudgetCategoryValue
-    );
-
-    if (!selected) {
-      return '';
-    }
-
-    return selected.subCategoryName || selected.categoryName;
+  get selectedCategoryIds(): number[] {
+    return this.selectedBudgetCategoryValues
+      .map((v) => Number(String(v).split(':')[1] || v))
+      .filter((id) => Number.isFinite(id) && id > 0);
   }
 
-  async openCategorySelector(): Promise<void> {
-    const modal = await this.modalController.create({
-      component: CategoriesPage,
-      componentProps: {
-        isModal: true,
-        initialSelectMode: true,
-        initialTab: 'expense',
-        initialReturnUrl: '/tabs/budgets',
-        initialReturnMode: 'createBudget',
-      },
-    });
-
-    await modal.present();
-
-    const { data } = await modal.onDidDismiss();
-    if (data && data.selectedCategory) {
-      this.selectedBudgetCategoryValue = data.selectedCategory;
-      if (data.categoryData?.icon) {
-        this.budgetIcon = data.categoryData.icon;
-      }
-      this.loadBudgetCategories();
-      this.isCreateJarOpen = true;
-    } else {
-      // Re-open the create budget modal if canceled
-      this.isCreateJarOpen = true;
-    }
+  get selectedBudgetPrimaryLabel(): string {
+    const first = this.selectedBudgetCategoryValues[0];
+    const selected = this.budgetCategoryOptions.find((option) => option.value === first);
+    return selected?.label || '';
   }
+
+  // category selection is now done inline via multi-select
 
   get selectedPeriodLabel(): string {
     return this.getPeriodOptionLabel(this.budgetPeriod);
@@ -372,13 +349,11 @@ export class JarsPage implements OnInit {
   }
 
   getJarTarget(jar: Budget): number {
-    const name = jar.name.toLowerCase();
     const embeddedTarget = this.parseTargetFromDescription(jar.description);
     if (embeddedTarget) {
       return embeddedTarget;
     }
-    const override = this.targetOverrides.find((item) => name.includes(item.match));
-    return override?.target ?? 0;
+    return 0;
   }
 
   getJarDescription(jar: Budget): string {
@@ -425,16 +400,39 @@ export class JarsPage implements OnInit {
       return jar.spent;
     }
 
-    const jarSpent = this.expensesByCategory[`jar:${jar.id}`] || 0;
-    if (jarSpent > 0) {
-      return jarSpent;
-    }
+    return this.computeJarSpentFromRawExpenses(jar);
+  }
 
+  private computeJarSpentFromRawExpenses(jar: Budget): number {
     const categoryKey = this.toCategoryKey(jar.category || jar.name);
-    if (!categoryKey) {
-      return 0;
+    let sum = 0;
+    for (const expense of this.rawExpenses) {
+      if (!this.isExpenseInCurrentMonth(expense)) {
+        continue;
+      }
+      const amount = Math.abs(Number(expense?.amount) || 0);
+      if (expense?.jar_id === jar.id) {
+        sum += amount;
+        continue;
+      }
+      if (categoryKey && this.toCategoryKey(expense?.category) === categoryKey) {
+        sum += amount;
+      }
     }
-    return this.expensesByCategory[`cat:${categoryKey}`] || 0;
+    return sum;
+  }
+
+  private isExpenseInCurrentMonth(expense: { spent_at?: string; created_at?: string }): boolean {
+    const raw = expense?.spent_at || expense?.created_at;
+    if (!raw) {
+      return false;
+    }
+    const d = new Date(raw);
+    if (Number.isNaN(d.getTime())) {
+      return false;
+    }
+    const n = new Date();
+    return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth();
   }
 
   getJarDisplayAmount(jar: Budget): number {
@@ -583,82 +581,38 @@ export class JarsPage implements OnInit {
       return;
     }
 
-    // Validation: Check if all selected jars share the same parent category
-    const selectedJars = this.jars.filter(j => this.selectedJarIds.includes(j.id));
-    
-    // We need to fetch the category hierarchy for selected jars to verify parents
-    this.categoryService.getTree('expense').subscribe(async (response) => {
-      const allCategories = response.data || [];
-      const parentNames = new Set<string>();
+    const selectedJars = this.jars.filter((j) => this.selectedJarIds.includes(j.id));
+    const defaultName =
+      selectedJars.length === 1
+        ? `${selectedJars[0].name} (Merged)`
+        : `Merged Budget (${selectedJars.length})`;
 
-      selectedJars.forEach(jar => {
-        const jarCategoryName = jar.category || jar.name;
-        // Find which parent this category belongs to
-        const parent = allCategories.find(p => 
-          p.name === jarCategoryName || 
-          (p.children && p.children.some(c => c.name === jarCategoryName))
-        );
-        
-        if (parent) {
-          parentNames.add(parent.name);
-        } else {
-          parentNames.add('Unknown'); // Category not found in tree
-        }
-      });
-
-      if (parentNames.size > 1) {
-        this.showValidationError('Cannot merge budgets from different parent categories. Please select budgets within the same group (e.g., only Food & Dining items).');
-        return;
-      }
-
-      const commonParentName = Array.from(parentNames)[0];
-
-      const modal = await this.modalController.create({
-        component: CategoriesPage,
-        componentProps: {
-          isModal: true,
-          initialSelectMode: true,
-          initialTab: 'expense',
-          restrictTab: 'expense',
-          restrictToParentOnly: true,
-          filterByCategories: commonParentName !== 'Unknown' ? [commonParentName] : []
+    const confirmAlert = await this.alertController.create({
+      header: 'Merge Budgets',
+      message: 'Enter a name for the merged budget.',
+      inputs: [
+        {
+          name: 'name',
+          type: 'text',
+          value: defaultName,
+          placeholder: 'Budget Name',
         },
-      });
-
-      await modal.present();
-
-      const { data } = await modal.onDidDismiss();
-      if (data && data.selectedCategory) {
-        const categoryId = Number(data.selectedCategory.split(':')[1] || data.selectedCategory);
-        const categoryName = data.categoryData?.name || 'Merged Budget';
-
-        const confirmAlert = await this.alertController.create({
-          header: 'Merge Budgets',
-          message: `Are you sure you want to merge these budgets into "${categoryName}"?`,
-          inputs: [
-            {
-              name: 'name',
-              type: 'text',
-              value: categoryName,
-              placeholder: 'Budget Name',
-            },
-          ],
-          buttons: [
-            {
-              text: 'Cancel',
-              role: 'cancel',
-            },
-            {
-              text: 'Confirm Merge',
-              handler: (alertData) => {
-                this.executeMerge(alertData.name || categoryName, categoryId);
-              },
-            },
-          ],
-        });
-        await confirmAlert.present();
-      }
+      ],
+      buttons: [
+        {
+          text: 'Cancel',
+          role: 'cancel',
+        },
+        {
+          text: 'Confirm Merge',
+          handler: (alertData) => {
+            const mergedName = (alertData?.name || '').trim() || defaultName;
+            this.executeMerge(mergedName);
+          },
+        },
+      ],
     });
+    await confirmAlert.present();
   }
 
   async showValidationError(message: string): Promise<void> {
@@ -670,11 +624,10 @@ export class JarsPage implements OnInit {
     await alert.present();
   }
 
-  executeMerge(newName: string, categoryId: number): void {
+  executeMerge(newName: string): void {
     this.budgetService.merge({
       source_jar_ids: this.selectedJarIds,
       new_jar_name: newName,
-      category_id: categoryId
     }).subscribe({
       next: () => {
         this.isMergeMode = false;
@@ -688,7 +641,9 @@ export class JarsPage implements OnInit {
   }
 
   private createJar(payload: {
+    name?: string;
     category: string;
+    category_ids?: number[];
     amount: number;
     icon?: string;
     currency_unit?: string;
@@ -740,21 +695,14 @@ export class JarsPage implements OnInit {
   }
 
   private resetCreateForm(): void {
-    this.selectedBudgetCategoryValue = '';
+    this.selectedBudgetCategoryValues = [];
+    this.budgetName = '';
     this.budgetAmount = '';
     this.budgetIcon = 'basket-outline';
     this.budgetCurrency = 'VND';
     
-    // Default to 'Cash' wallet if available
-    if (this.wallets.length > 0) {
-      const cashWallet = this.wallets.find(w => 
-        w.name.toLowerCase().includes('cash') || 
-        w.name.toLowerCase().includes('tiền mặt')
-      );
-      this.budgetWalletId = cashWallet ? cashWallet.id : null;
-    } else {
-      this.budgetWalletId = null;
-    }
+    // Default wallet = all wallets
+    this.budgetWalletId = null;
     
     this.budgetPeriod = 'month';
     this.repeatThisBudget = false;
@@ -785,9 +733,7 @@ export class JarsPage implements OnInit {
     return Number.isFinite(parsed) ? parsed : 0;
   }
 
-  private buildExpensesByCategory(expensesResponse: any): Record<string, number> {
-    const expenses = this.extractExpenseList(expensesResponse);
-
+  private buildExpensesByCategory(expenses: any[]): Record<string, number> {
     return expenses.reduce((accumulator: Record<string, any>, expense: any) => {
       const categoryKey = this.toCategoryKey(expense?.category);
       const jarId = expense?.jar_id;

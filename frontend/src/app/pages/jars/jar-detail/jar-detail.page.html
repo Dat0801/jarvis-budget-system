@@ -23,7 +23,14 @@
           <div class="jar-icon-large">
             <ion-icon [name]="jar?.icon || 'basket-outline'"></ion-icon>
           </div>
-          <div class="budget-category-name">{{ jar?.category || jar?.name }}</div>
+          <div class="budget-category-name">{{ jar?.name }}</div>
+        </div>
+
+        <div class="linked-categories" *ngIf="(jar?.categories?.length || 0) > 0">
+          <ion-chip *ngFor="let c of jar?.categories">
+            <ion-icon *ngIf="c.icon" [name]="c.icon"></ion-icon>
+            <ion-label>{{ c.name }}</ion-label>
+          </ion-chip>
         </div>
 
         <div class="progress-section">
@@ -65,14 +72,27 @@
       <span>Loading transactions...</span>
     </div>
 
-    <section class="activity-section" *ngIf="!isLoadingTransactions && transactions.length > 0">
+    <section class="activity-section" *ngIf="!isLoadingTransactions">
       <div class="section-header">
         <h3 class="section-title">Transactions</h3>
         <a href="#" class="see-all-link" (click)="seeAllTransactions(); $event.preventDefault()">View Full Activity</a>
       </div>
 
       <!-- Filters -->
-      <div class="filters-row" *ngIf="subCategories.length > 0 || weeks.length > 0">
+      <div class="filters-row" *ngIf="subCategories.length > 0 || weeks.length > 0 || months.length > 0">
+        <div class="filter-item month-filter" *ngIf="months.length > 0">
+          <ion-select
+            interface="popover"
+            placeholder="This month"
+            [(ngModel)]="selectedMonthKey"
+            (ionChange)="onMonthChange($event)"
+            class="filter-select"
+          >
+            <ion-select-option [value]="''">All Months</ion-select-option>
+            <ion-select-option *ngFor="let m of months" [value]="m.key">{{ m.label }}</ion-select-option>
+          </ion-select>
+        </div>
+
         <div class="filter-item sub-category-filter" *ngIf="subCategories.length > 0">
           <ion-select
             interface="popover"
@@ -89,18 +109,18 @@
         <div class="filter-item week-filter" *ngIf="weeks.length > 0">
           <ion-select
             interface="popover"
-            placeholder="All Time"
+            placeholder="All Weeks"
             [(ngModel)]="selectedWeek"
             (ionChange)="onWeekChange($event)"
             class="filter-select"
           >
-            <ion-select-option value="">All Time</ion-select-option>
+            <ion-select-option value="">All Weeks</ion-select-option>
             <ion-select-option *ngFor="let week of weeks" [value]="week.label">{{ week.label }}</ion-select-option>
           </ion-select>
         </div>
       </div>
 
-      <div class="activity-list">
+      <div class="activity-list" *ngIf="transactions.length > 0; else emptyTransactions">
         <article class="activity-item" *ngFor="let transaction of transactions">
           <div class="activity-icon" [ngClass]="'icon-' + getTransactionColor(transaction)">
             <ion-icon [name]="getTransactionIcon(transaction)"></ion-icon>
@@ -124,6 +144,12 @@
           </div>
         </article>
       </div>
+      <ng-template #emptyTransactions>
+        <div class="empty-state">
+          <h3>No transactions for this filter</h3>
+          <p>Try choosing another month (or “All Months”).</p>
+        </div>
+      </ng-template>
     </section>
 
     <!-- Spending Insights Section -->
@@ -215,16 +241,32 @@
           <div class="section-title">Budget Details</div>
 
           <div class="field">
-            <div class="field-label">CATEGORY</div>
-            <ion-item
-              lines="none"
-              class="text-item"
-              button
-              detail="false"
-              (click)="openCategorySelector()"
-            >
-              <ion-label>{{ selectedBudgetCategoryLabel || 'Select category' }}</ion-label>
-              <ion-icon slot="end" name="chevron-forward-outline"></ion-icon>
+            <div class="field-label">NAME</div>
+            <ion-item lines="none" class="text-item">
+              <ion-input
+                type="text"
+                placeholder="Budget name"
+                [(ngModel)]="editBudgetName"
+                name="editBudgetName"
+              ></ion-input>
+            </ion-item>
+          </div>
+
+          <div class="field">
+            <div class="field-label">CATEGORIES</div>
+            <ion-item lines="none" class="text-item">
+              <ion-select
+                interface="popover"
+                multiple="true"
+                placeholder="Select categories"
+                [interfaceOptions]="categorySelectInterfaceOptions"
+                [(ngModel)]="selectedBudgetCategoryValues"
+                name="selectedBudgetCategoryValues"
+              >
+                <ion-select-option *ngFor="let opt of budgetCategoryOptions" [value]="opt.value">
+                  {{ opt.treeLabel }}
+                </ion-select-option>
+              </ion-select>
             </ion-item>
           </div>
 
@@ -264,7 +306,7 @@
                 name="editBudgetWalletId"
                 placeholder="Select wallet"
               >
-                <ion-select-option [value]="null">No specific wallet</ion-select-option>
+                <ion-select-option [value]="null">All wallets</ion-select-option>
                 <ion-select-option *ngFor="let wallet of wallets" [value]="wallet.id">
                   {{ wallet.name }}
                 </ion-select-option>

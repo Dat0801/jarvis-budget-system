@@ -112,16 +112,32 @@
           <div class="section-title">Budget Details</div>
 
           <div class="field">
-            <div class="field-label">CATEGORY</div>
-            <ion-item
-              lines="none"
-              class="text-item"
-              button
-              detail="false"
-              (click)="openCategorySelector()"
-            >
-              <ion-label>{{ selectedBudgetCategoryLabel || 'Select category' }}</ion-label>
-              <ion-icon slot="end" name="chevron-forward-outline"></ion-icon>
+            <div class="field-label">NAME</div>
+            <ion-item lines="none" class="text-item">
+              <ion-input
+                type="text"
+                placeholder="e.g. Bills, Food, Emergency fund"
+                [(ngModel)]="budgetName"
+                name="budgetName"
+              ></ion-input>
+            </ion-item>
+          </div>
+
+          <div class="field">
+            <div class="field-label">CATEGORIES</div>
+            <ion-item lines="none" class="text-item">
+              <ion-select
+                interface="popover"
+                multiple="true"
+                placeholder="Select categories"
+                [interfaceOptions]="categorySelectInterfaceOptions"
+                [(ngModel)]="selectedBudgetCategoryValues"
+                name="selectedBudgetCategoryValues"
+              >
+                <ion-select-option *ngFor="let opt of budgetCategoryOptions" [value]="opt.value">
+                  {{ opt.treeLabel }}
+                </ion-select-option>
+              </ion-select>
             </ion-item>
           </div>
 
@@ -161,7 +177,7 @@
                 name="budgetWalletId"
                 placeholder="Select wallet"
               >
-                <ion-select-option [value]="null">No specific wallet</ion-select-option>
+                <ion-select-option [value]="null">All wallets</ion-select-option>
                 <ion-select-option *ngFor="let wallet of wallets" [value]="wallet.id">
                   {{ wallet.name }}
                 </ion-select-option>
