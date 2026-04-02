@@ -1,0 +1,19 @@
+{
+    "agents": [
+        "cursor"
+    ],
+    "guidelines": true,
+    "mcp": true,
+    "nightwatch_mcp": false,
+    "packages": [
+        "barryvdh/laravel-debugbar"
+    ],
+    "sail": false,
+    "skills": [
+        "laravel-best-practices",
+        "socialite-development",
+        "inertia-vue-development",
+        "tailwindcss-development",
+        "debug-using-debugbar"
+    ]
+}

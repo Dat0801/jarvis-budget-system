@@ -1,0 +1,11 @@
+{
+    "mcpServers": {
+        "laravel-boost": {
+            "command": "sh",
+            "args": [
+                "-c",
+                "cd \"${PWD:-$(pwd)}/backend\" && php artisan boost:mcp"
+            ]
+        }
+    }
+}

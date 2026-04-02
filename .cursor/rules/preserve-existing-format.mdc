@@ -1,0 +1,10 @@
+---
+description: Preserve existing formatting; only style new or intentionally edited code
+alwaysApply: true
+---
+
+# Preserve existing code formatting
+
+- Change only what the task requires. Do not reformat, reorder imports, or “clean up” code you were not asked to change, including in the same file.
+- Match the file’s existing style for any new lines (arrays, spacing, quoting, import order).
+- Do not run Laravel Pint or full-file formatters when that would rewrite unchanged legacy or teammates’ code. Scope formatting to new files or to the exact lines you edited; otherwise skip Pint.
